@@ -51,3 +51,4 @@ tags: [backend, api, implementation, mvp]
 ## 7. 변경 이력
 - 2026-04-01: PLAN 생성 및 TASK 분해
 - 2026-04-01: TSK-0001 인증 로직 구현 완료
+- 2026-04-01: TSK-0002 업로드 로직 구현 완료

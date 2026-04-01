@@ -1,15 +1,43 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from src.core.auth import get_current_user
+from src.core.response import ok_response
 from src.services.auth_service import AuthUser
+from src.services.store import store
 
 router = APIRouter()
 
 
 @router.post("/upload")
-def upload_image(_: AuthUser = Depends(get_current_user)) -> dict:
-    return {
-        "data": {"message": "TODO: implement image upload"},
-        "error": None,
-        "meta": {},
-    }
+async def upload_image(
+    image: UploadFile = File(...),
+    user: AuthUser = Depends(get_current_user),
+) -> dict:
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "VALIDATION_INVALID_PARAM",
+                "message": "Only image files are allowed.",
+                "detail": {"field": "image"},
+            },
+        )
+
+    content = await image.read()
+    size_bytes = len(content)
+    filename = image.filename or "uploaded-image"
+
+    record = store.create_upload(
+        user_id=user.user_id,
+        filename=filename,
+        content_type=image.content_type,
+        size_bytes=size_bytes,
+    )
+
+    return ok_response(
+        {
+            "id": record.id,
+            "image_url": record.image_url,
+            "created_at": record.created_at,
+        }
+    )
