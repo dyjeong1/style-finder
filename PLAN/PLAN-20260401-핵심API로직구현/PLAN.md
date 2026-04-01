@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260401-핵심API로직구현
 title: 핵심 API 로직 구현
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-01
 updated_at: 2026-04-01
@@ -44,11 +44,12 @@ tags: [backend, api, implementation, mvp]
 
 ## 6. 검증/수용 기준(DoD)
 - [x] 인증 및 보호 라우트 접근 제어 동작
-- [ ] 업로드/추천/찜 기본 시나리오 동작
-- [ ] 응답 포맷 표준화 유지
-- [ ] README/TODO/PLAN/TASK 문서 동기화
+- [x] 업로드/추천/찜 기본 시나리오 동작
+- [x] 응답 포맷 표준화 유지
+- [x] README/TODO/PLAN/TASK 문서 동기화
 
 ## 7. 변경 이력
 - 2026-04-01: PLAN 생성 및 TASK 분해
 - 2026-04-01: TSK-0001 인증 로직 구현 완료
 - 2026-04-01: TSK-0002 업로드 로직 구현 완료
+- 2026-04-01: TSK-0003 추천/찜 로직 구현 완료

@@ -16,3 +16,15 @@ pip install -e .
 ## 헬스체크
 - `GET /health`
 - 예시: `curl http://localhost:8000/health`
+
+## 개발용 로그인 계정
+- email: `admin@stylematch.local`
+- password: `stylematch1234`
+
+## 구현된 주요 엔드포인트
+- `POST /auth/login`
+- `POST /images/upload` (Bearer 필요)
+- `GET /recommendations` (Bearer 필요)
+- `GET /wishlist` (Bearer 필요)
+- `POST /wishlist` (Bearer 필요)
+- `DELETE /wishlist/{product_id}` (Bearer 필요)
