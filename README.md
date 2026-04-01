@@ -63,6 +63,8 @@
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
+4. 상세 OpenAPI 확인:
+   - `docs/openapi/openapi.yaml`
 
 ---
 
