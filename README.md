@@ -65,6 +65,9 @@
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
 4. 상세 OpenAPI 확인:
    - `docs/openapi/openapi.yaml`
+5. DB 마이그레이션 확인:
+   - `backend/migrations/V1__init_schema.sql`
+   - `backend/migrations/R__rollback_v1.sql`
 
 ---
 
