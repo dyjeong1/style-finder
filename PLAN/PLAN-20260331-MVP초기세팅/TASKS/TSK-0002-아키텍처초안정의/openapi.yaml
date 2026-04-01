@@ -1,0 +1,314 @@
+openapi: 3.1.0
+info:
+  title: StyleMatch MVP API
+  version: 0.1.0
+  description: |
+    스타일매치 MVP를 위한 1차 API 초안입니다.
+servers:
+  - url: https://api.stylematch.local
+    description: production-like
+  - url: http://localhost:8000
+    description: local
+
+paths:
+  /auth/login:
+    post:
+      summary: 로그인
+      operationId: login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /images/upload:
+    post:
+      summary: 코디 이미지 업로드
+      operationId: uploadImage
+      tags: [Upload]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 업로드 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedImageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /recommendations:
+    get:
+      summary: 업로드 이미지 기반 추천 조회
+      operationId: getRecommendations
+      tags: [Recommendation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: uploaded_image_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProductCategory'
+        - in: query
+          name: min_price
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: max_price
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+      responses:
+        '200':
+          description: 추천 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecommendationItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /wishlist:
+    get:
+      summary: 찜 목록 조회
+      operationId: getWishlist
+      tags: [Wishlist]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProductCategory'
+      responses:
+        '200':
+          description: 찜 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WishlistItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      summary: 찜 추가
+      operationId: addWishlist
+      tags: [Wishlist]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id]
+              properties:
+                product_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: 찜 추가 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /wishlist/{product_id}:
+    delete:
+      summary: 찜 삭제
+      operationId: removeWishlist
+      tags: [Wishlist]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: product_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 삭제 성공
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequestError:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: 인증 실패
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    AuthTokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          example: 3600
+
+    UploadedImageResponse:
+      type: object
+      required: [id, image_url, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        image_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+
+    ProductCategory:
+      type: string
+      enum: [top, bottom, outer, shoes, bag, accessory]
+
+    RecommendationItem:
+      type: object
+      required: [product_id, source, product_name, category, price, product_url, image_url, similarity_score, rank]
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        source:
+          type: string
+          enum: [zigzag, 29cm]
+        product_name:
+          type: string
+        category:
+          $ref: '#/components/schemas/ProductCategory'
+        price:
+          type: integer
+        product_url:
+          type: string
+          format: uri
+        image_url:
+          type: string
+          format: uri
+        similarity_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        rank:
+          type: integer
+
+    WishlistItem:
+      type: object
+      required: [id, product_id, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        detail:
+          type: object
+          additionalProperties: true
