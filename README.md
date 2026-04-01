@@ -13,9 +13,9 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260401-API상세화및구현준비`
-- 상세 문서: `PLAN/PLAN-20260401-API상세화및구현준비/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260401-API상세화및구현준비/SPEC.md`
+- `PLAN-20260401-핵심API로직구현`
+- 상세 문서: `PLAN/PLAN-20260401-핵심API로직구현/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260401-핵심API로직구현/SPEC.md`
 
 ### 현재 저장소 구조(초기)
 ```text
