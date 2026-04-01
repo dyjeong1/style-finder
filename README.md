@@ -68,6 +68,11 @@
 5. DB 마이그레이션 확인:
    - `backend/migrations/V1__init_schema.sql`
    - `backend/migrations/R__rollback_v1.sql`
+6. 백엔드 스캐폴딩 확인:
+   - `backend/src/main.py`
+   - `backend/src/api/routes/health.py`
+   - `backend/pyproject.toml`
+   - `backend/scripts/run-dev.sh`
 
 ---
 

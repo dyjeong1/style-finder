@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260401-API상세화및구현준비
 title: API 상세화 및 구현 준비
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-01
 updated_at: 2026-04-01
@@ -46,10 +46,11 @@ tags: [api, backend, mvp, implementation]
 ## 6. 검증/수용 기준(DoD)
 - [x] OpenAPI 상세 명세 작성 완료
 - [x] DB 마이그레이션 초안 작성 완료
-- [ ] 백엔드 스캐폴딩 및 실행 가이드 반영
-- [ ] README/TODO/PLAN/TASK 문서 동기화
+- [x] 백엔드 스캐폴딩 및 실행 가이드 반영
+- [x] README/TODO/PLAN/TASK 문서 동기화
 
 ## 7. 변경 이력
 - 2026-04-01: PLAN 생성 및 TASK 분해
 - 2026-04-01: TSK-0001 OpenAPI 상세화 완료
 - 2026-04-01: TSK-0002 DB 마이그레이션 초안 작성 완료
+- 2026-04-01: TSK-0003 백엔드 스캐폴딩 완료 (FastAPI)

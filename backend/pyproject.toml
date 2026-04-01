@@ -1,0 +1,20 @@
+[project]
+name = "stylematch-backend"
+version = "0.1.0"
+description = "StyleMatch backend scaffold"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic-settings>=2.4.0"
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.uvicorn]
+app = "src.main:app"
+host = "0.0.0.0"
+port = 8000
+reload = true
