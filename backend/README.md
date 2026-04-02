@@ -18,7 +18,7 @@ pip install -e .
 - 예시: `curl http://localhost:8000/health`
 
 ## 개발용 로그인 계정
-- email: `admin@stylematch.local`
+- email: `admin@stylematch.com`
 - password: `stylematch1234`
 
 ## 구현된 주요 엔드포인트

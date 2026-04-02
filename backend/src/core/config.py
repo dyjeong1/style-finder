@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     env: str = "local"
     log_level: str = "INFO"
 
-    dev_login_email: str = "admin@stylematch.local"
+    dev_login_email: str = "admin@stylematch.com"
     dev_login_password: str = "stylematch1234"
     access_token_expires_in: int = 3600
 

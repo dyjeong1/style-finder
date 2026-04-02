@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
+from typing import Optional
 
 from src.core.auth import get_current_user
 from src.core.response import ok_response
@@ -15,7 +16,7 @@ class WishlistCreateRequest(BaseModel):
 
 @router.get("")
 def get_wishlist(
-    category: str | None = None,
+    category: Optional[str] = None,
     user: AuthUser = Depends(get_current_user),
 ) -> dict:
     items = store.list_wishlist(user_id=user.user_id, category=category)

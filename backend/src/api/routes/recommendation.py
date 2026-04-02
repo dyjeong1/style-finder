@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
 
 from src.core.auth import get_current_user
 from src.core.response import ok_response
@@ -11,9 +12,9 @@ router = APIRouter()
 @router.get("")
 def get_recommendations(
     uploaded_image_id: str = Query(...),
-    category: str | None = Query(default=None),
-    min_price: int | None = Query(default=None, ge=0),
-    max_price: int | None = Query(default=None, ge=0),
+    category: Optional[str] = Query(default=None),
+    min_price: Optional[int] = Query(default=None, ge=0),
+    max_price: Optional[int] = Query(default=None, ge=0),
     sort: str = Query(default="similarity_desc"),
     limit: int = Query(default=30, ge=1, le=100),
     _: AuthUser = Depends(get_current_user),

@@ -13,9 +13,9 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260401-핵심API로직구현`
-- 상세 문서: `PLAN/PLAN-20260401-핵심API로직구현/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260401-핵심API로직구현/SPEC.md`
+- `PLAN-20260402-API통합테스트자동화`
+- 상세 문서: `PLAN/PLAN-20260402-API통합테스트자동화/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260402-API통합테스트자동화/SPEC.md`
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -59,7 +59,7 @@
 현재는 문서/설계 중심 초기 세팅 단계이며, 실제 앱 실행 코드는 다음 PLAN에서 추가됩니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 활성 PLAN 확인: `PLAN/PLAN-20260401-API상세화및구현준비/PLAN.md`
+2. 활성 PLAN 확인: `PLAN/PLAN-20260402-API통합테스트자동화/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -73,6 +73,9 @@
    - `backend/src/api/routes/health.py`
    - `backend/pyproject.toml`
    - `backend/scripts/run-dev.sh`
+7. API 통합 테스트 확인:
+   - `backend/tests/test_api_e2e.py`
+   - 실행: `cd backend && PYTHONPATH=. python3 -m pytest tests -q`
 
 ---
 
