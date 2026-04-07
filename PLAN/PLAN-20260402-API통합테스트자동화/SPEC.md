@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260402-API통합테스트자동화
 title: API 통합 테스트 자동화 스펙
-status: review
+status: ready
 priority: P1
 created_at: 2026-04-02
 updated_at: 2026-04-02
@@ -32,4 +32,4 @@ tags: [pytest, testclient, e2e]
 ## 5. 수용 기준
 - [x] 핵심 E2E 테스트 통과
 - [x] 실패 시나리오 테스트 추가
-- [ ] 문서 업데이트 완료
+- [x] 문서 업데이트 완료

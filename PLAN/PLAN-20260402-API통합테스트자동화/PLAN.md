@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260402-API통합테스트자동화
 title: API 통합 테스트 자동화
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-02
 updated_at: 2026-04-02
@@ -40,9 +40,10 @@ tags: [test, e2e, backend, quality]
 ## 6. 검증/수용 기준(DoD)
 - [x] 핵심 E2E 테스트 작성 및 통과
 - [x] 실패 시나리오 테스트 추가
-- [ ] README/TODO/PLAN/TASK 문서 동기화
+- [x] README/TODO/PLAN/TASK 문서 동기화
 
 ## 7. 변경 이력
 - 2026-04-02: PLAN 생성 및 TASK 분해
 - 2026-04-02: TSK-0001 핵심 E2E 테스트 작성 및 통과
 - 2026-04-02: TSK-0002 실패 시나리오 테스트 확장 및 통과
+- 2026-04-07: TSK-0003 CI 테스트 워크플로우 초안 작성 완료

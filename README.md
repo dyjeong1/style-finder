@@ -16,6 +16,7 @@
 - `PLAN-20260402-API통합테스트자동화`
 - 상세 문서: `PLAN/PLAN-20260402-API통합테스트자동화/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260402-API통합테스트자동화/SPEC.md`
+- 상태: `done` (2026-04-07)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -76,6 +77,9 @@
 7. API 통합 테스트 확인:
    - `backend/tests/test_api_e2e.py`
    - 실행: `cd backend && PYTHONPATH=. python3 -m pytest tests -q`
+8. CI 테스트 워크플로우 확인:
+   - `.github/workflows/backend-tests.yml`
+   - `backend/requirements-test.txt`
 
 ---
 
