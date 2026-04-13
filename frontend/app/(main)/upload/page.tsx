@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { getStoredToken, setStoredUploadedImageId, uploadImage } from "@/lib/api";
 
@@ -11,8 +12,22 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState("");
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setFilePreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setFilePreviewUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedFile]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0] ?? null;
@@ -63,8 +78,16 @@ export default function UploadPage() {
         <button type="button" onClick={handleUpload} disabled={uploading}>
           {uploading ? "Uploading..." : "Upload & Analyze"}
         </button>
+        {filePreviewUrl ? (
+          <div className="preview-wrap">
+            <img src={filePreviewUrl} alt="selected preview" className="preview-image" />
+          </div>
+        ) : null}
         {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
         {successMessage ? <p className="success-text">{successMessage}</p> : null}
+        <p className="hint-text">
+          로그인을 아직 하지 않았다면 <Link href="/login">로그인 페이지</Link>에서 먼저 인증하세요.
+        </p>
       </article>
       <article className="card">
         <p className="eyebrow">Recent</p>

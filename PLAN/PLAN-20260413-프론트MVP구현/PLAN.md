@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260413-프론트MVP구현
 title: 프론트 MVP 구현
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-13
 updated_at: 2026-04-13
@@ -46,3 +46,4 @@ tags: [frontend, nextjs, mvp, ui]
 - 2026-04-13: PLAN 생성 및 TASK 분해
 - 2026-04-13: TSK-0001 프론트 스캐폴딩 및 핵심 라우팅 완료
 - 2026-04-13: TSK-0002 API 연동 기본 흐름(로그인/업로드/추천/찜) 완료
+- 2026-04-13: TSK-0003 UI 고도화 및 상태 처리 개선 완료, PLAN 종료

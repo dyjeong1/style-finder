@@ -34,6 +34,7 @@ export default function LoginPage() {
       <p className="eyebrow">Private Access</p>
       <h1>Login to StyleMatch</h1>
       <p className="lead">개인 테스트 계정으로 로그인해 업로드와 추천 기능을 확인하세요.</p>
+      <p className="hint-text">기본 계정: admin@stylematch.com / stylematch1234</p>
       <form className="form-grid" onSubmit={handleSubmit}>
         <label>
           Email

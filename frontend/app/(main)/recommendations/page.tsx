@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   addWishlist,
@@ -16,6 +17,8 @@ export default function RecommendationPage() {
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<SortOption>("similarity_desc");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -45,6 +48,8 @@ export default function RecommendationPage() {
           uploadedImageId,
           category: category || undefined,
           sort,
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
         },
         token,
       );
@@ -60,7 +65,14 @@ export default function RecommendationPage() {
 
   useEffect(() => {
     void loadRecommendations();
-  }, [category, sort]);
+  }, [category, sort, minPrice, maxPrice]);
+
+  function resetFilters() {
+    setCategory("");
+    setSort("similarity_desc");
+    setMinPrice("");
+    setMaxPrice("");
+  }
 
   async function handleAddWishlist(productId: string) {
     if (!token) {
@@ -96,6 +108,28 @@ export default function RecommendationPage() {
           <option value="price_asc">Price Asc</option>
           <option value="price_desc">Price Desc</option>
         </select>
+        <input
+          type="number"
+          min={0}
+          placeholder="Min Price"
+          value={minPrice}
+          onChange={(event) => setMinPrice(event.target.value)}
+        />
+        <input
+          type="number"
+          min={0}
+          placeholder="Max Price"
+          value={maxPrice}
+          onChange={(event) => setMaxPrice(event.target.value)}
+        />
+      </div>
+      <div className="action-row">
+        <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
+          Refresh
+        </button>
+        <button type="button" className="ghost-button" onClick={resetFilters}>
+          Reset Filters
+        </button>
       </div>
 
       {loading ? <p className="lead">추천 결과를 불러오는 중입니다...</p> : null}
@@ -103,6 +137,15 @@ export default function RecommendationPage() {
       {feedbackMessage ? <p className="success-text">{feedbackMessage}</p> : null}
 
       <div className="card-grid">
+        {loading
+          ? Array.from({ length: 4 }).map((_, idx) => (
+              <article className="product-card skeleton-card" key={`skeleton-${idx}`}>
+                <div className="skeleton-line skeleton-title" />
+                <div className="skeleton-line" />
+                <div className="skeleton-line skeleton-short" />
+              </article>
+            ))
+          : null}
         {items.map((item) => (
           <article className="product-card" key={item.product_id}>
             <div className="badge">{item.category.toUpperCase()}</div>
@@ -118,7 +161,14 @@ export default function RecommendationPage() {
           </article>
         ))}
       </div>
-      {!loading && items.length === 0 && !errorMessage ? <p className="lead">추천 결과가 없습니다.</p> : null}
+      {!loading && items.length === 0 && !errorMessage ? (
+        <div className="empty-box">
+          <p className="lead">추천 결과가 없습니다.</p>
+          <p className="hint-text">
+            먼저 <Link href="/upload">업로드</Link>에서 다른 이미지를 올리거나 가격 필터를 완화해보세요.
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }

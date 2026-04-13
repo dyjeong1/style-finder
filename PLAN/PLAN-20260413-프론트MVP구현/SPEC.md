@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260413-프론트MVP구현
 title: 프론트 MVP 구현 스펙
-status: review
+status: done
 priority: P1
 created_at: 2026-04-13
 updated_at: 2026-04-13
@@ -33,4 +33,5 @@ tags: [nextjs, app-router, ui]
 - [x] Next.js 프로젝트 골격 완성
 - [x] 핵심 라우트 페이지 렌더링 구조 확인
 - [x] API 연동 기본 흐름(로그인/업로드/추천/찜) 구현
+- [x] 상태 UI(로딩/에러/빈 상태) 및 모바일 UX 개선
 - [x] 문서 최신화 완료

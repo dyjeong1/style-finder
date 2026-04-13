@@ -134,6 +134,13 @@ export function setStoredToken(token: string): void {
   window.localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function clearStoredToken(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(TOKEN_KEY);
+}
+
 export function getStoredUploadedImageId(): string | null {
   if (typeof window === "undefined") {
     return null;
@@ -146,6 +153,13 @@ export function setStoredUploadedImageId(uploadedImageId: string): void {
     return;
   }
   window.localStorage.setItem(UPLOADED_IMAGE_ID_KEY, uploadedImageId);
+}
+
+export function clearStoredUploadedImageId(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(UPLOADED_IMAGE_ID_KEY);
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {

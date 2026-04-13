@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { clearStoredToken, clearStoredUploadedImageId, getStoredToken } from "@/lib/api";
 
 const navItems = [
   { href: "/login", label: "Login" },
@@ -12,6 +15,17 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(getStoredToken()));
+  }, [pathname]);
+
+  function handleSignOut() {
+    clearStoredToken();
+    clearStoredUploadedImageId();
+    setIsLoggedIn(false);
+  }
 
   return (
     <div className="app-background">
@@ -21,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/upload" className="brand">
           STYLEMATCH
         </Link>
-        <nav>
+        <nav className="top-nav-right">
           <ul className="nav-list">
             {navItems.map((item, index) => {
               const active = pathname === item.href;
@@ -34,6 +48,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </ul>
+          <div className="auth-chip-wrap">
+            <span className={isLoggedIn ? "auth-chip auth-chip-on" : "auth-chip auth-chip-off"}>
+              {isLoggedIn ? "Signed In" : "Guest"}
+            </span>
+            {isLoggedIn ? (
+              <button type="button" className="ghost-button" onClick={handleSignOut}>
+                Sign Out
+              </button>
+            ) : null}
+          </div>
         </nav>
       </header>
       <main className="page-container fade-in">{children}</main>

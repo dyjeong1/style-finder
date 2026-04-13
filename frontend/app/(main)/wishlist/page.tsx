@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { getStoredToken, getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
 
 export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
+  const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -22,7 +24,7 @@ export default function WishlistPage() {
     setErrorMessage(null);
 
     try {
-      const result = await getWishlist(token);
+      const result = await getWishlist(token, category || undefined);
       setItems(result.items);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 목록 조회 중 오류가 발생했습니다.";
@@ -35,7 +37,7 @@ export default function WishlistPage() {
 
   useEffect(() => {
     void loadWishlist();
-  }, []);
+  }, [category]);
 
   async function handleRemove(productId: string) {
     if (!token) {
@@ -56,6 +58,19 @@ export default function WishlistPage() {
     <section className="card">
       <p className="eyebrow">Saved Items</p>
       <h1>Wishlist</h1>
+      <div className="action-row">
+        <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <option value="">All Category</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+          <option value="outer">Outer</option>
+          <option value="shoes">Shoes</option>
+          <option value="bag">Bag</option>
+        </select>
+        <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
+          Refresh
+        </button>
+      </div>
       {loading ? <p className="lead">찜 목록을 불러오는 중입니다...</p> : null}
       {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
       <ul className="wishlist-list">
@@ -73,7 +88,14 @@ export default function WishlistPage() {
           </li>
         ))}
       </ul>
-      {!loading && items.length === 0 && !errorMessage ? <p className="lead">저장된 찜 상품이 없습니다.</p> : null}
+      {!loading && items.length === 0 && !errorMessage ? (
+        <div className="empty-box">
+          <p className="lead">저장된 찜 상품이 없습니다.</p>
+          <p className="hint-text">
+            <Link href="/recommendations">추천 페이지</Link>에서 마음에 드는 상품을 추가해보세요.
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }
