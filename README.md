@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260402-API통합테스트자동화`
-- 상세 문서: `PLAN/PLAN-20260402-API통합테스트자동화/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260402-API통합테스트자동화/SPEC.md`
-- 상태: `done` (2026-04-07)
+- `PLAN-20260413-프론트MVP구현`
+- 상세 문서: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260413-프론트MVP구현/SPEC.md`
+- 상태: `doing` (TSK-0001 완료, 2026-04-13)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 문서/설계 중심 초기 세팅 단계이며, 실제 앱 실행 코드는 다음 PLAN에서 추가됩니다.
+현재는 백엔드 기초와 프론트 MVP 스캐폴딩이 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 활성 PLAN 확인: `PLAN/PLAN-20260402-API통합테스트자동화/PLAN.md`
+2. 활성 PLAN 확인: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -80,6 +80,12 @@
 8. CI 테스트 워크플로우 확인:
    - `.github/workflows/backend-tests.yml`
    - `backend/requirements-test.txt`
+9. 프론트 스캐폴딩 확인:
+   - `frontend/app/(auth)/login/page.tsx`
+   - `frontend/app/(main)/upload/page.tsx`
+   - `frontend/app/(main)/recommendations/page.tsx`
+   - `frontend/app/(main)/wishlist/page.tsx`
+   - `frontend/components/app-shell.tsx`
 
 ---
 
