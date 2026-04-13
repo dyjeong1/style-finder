@@ -16,7 +16,7 @@
 - `PLAN-20260413-프론트MVP구현`
 - 상세 문서: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260413-프론트MVP구현/SPEC.md`
-- 상태: `doing` (TSK-0001 완료, 2026-04-13)
+- 상태: `doing` (TSK-0001, TSK-0002 완료, 2026-04-13)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -86,6 +86,10 @@
    - `frontend/app/(main)/recommendations/page.tsx`
    - `frontend/app/(main)/wishlist/page.tsx`
    - `frontend/components/app-shell.tsx`
+10. 프론트 API 연동 확인:
+   - `frontend/lib/api.ts`
+   - 로그인 토큰 저장 키: `stylematch_access_token`
+   - 업로드 이미지 ID 저장 키: `stylematch_uploaded_image_id`
 
 ---
 

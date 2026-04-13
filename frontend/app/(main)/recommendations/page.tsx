@@ -1,40 +1,124 @@
-const mockItems = [
-  { name: "오버핏 스트라이프 셔츠", category: "TOP", price: "39,000원", score: "0.95" },
-  { name: "와이드 데님 팬츠", category: "BOTTOM", price: "59,000원", score: "0.89" },
-  { name: "미니 숄더백", category: "BAG", price: "45,000원", score: "0.84" },
-];
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  addWishlist,
+  getRecommendations,
+  getStoredToken,
+  getStoredUploadedImageId,
+  RecommendationItem,
+} from "@/lib/api";
+
+type SortOption = "similarity_desc" | "price_asc" | "price_desc";
 
 export default function RecommendationPage() {
+  const [items, setItems] = useState<RecommendationItem[]>([]);
+  const [category, setCategory] = useState("");
+  const [sort, setSort] = useState<SortOption>("similarity_desc");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+
+  const token = useMemo(() => getStoredToken(), []);
+  const uploadedImageId = useMemo(() => getStoredUploadedImageId(), []);
+
+  async function loadRecommendations() {
+    if (!token) {
+      setErrorMessage("로그인이 필요합니다. /login에서 먼저 로그인해주세요.");
+      setItems([]);
+      return;
+    }
+
+    if (!uploadedImageId) {
+      setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
+      setItems([]);
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const result = await getRecommendations(
+        {
+          uploadedImageId,
+          category: category || undefined,
+          sort,
+        },
+        token,
+      );
+      setItems(result.items);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
+      setErrorMessage(message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadRecommendations();
+  }, [category, sort]);
+
+  async function handleAddWishlist(productId: string) {
+    if (!token) {
+      setErrorMessage("로그인이 필요합니다.");
+      return;
+    }
+
+    setFeedbackMessage(null);
+    try {
+      await addWishlist(productId, token);
+      setFeedbackMessage(`상품이 찜 목록에 추가되었습니다: ${productId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "찜 추가 중 오류가 발생했습니다.";
+      setErrorMessage(message);
+    }
+  }
+
   return (
     <section className="card">
       <p className="eyebrow">Step 2</p>
       <h1>Recommendations</h1>
       <div className="filter-row">
-        <select>
-          <option>All Category</option>
-          <option>Top</option>
-          <option>Bottom</option>
-          <option>Outer</option>
-          <option>Shoes</option>
-          <option>Bag</option>
+        <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <option value="">All Category</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+          <option value="outer">Outer</option>
+          <option value="shoes">Shoes</option>
+          <option value="bag">Bag</option>
         </select>
-        <select>
-          <option>Similarity Desc</option>
-          <option>Price Asc</option>
-          <option>Price Desc</option>
+        <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
+          <option value="similarity_desc">Similarity Desc</option>
+          <option value="price_asc">Price Asc</option>
+          <option value="price_desc">Price Desc</option>
         </select>
       </div>
+
+      {loading ? <p className="lead">추천 결과를 불러오는 중입니다...</p> : null}
+      {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
+      {feedbackMessage ? <p className="success-text">{feedbackMessage}</p> : null}
+
       <div className="card-grid">
-        {mockItems.map((item) => (
-          <article className="product-card" key={item.name}>
-            <div className="badge">{item.category}</div>
-            <h3>{item.name}</h3>
-            <p>{item.price}</p>
-            <small>similarity {item.score}</small>
-            <button type="button">Add to Wishlist</button>
+        {items.map((item) => (
+          <article className="product-card" key={item.product_id}>
+            <div className="badge">{item.category.toUpperCase()}</div>
+            <h3>{item.product_name}</h3>
+            <p>{item.price.toLocaleString("ko-KR")}원</p>
+            <small>similarity {item.similarity_score.toFixed(2)}</small>
+            <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
+              상품 보기
+            </a>
+            <button type="button" onClick={() => handleAddWishlist(item.product_id)}>
+              Add to Wishlist
+            </button>
           </article>
         ))}
       </div>
+      {!loading && items.length === 0 && !errorMessage ? <p className="lead">추천 결과가 없습니다.</p> : null}
     </section>
   );
 }
