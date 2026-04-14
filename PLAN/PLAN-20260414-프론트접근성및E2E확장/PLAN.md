@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260414-프론트접근성및E2E확장
 title: 프론트 접근성 및 E2E 확장
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-14
 updated_at: 2026-04-14
@@ -39,9 +39,10 @@ tags: [frontend, accessibility, e2e, playwright]
 
 ## 6. 검증/수용 기준(DoD)
 - [x] 접근성 관련 주요 속성/포커스 흐름이 반영됨
-- [ ] Playwright E2E 테스트가 실행 가능함
-- [ ] 문서(README/TODO/PLAN/TASK) 최신화
+- [x] Playwright E2E 테스트가 실행 가능함
+- [x] 문서(README/TODO/PLAN/TASK) 최신화
 
 ## 7. 변경 이력
 - 2026-04-14: PLAN 생성 및 TASK 분해
 - 2026-04-14: TSK-0001 프론트 접근성 개선 완료
+- 2026-04-14: TSK-0002 Playwright 핵심 흐름 E2E 구현 완료, PLAN 종료

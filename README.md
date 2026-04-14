@@ -16,7 +16,7 @@
 - `PLAN-20260414-프론트접근성및E2E확장`
 - 상세 문서: `PLAN/PLAN-20260414-프론트접근성및E2E확장/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260414-프론트접근성및E2E확장/SPEC.md`
-- 상태: `doing` (TSK-0001 진행 중, 2026-04-14)
+- 상태: `done` (접근성 개선 + Playwright E2E 완료, 2026-04-14)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -94,6 +94,10 @@
    - `frontend/package.json`
    - `frontend/package-lock.json`
    - `next@15.5.15`
+12. 프론트 E2E 테스트 확인:
+   - `frontend/playwright.config.ts`
+   - `frontend/e2e/core-flow.spec.ts`
+   - 실행: `cd frontend && npm run test:e2e`
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260414-프론트접근성및E2E확장
 title: 프론트 접근성 및 E2E 확장 스펙
-status: review
+status: done
 priority: P1
 created_at: 2026-04-14
 updated_at: 2026-04-14
@@ -29,5 +29,5 @@ tags: [frontend, accessibility, playwright]
 
 ## 5. 수용 기준
 - [x] 접근성 개선 반영
-- [ ] Playwright E2E 통과
-- [ ] 문서 최신화 완료
+- [x] Playwright E2E 통과
+- [x] 문서 최신화 완료

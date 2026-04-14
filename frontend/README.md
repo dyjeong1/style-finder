@@ -11,6 +11,13 @@ npm install
 npm run dev
 ```
 
+## 테스트
+```bash
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
 ## 주요 라우트
 - `/login`
 - `/upload`
@@ -35,3 +42,8 @@ npm run dev
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내
 - 찜 페이지: 카테고리 필터, 재조회, 빈 상태 CTA
 - 공통 네비게이션: 로그인 상태 배지 및 로그아웃 버튼
+
+## E2E 자동화
+- 도구: `@playwright/test`
+- 시나리오: 로그인 → 업로드 → 추천 조회 → 찜 추가 → 찜 해제
+- 테스트 파일: `frontend/e2e/core-flow.spec.ts`
