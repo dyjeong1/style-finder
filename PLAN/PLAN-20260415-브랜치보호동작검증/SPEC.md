@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260415-브랜치보호동작검증
 title: 브랜치 보호 동작 검증 스펙
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-15
 updated_at: 2026-04-15
@@ -31,5 +31,5 @@ tags: [github-actions, branch-protection, pull-request]
   - `.sisyphus/plans/PLAN-20260415-브랜치보호동작검증.md`
 
 ## 5. 수용 기준
-- [ ] 모든 PR에서 required check 상태 생성 가능
-- [ ] 검증용 PR 생성 및 상태 확인
+- [x] 모든 PR에서 required check 상태 생성 가능
+- [x] 검증용 PR 생성 및 상태 확인

@@ -16,7 +16,7 @@
 - `PLAN-20260415-브랜치보호동작검증`
 - 상세 문서: `PLAN/PLAN-20260415-브랜치보호동작검증/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260415-브랜치보호동작검증/SPEC.md`
-- 상태: `doing` (required check 실동작 검증 진행 중, 2026-04-15)
+- 상태: `done` (PR #1 기준 required check 실동작 검증 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,7 +57,7 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용까지 완료됐고, 이어서 실제 PR 게이트 검증을 진행 중입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, 그리고 PR 기준 required check 실동작 검증까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
 2. 최신 PLAN 확인: `PLAN/PLAN-20260415-브랜치보호동작검증/PLAN.md`
@@ -107,6 +107,9 @@
 15. 브랜치 보호 적용 상태 확인:
    - GitHub 저장소 `dyjeong1/style-finder`의 `main` 브랜치에 보호 규칙 적용 완료
    - required check: `Backend Tests / test`, `Frontend E2E / e2e`
+16. 브랜치 보호 실검증 확인:
+   - PR #1: `https://github.com/dyjeong1/style-finder/pull/1`
+   - `pull_request` 기준 백엔드/프론트 required check 생성 확인
 
 ---
 

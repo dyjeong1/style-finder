@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260415-브랜치보호동작검증
 title: 브랜치 보호 동작 검증
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-15
 updated_at: 2026-04-15
@@ -38,10 +38,11 @@ tags: [github, branch-protection, ci, verification]
 - 운영 가정: 현재 required check 이름은 `Backend Tests / test`, `Frontend E2E / e2e`로 유지합니다.
 
 ## 6. 검증/수용 기준(DoD)
-- [ ] required check 대상 워크플로우가 모든 PR에서 실행되도록 정리됨
-- [ ] 검증용 PR이 생성되고 브랜치 보호 게이트 상태를 확인함
-- [ ] PLAN/TASK/README/TODO가 최신 상태로 갱신됨
+- [x] required check 대상 워크플로우가 모든 PR에서 실행되도록 정리됨
+- [x] 검증용 PR이 생성되고 브랜치 보호 게이트 상태를 확인함
+- [x] PLAN/TASK/README/TODO가 최신 상태로 갱신됨
 
 ## 7. 변경 이력
 - 2026-04-15: PLAN 생성
 - 2026-04-15: TSK-0001에서 required check 워크플로우를 모든 PR/Push에서 실행되도록 보강
+- 2026-04-15: TSK-0002에서 PR #1 생성 및 Checks 탭 기준 required check 생성 확인
