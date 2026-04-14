@@ -2,13 +2,7 @@ name: Frontend E2E
 
 on:
   push:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-e2e.yml"
   pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-e2e.yml"
 
 jobs:
   e2e:
