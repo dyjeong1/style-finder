@@ -1,10 +1,10 @@
 ---
 id: SPEC-PLAN-20260414-브랜치보호및필수체크연동
 title: 브랜치 보호 및 필수 체크 연동 스펙
-status: review
+status: done
 priority: P1
 created_at: 2026-04-14
-updated_at: 2026-04-14
+updated_at: 2026-04-15
 related:
   plan: [PLAN-20260414-브랜치보호및필수체크연동]
   tasks: [TSK-0001-보호정책스크립트준비, TSK-0002-원격브랜치보호적용]
@@ -12,12 +12,13 @@ tags: [github, protection, required-check]
 ---
 
 ## 1. 목적
-메인 브랜치 보호 규칙과 필수 체크 구성을 저장소에 선언적으로 남기고, 원격 연결 후 즉시 적용 가능하게 준비합니다.
+메인 브랜치 보호 규칙과 필수 체크 구성을 저장소에 선언적으로 남기고, GitHub 원격 저장소에 실제 적용합니다.
 
 ## 2. 기능 스펙
 - 브랜치 보호 정책 JSON 작성
 - GitHub API 호출 스크립트 작성
 - 적용 방법/필수 체크 이름 문서화
+- 원격 저장소 `main` 브랜치 보호 적용
 
 ## 3. 비기능 스펙
 - 정책은 재실행 가능해야 함
@@ -31,4 +32,4 @@ tags: [github, protection, required-check]
 ## 5. 수용 기준
 - [x] 보호 정책 파일 추가
 - [x] 적용 스크립트 추가
-- [x] blocker 및 후속 절차 문서화
+- [x] 브랜치 보호 규칙 실제 적용

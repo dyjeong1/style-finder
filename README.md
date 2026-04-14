@@ -16,7 +16,7 @@
 - `PLAN-20260414-브랜치보호및필수체크연동`
 - 상세 문서: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/SPEC.md`
-- 상태: `blocked` (정책/스크립트 준비 완료, 원격 저장소/인증 필요, 2026-04-14)
+- 상태: `done` (브랜치 보호 및 필수 체크 적용 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초와 프론트 MVP 스캐폴딩이 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 활성 PLAN 확인: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -104,6 +104,9 @@
    - `.github/branch-protection/main.json`
    - `scripts/apply-branch-protection.sh`
    - `docs/github-branch-protection.md`
+15. 브랜치 보호 적용 상태 확인:
+   - GitHub 저장소 `dyjeong1/style-finder`의 `main` 브랜치에 보호 규칙 적용 완료
+   - required check: `Backend Tests / test`, `Frontend E2E / e2e`
 
 ---
 
