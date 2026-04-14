@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260415-브랜치보호운영정책정리] solo 운영 기준 브랜치 보호 정책 정리
+- [x] [TSK-0001-솔로운영병합정책조정] 승인 수 정책 조정 및 운영 문서 정리
 - [x] [PLAN-20260415-GitHubActionsNode24대응] GitHub Actions Node 24 대응
 - [x] [TSK-0001-워크플로우액션버전업데이트] CI 액션 버전 상향 및 경고 대응
 - [x] [PLAN-20260415-브랜치보호동작검증] required check 실동작 검증
