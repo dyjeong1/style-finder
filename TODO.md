@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260414-프론트E2ECI연동] 프론트 E2E GitHub Actions 연동
+- [x] [TSK-0001-Playwright워크플로우추가] Playwright CI 워크플로우 작성
 - [x] [PLAN-20260414-프론트접근성및E2E확장] 접근성 개선 및 브라우저 E2E 도입
 - [x] [TSK-0001-프론트접근성개선] 레이블/상태 메시지/포커스 흐름 개선
 - [x] [PLAN-20260414-프론트보안업그레이드] Next.js 보안 패치 업그레이드
@@ -16,7 +18,7 @@
 
 ## Next
 - [x] [TSK-0002-PlaywrightE2E구현] 로그인→업로드→추천→찜 흐름 브라우저 테스트 추가
-- [ ] [다음 PLAN] 프론트 E2E를 CI 워크플로우에 연동
+- [ ] [다음 PLAN] 브랜치 보호 규칙과 프론트 E2E required check 연동
 
 ## Later
 - [ ] [다음 PLAN] 브랜치 보호 규칙과 CI required check 연동

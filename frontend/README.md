@@ -47,3 +47,8 @@ npm run test:e2e
 - 도구: `@playwright/test`
 - 시나리오: 로그인 → 업로드 → 추천 조회 → 찜 추가 → 찜 해제
 - 테스트 파일: `frontend/e2e/core-flow.spec.ts`
+
+## CI 자동화
+- 워크플로우: `.github/workflows/frontend-e2e.yml`
+- 트리거: `frontend/**` 또는 워크플로우 파일 변경 시
+- 업로드 아티팩트: `playwright-report`, `test-results`

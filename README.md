@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260414-프론트접근성및E2E확장`
-- 상세 문서: `PLAN/PLAN-20260414-프론트접근성및E2E확장/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260414-프론트접근성및E2E확장/SPEC.md`
-- 상태: `done` (접근성 개선 + Playwright E2E 완료, 2026-04-14)
+- `PLAN-20260414-프론트E2ECI연동`
+- 상세 문서: `PLAN/PLAN-20260414-프론트E2ECI연동/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260414-프론트E2ECI연동/SPEC.md`
+- 상태: `done` (Playwright GitHub Actions 연동 완료, 2026-04-14)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -98,6 +98,8 @@
    - `frontend/playwright.config.ts`
    - `frontend/e2e/core-flow.spec.ts`
    - 실행: `cd frontend && npm run test:e2e`
+13. 프론트 E2E CI 확인:
+   - `.github/workflows/frontend-e2e.yml`
 
 ---
 
