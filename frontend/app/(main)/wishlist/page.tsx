@@ -55,25 +55,38 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="card">
+    <section className="card" aria-labelledby="wishlist-title" aria-busy={loading}>
       <p className="eyebrow">Saved Items</p>
-      <h1>Wishlist</h1>
+      <h1 id="wishlist-title">Wishlist</h1>
       <div className="action-row">
-        <select value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="">All Category</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-          <option value="outer">Outer</option>
-          <option value="shoes">Shoes</option>
-          <option value="bag">Bag</option>
-        </select>
+        <label className="control-field" htmlFor="wishlist-category">
+          <span className="sr-only">찜 카테고리 필터</span>
+          <select id="wishlist-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+            <option value="">All Category</option>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+            <option value="outer">Outer</option>
+            <option value="shoes">Shoes</option>
+            <option value="bag">Bag</option>
+          </select>
+        </label>
         <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
           Refresh
         </button>
       </div>
-      {loading ? <p className="lead">찜 목록을 불러오는 중입니다...</p> : null}
-      {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
-      <ul className="wishlist-list">
+      <div className="status-region" aria-live="polite" aria-atomic="true">
+        {loading ? (
+          <p className="lead" role="status">
+            찜 목록을 불러오는 중입니다...
+          </p>
+        ) : null}
+        {errorMessage ? (
+          <p className="error-text" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
+      </div>
+      <ul className="wishlist-list" aria-label="찜 목록">
         {items.map((item) => (
           <li key={item.id}>
             <div>
@@ -81,7 +94,7 @@ export default function WishlistPage() {
               <p>{new Date(item.created_at).toLocaleString("ko-KR")}</p>
             </div>
             <div className="wishlist-right">
-              <button type="button" onClick={() => handleRemove(item.product_id)}>
+              <button type="button" aria-label={`${item.product_id} 찜 해제`} onClick={() => handleRemove(item.product_id)}>
                 Remove
               </button>
             </div>

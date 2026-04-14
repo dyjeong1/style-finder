@@ -91,37 +91,53 @@ export default function RecommendationPage() {
   }
 
   return (
-    <section className="card">
+    <section className="card" aria-labelledby="recommendations-title" aria-busy={loading}>
       <p className="eyebrow">Step 2</p>
-      <h1>Recommendations</h1>
+      <h1 id="recommendations-title">Recommendations</h1>
       <div className="filter-row">
-        <select value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="">All Category</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-          <option value="outer">Outer</option>
-          <option value="shoes">Shoes</option>
-          <option value="bag">Bag</option>
-        </select>
-        <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
-          <option value="similarity_desc">Similarity Desc</option>
-          <option value="price_asc">Price Asc</option>
-          <option value="price_desc">Price Desc</option>
-        </select>
-        <input
-          type="number"
-          min={0}
-          placeholder="Min Price"
-          value={minPrice}
-          onChange={(event) => setMinPrice(event.target.value)}
-        />
-        <input
-          type="number"
-          min={0}
-          placeholder="Max Price"
-          value={maxPrice}
-          onChange={(event) => setMaxPrice(event.target.value)}
-        />
+        <label className="control-field" htmlFor="recommendation-category">
+          <span className="sr-only">카테고리 필터</span>
+          <select id="recommendation-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+            <option value="">All Category</option>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+            <option value="outer">Outer</option>
+            <option value="shoes">Shoes</option>
+            <option value="bag">Bag</option>
+          </select>
+        </label>
+        <label className="control-field" htmlFor="recommendation-sort">
+          <span className="sr-only">정렬 방식</span>
+          <select id="recommendation-sort" value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
+            <option value="similarity_desc">Similarity Desc</option>
+            <option value="price_asc">Price Asc</option>
+            <option value="price_desc">Price Desc</option>
+          </select>
+        </label>
+        <label className="control-field" htmlFor="recommendation-min-price">
+          <span className="sr-only">최소 가격</span>
+          <input
+            id="recommendation-min-price"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder="Min Price"
+            value={minPrice}
+            onChange={(event) => setMinPrice(event.target.value)}
+          />
+        </label>
+        <label className="control-field" htmlFor="recommendation-max-price">
+          <span className="sr-only">최대 가격</span>
+          <input
+            id="recommendation-max-price"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder="Max Price"
+            value={maxPrice}
+            onChange={(event) => setMaxPrice(event.target.value)}
+          />
+        </label>
       </div>
       <div className="action-row">
         <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
@@ -132,14 +148,28 @@ export default function RecommendationPage() {
         </button>
       </div>
 
-      {loading ? <p className="lead">추천 결과를 불러오는 중입니다...</p> : null}
-      {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
-      {feedbackMessage ? <p className="success-text">{feedbackMessage}</p> : null}
+      <div className="status-region" aria-live="polite" aria-atomic="true">
+        {loading ? (
+          <p className="lead" role="status">
+            추천 결과를 불러오는 중입니다...
+          </p>
+        ) : null}
+        {errorMessage ? (
+          <p className="error-text" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
+        {feedbackMessage ? (
+          <p className="success-text" role="status">
+            {feedbackMessage}
+          </p>
+        ) : null}
+      </div>
 
-      <div className="card-grid">
+      <div className="card-grid" role="list" aria-label="추천 상품 목록">
         {loading
           ? Array.from({ length: 4 }).map((_, idx) => (
-              <article className="product-card skeleton-card" key={`skeleton-${idx}`}>
+              <article className="product-card skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
                 <div className="skeleton-line skeleton-title" />
                 <div className="skeleton-line" />
                 <div className="skeleton-line skeleton-short" />
@@ -147,7 +177,7 @@ export default function RecommendationPage() {
             ))
           : null}
         {items.map((item) => (
-          <article className="product-card" key={item.product_id}>
+          <article className="product-card" key={item.product_id} role="listitem">
             <div className="badge">{item.category.toUpperCase()}</div>
             <h3>{item.product_name}</h3>
             <p>{item.price.toLocaleString("ko-KR")}원</p>
@@ -155,7 +185,7 @@ export default function RecommendationPage() {
             <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
               상품 보기
             </a>
-            <button type="button" onClick={() => handleAddWishlist(item.product_id)}>
+            <button type="button" aria-label={`${item.product_name} 찜 추가`} onClick={() => handleAddWishlist(item.product_id)}>
               Add to Wishlist
             </button>
           </article>

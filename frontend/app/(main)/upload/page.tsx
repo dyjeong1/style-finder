@@ -66,32 +66,53 @@ export default function UploadPage() {
   }
 
   return (
-    <section className="split-grid">
-      <article className="card upload-dropzone">
+    <section className="split-grid" aria-labelledby="upload-title">
+      <article className="card upload-dropzone" aria-busy={uploading}>
         <p className="eyebrow">Step 1</p>
-        <h1>Upload Outfit Image</h1>
-        <p className="lead">코디 이미지를 올리면 카테고리별 추천 결과를 생성합니다.</p>
+        <h1 id="upload-title">Upload Outfit Image</h1>
+        <p id="upload-description" className="lead">
+          코디 이미지를 올리면 카테고리별 추천 결과를 생성합니다.
+        </p>
         <label className="dropzone" htmlFor="image-input">
           {fileName || "Drop image here or click to browse"}
         </label>
-        <input id="image-input" type="file" accept="image/*" onChange={handleFileChange} />
-        <button type="button" onClick={handleUpload} disabled={uploading}>
+        <input
+          id="image-input"
+          type="file"
+          accept="image/*"
+          aria-describedby="upload-description upload-help"
+          onChange={handleFileChange}
+        />
+        <p id="upload-help" className="hint-text">
+          JPG, PNG, WEBP 등 이미지 파일을 선택할 수 있습니다.
+        </p>
+        <button type="button" onClick={handleUpload} disabled={uploading} aria-busy={uploading}>
           {uploading ? "Uploading..." : "Upload & Analyze"}
         </button>
         {filePreviewUrl ? (
           <div className="preview-wrap">
-            <img src={filePreviewUrl} alt="selected preview" className="preview-image" />
+            <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="preview-image" />
           </div>
         ) : null}
-        {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
-        {successMessage ? <p className="success-text">{successMessage}</p> : null}
+        <div className="status-region" aria-live="polite" aria-atomic="true">
+          {errorMessage ? (
+            <p className="error-text" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+          {successMessage ? (
+            <p className="success-text" role="status">
+              {successMessage}
+            </p>
+          ) : null}
+        </div>
         <p className="hint-text">
           로그인을 아직 하지 않았다면 <Link href="/login">로그인 페이지</Link>에서 먼저 인증하세요.
         </p>
       </article>
-      <article className="card">
+      <article className="card" aria-labelledby="recent-upload-title">
         <p className="eyebrow">Recent</p>
-        <h2>최근 업로드</h2>
+        <h2 id="recent-upload-title">최근 업로드</h2>
         <ul className="simple-list">
           <li>street-look-0413.png</li>
           <li>spring-office-fit.jpg</li>
