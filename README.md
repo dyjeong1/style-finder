@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260415-브랜치보호동작검증`
-- 상세 문서: `PLAN/PLAN-20260415-브랜치보호동작검증/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260415-브랜치보호동작검증/SPEC.md`
-- 상태: `done` (PR #1 기준 required check 실동작 검증 완료, 2026-04-15)
+- `PLAN-20260415-GitHubActionsNode24대응`
+- 상세 문서: `PLAN/PLAN-20260415-GitHubActionsNode24대응/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260415-GitHubActionsNode24대응/SPEC.md`
+- 상태: `done` (GitHub Actions Node 24 대응 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, 그리고 PR 기준 required check 실동작 검증까지 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 최신 PLAN 확인: `PLAN/PLAN-20260415-브랜치보호동작검증/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260415-GitHubActionsNode24대응/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -110,6 +110,11 @@
 16. 브랜치 보호 실검증 확인:
    - PR #1: `https://github.com/dyjeong1/style-finder/pull/1`
    - `pull_request` 기준 백엔드/프론트 required check 생성 확인
+17. GitHub Actions Node 24 대응 확인:
+   - `actions/checkout@v5`
+   - `actions/setup-python@v6`
+   - `actions/setup-node@v5`
+   - `actions/upload-artifact@v6`
 
 ---
 

@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260415-GitHubActionsNode24대응] GitHub Actions Node 24 대응
+- [x] [TSK-0001-워크플로우액션버전업데이트] CI 액션 버전 상향 및 경고 대응
 - [x] [PLAN-20260415-브랜치보호동작검증] required check 실동작 검증
 - [x] [TSK-0001-워크플로우게이트보강] 모든 PR에서 체크 상태가 생성되도록 워크플로우 보강
 - [x] [TSK-0002-PR게이트실검증] 검증용 PR 생성 및 상태 확인
@@ -25,7 +27,7 @@
 ## Next
 - [x] [TSK-0002-PlaywrightE2E구현] 로그인→업로드→추천→찜 흐름 브라우저 테스트 추가
 - [ ] [다음 PLAN] 브랜치 보호 적용 후 운영 규칙/예외 케이스 정리
-- [ ] [다음 PLAN] GitHub Actions Node 20 deprecation 대응
+- [ ] [다음 PLAN] PR 승인 흐름 정착 또는 외부 리뷰어 확보
 
 ## Later
 - [ ] [다음 PLAN] 업로드 이미지 분석/벡터화 및 추천 점수 고도화
