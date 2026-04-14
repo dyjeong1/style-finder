@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260413-프론트MVP구현`
-- 상세 문서: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260413-프론트MVP구현/SPEC.md`
-- 상태: `done` (TSK-0001~0003 완료, 2026-04-13)
+- `PLAN-20260414-프론트보안업그레이드`
+- 상세 문서: `PLAN/PLAN-20260414-프론트보안업그레이드/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260414-프론트보안업그레이드/SPEC.md`
+- 상태: `done` (`next@15.5.15`, audit/build 검증 완료, 2026-04-14)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -90,6 +90,10 @@
    - `frontend/lib/api.ts`
    - 로그인 토큰 저장 키: `stylematch_access_token`
    - 업로드 이미지 ID 저장 키: `stylematch_uploaded_image_id`
+11. 프론트 보안 업그레이드 확인:
+   - `frontend/package.json`
+   - `frontend/package-lock.json`
+   - `next@15.5.15`
 
 ---
 

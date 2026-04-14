@@ -21,6 +21,10 @@ npm run dev
 - 환경변수: `NEXT_PUBLIC_API_BASE_URL`
 - 기본값: `http://localhost:8000`
 
+## 의존성 보안 상태
+- `next`: `15.5.15`
+- 검증: `npm audit` 기준 `0 vulnerabilities`
+
 ## 현재 연결된 API 흐름
 - `/login`: `POST /auth/login` 호출 후 토큰을 `stylematch_access_token`에 저장
 - `/upload`: `POST /images/upload` 호출 후 업로드 ID를 `stylematch_uploaded_image_id`에 저장
