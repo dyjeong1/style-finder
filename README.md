@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260414-프론트E2ECI연동`
-- 상세 문서: `PLAN/PLAN-20260414-프론트E2ECI연동/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260414-프론트E2ECI연동/SPEC.md`
-- 상태: `done` (Playwright GitHub Actions 연동 완료, 2026-04-14)
+- `PLAN-20260414-브랜치보호및필수체크연동`
+- 상세 문서: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/SPEC.md`
+- 상태: `blocked` (정책/스크립트 준비 완료, 원격 저장소/인증 필요, 2026-04-14)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -100,6 +100,10 @@
    - 실행: `cd frontend && npm run test:e2e`
 13. 프론트 E2E CI 확인:
    - `.github/workflows/frontend-e2e.yml`
+14. 브랜치 보호 준비 확인:
+   - `.github/branch-protection/main.json`
+   - `scripts/apply-branch-protection.sh`
+   - `docs/github-branch-protection.md`
 
 ---
 

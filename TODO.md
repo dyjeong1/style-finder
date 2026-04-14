@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [ ] [PLAN-20260414-브랜치보호및필수체크연동] 브랜치 보호 정책 및 필수 체크 연동 준비
+- [x] [TSK-0001-보호정책스크립트준비] 정책 파일/스크립트/문서 작성
 - [x] [PLAN-20260414-프론트E2ECI연동] 프론트 E2E GitHub Actions 연동
 - [x] [TSK-0001-Playwright워크플로우추가] Playwright CI 워크플로우 작성
 - [x] [PLAN-20260414-프론트접근성및E2E확장] 접근성 개선 및 브라우저 E2E 도입
@@ -18,7 +20,7 @@
 
 ## Next
 - [x] [TSK-0002-PlaywrightE2E구현] 로그인→업로드→추천→찜 흐름 브라우저 테스트 추가
-- [ ] [다음 PLAN] 브랜치 보호 규칙과 프론트 E2E required check 연동
+- [ ] [TSK-0002-원격브랜치보호적용] remote/인증 확보 후 실제 보호 규칙 적용
 
 ## Later
 - [ ] [다음 PLAN] 브랜치 보호 규칙과 CI required check 연동
@@ -27,4 +29,5 @@
 - [ ] [PLAN-20260331-MVP초기세팅] 쇼핑몰 연동 정책(약관/API/로봇 정책) 점검 체크리스트 작성
 
 ## Blocked
+- [ ] GitHub 원격 저장소/토큰 부재로 브랜치 보호 규칙 실제 적용 보류 (담당: owner, ETA: 미정)
 - [ ] 외부 쇼핑몰(지그재그/29CM) 공식 데이터 접근 정책 확인 필요 (담당: owner, ETA: 미정)
