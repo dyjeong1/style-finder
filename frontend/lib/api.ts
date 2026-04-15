@@ -2,6 +2,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8
 
 const TOKEN_KEY = "stylematch_access_token";
 const UPLOADED_IMAGE_ID_KEY = "stylematch_uploaded_image_id";
+const UPLOADED_IMAGE_ANALYSIS_KEY = "stylematch_uploaded_image_analysis";
 
 type ApiMeta = {
   request_id: string;
@@ -26,10 +27,34 @@ type LoginResponse = {
   expires_in: number;
 };
 
+export type UploadAnalysis = {
+  checksum: string;
+  dominant_tone: string;
+  style_mood: string;
+  silhouette: string;
+  preferred_categories: string[];
+};
+
 export type UploadedImage = {
   id: string;
   image_url: string;
   created_at: string;
+  analysis: UploadAnalysis;
+};
+
+export type RecommendationScoreBreakdown = {
+  vector_similarity: number;
+  tone_bonus: number;
+  mood_bonus: number;
+  silhouette_bonus: number;
+  category_bonus: number;
+};
+
+export type RecommendationMatchedSignals = {
+  dominant_tone: string;
+  style_mood: string;
+  silhouette: string;
+  preferred_categories: string[];
 };
 
 export type RecommendationItem = {
@@ -42,6 +67,8 @@ export type RecommendationItem = {
   image_url: string;
   similarity_score: number;
   rank: number;
+  score_breakdown: RecommendationScoreBreakdown;
+  matched_signals: RecommendationMatchedSignals;
 };
 
 type RecommendationListResponse = {
@@ -160,6 +187,30 @@ export function clearStoredUploadedImageId(): void {
     return;
   }
   window.localStorage.removeItem(UPLOADED_IMAGE_ID_KEY);
+}
+
+export function getStoredUploadedImageAnalysis(): UploadAnalysis | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(UPLOADED_IMAGE_ANALYSIS_KEY);
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawValue) as UploadAnalysis;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUploadedImageAnalysis(analysis: UploadAnalysis): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(UPLOADED_IMAGE_ANALYSIS_KEY, JSON.stringify(analysis));
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {

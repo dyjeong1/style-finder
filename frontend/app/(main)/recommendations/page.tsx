@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   addWishlist,
   getRecommendations,
+  getStoredUploadedImageAnalysis,
   getStoredToken,
   getStoredUploadedImageId,
   RecommendationItem,
@@ -25,6 +26,7 @@ export default function RecommendationPage() {
 
   const token = useMemo(() => getStoredToken(), []);
   const uploadedImageId = useMemo(() => getStoredUploadedImageId(), []);
+  const uploadedImageAnalysis = useMemo(() => getStoredUploadedImageAnalysis(), []);
 
   async function loadRecommendations() {
     if (!token) {
@@ -166,6 +168,18 @@ export default function RecommendationPage() {
         ) : null}
       </div>
 
+      {uploadedImageAnalysis ? (
+        <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
+          <h2>Upload Analysis</h2>
+          <div className="analysis-chip-row">
+            <span className="analysis-chip">tone {uploadedImageAnalysis.dominant_tone}</span>
+            <span className="analysis-chip">mood {uploadedImageAnalysis.style_mood}</span>
+            <span className="analysis-chip">fit {uploadedImageAnalysis.silhouette}</span>
+          </div>
+          <p className="hint-text">preferred categories: {uploadedImageAnalysis.preferred_categories.join(", ")}</p>
+        </section>
+      ) : null}
+
       <div className="card-grid" role="list" aria-label="추천 상품 목록">
         {loading
           ? Array.from({ length: 4 }).map((_, idx) => (
@@ -182,6 +196,29 @@ export default function RecommendationPage() {
             <h3>{item.product_name}</h3>
             <p>{item.price.toLocaleString("ko-KR")}원</p>
             <small>similarity {item.similarity_score.toFixed(2)}</small>
+            <div className="signal-list">
+              <span>tone {item.matched_signals.dominant_tone}</span>
+              <span>mood {item.matched_signals.style_mood}</span>
+              <span>fit {item.matched_signals.silhouette}</span>
+            </div>
+            <dl className="score-breakdown">
+              <div>
+                <dt>Vector</dt>
+                <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>Tone</dt>
+                <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>Mood</dt>
+                <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>Fit</dt>
+                <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
+              </div>
+            </dl>
             <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
               상품 보기
             </a>

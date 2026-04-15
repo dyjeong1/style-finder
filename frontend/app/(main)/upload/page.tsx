@@ -4,7 +4,13 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { getStoredToken, setStoredUploadedImageId, uploadImage } from "@/lib/api";
+import {
+  getStoredToken,
+  setStoredUploadedImageAnalysis,
+  setStoredUploadedImageId,
+  UploadAnalysis,
+  uploadImage,
+} from "@/lib/api";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -13,6 +19,7 @@ export default function UploadPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
+  const [analysis, setAnalysis] = useState<UploadAnalysis | null>(null);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
 
@@ -34,6 +41,7 @@ export default function UploadPage() {
     setSelectedFile(nextFile);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setAnalysis(null);
   }
 
   async function handleUpload() {
@@ -55,6 +63,8 @@ export default function UploadPage() {
     try {
       const uploaded = await uploadImage(selectedFile, token);
       setStoredUploadedImageId(uploaded.id);
+      setStoredUploadedImageAnalysis(uploaded.analysis);
+      setAnalysis(uploaded.analysis);
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
       router.push("/recommendations");
     } catch (error) {
@@ -92,6 +102,18 @@ export default function UploadPage() {
         {filePreviewUrl ? (
           <div className="preview-wrap">
             <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="preview-image" />
+          </div>
+        ) : null}
+        {analysis ? (
+          <div className="analysis-panel">
+            <h2>Quick Analysis</h2>
+            <div className="analysis-chip-row">
+              <span className="analysis-chip">tone {analysis.dominant_tone}</span>
+              <span className="analysis-chip">mood {analysis.style_mood}</span>
+              <span className="analysis-chip">fit {analysis.silhouette}</span>
+            </div>
+            <p className="hint-text">preferred: {analysis.preferred_categories.join(", ")}</p>
+            <p className="hint-text">checksum: {analysis.checksum}</p>
           </div>
         ) : null}
         <div className="status-region" aria-live="polite" aria-atomic="true">

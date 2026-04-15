@@ -16,7 +16,7 @@
 - `PLAN-20260415-업로드이미지분석고도화`
 - 상세 문서: `PLAN/PLAN-20260415-업로드이미지분석고도화/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260415-업로드이미지분석고도화/SPEC.md`
-- 상태: `done` (백엔드 업로드 분석/추천 점수 고도화 완료, 2026-04-15)
+- 상태: `done` (프론트 분석 결과 노출까지 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,7 +57,7 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화까지 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 프론트 노출까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
 2. 최신 PLAN 확인: `PLAN/PLAN-20260415-업로드이미지분석고도화/PLAN.md`
@@ -123,6 +123,9 @@
 20. 업로드 분석/추천 점수 메모:
    - 업로드 응답에 `analysis` 요약이 포함됨
    - 추천 응답은 upload feature vector 기반 `score_breakdown`과 `matched_signals`를 포함함
+21. 프론트 분석 노출 메모:
+   - `/upload`에서 업로드 직후 Quick Analysis 확인 가능
+   - `/recommendations`에서 Upload Analysis와 상품별 score breakdown 확인 가능
 
 ---
 
