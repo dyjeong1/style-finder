@@ -6,7 +6,7 @@ priority: P1
 created_at: 2026-04-15
 updated_at: 2026-04-15
 related:
-  tasks: [TSK-0001-백엔드이미지분석및점수고도화, TSK-0002-프론트분석결과노출]
+  tasks: [TSK-0001-백엔드이미지분석및점수고도화, TSK-0002-프론트분석결과노출, TSK-0003-프론트E2E목응답동기화]
 tags: [backend, image-analysis, recommendation, scoring]
 ---
 
@@ -41,6 +41,7 @@ tags: [backend, image-analysis, recommendation, scoring]
 - [x] 업로드 응답에 분석 메타데이터가 포함됨
 - [x] 추천 점수가 업로드별로 달라지는 deterministic 로직으로 계산됨
 - [x] 프론트에서 분석 요약과 점수 분해를 노출함
+- [x] Playwright E2E mock 응답이 최신 API 스키마와 동기화됨
 - [x] 테스트/README/TODO/PLAN/TASK 문서가 갱신됨
 
 ## 7. 변경 이력
@@ -48,3 +49,5 @@ tags: [backend, image-analysis, recommendation, scoring]
 - 2026-04-15: 업로드 분석 메타데이터와 deterministic 추천 점수 로직 구현 완료
 - 2026-04-15: 프론트 업로드/추천 화면에 분석 결과 노출 작업 착수
 - 2026-04-15: TSK-0002에서 업로드/추천 화면 분석 요약 노출 및 프론트 빌드 검증 완료
+- 2026-04-15: PR #2 확인 중 Playwright mock 응답 스키마 불일치 발견, TSK-0003 착수
+- 2026-04-15: TSK-0003에서 Playwright mock 응답 동기화 및 E2E 재통과 완료
