@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260415-업로드이미지분석고도화`
-- 상세 문서: `PLAN/PLAN-20260415-업로드이미지분석고도화/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260415-업로드이미지분석고도화/SPEC.md`
-- 상태: `done` (업로드 히스토리 연결까지 완료, 2026-04-15)
+- `PLAN-20260415-로컬개발CORS정리`
+- 상세 문서: `PLAN/PLAN-20260415-로컬개발CORS정리/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260415-로컬개발CORS정리/SPEC.md`
+- 상태: `done` (로컬 로그인 CORS 오류 수정 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결까지 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로컬 로그인 CORS 오류 수정까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 최신 PLAN 확인: `PLAN/PLAN-20260415-업로드이미지분석고도화/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260415-로컬개발CORS정리/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
