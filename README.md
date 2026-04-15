@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260414-브랜치보호및필수체크연동`
-- 상세 문서: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260414-브랜치보호및필수체크연동/SPEC.md`
-- 상태: `blocked` (정책/스크립트 준비 완료, 원격 저장소/인증 필요, 2026-04-14)
+- `PLAN-20260415-필수체크이름정합성수정`
+- 상세 문서: `PLAN/PLAN-20260415-필수체크이름정합성수정/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260415-필수체크이름정합성수정/SPEC.md`
+- 상태: `done` (required check exact name 정합성 수정 완료, 2026-04-15)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초와 프론트 MVP 스캐폴딩이 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 활성 PLAN 확인: `PLAN/PLAN-20260413-프론트MVP구현/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260415-GitHubActionsNode24대응/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -104,6 +104,22 @@
    - `.github/branch-protection/main.json`
    - `scripts/apply-branch-protection.sh`
    - `docs/github-branch-protection.md`
+15. 브랜치 보호 적용 상태 확인:
+   - GitHub 저장소 `dyjeong1/style-finder`의 `main` 브랜치에 보호 규칙 적용 완료
+   - required check: `Backend Tests / test`, `Frontend E2E / e2e`
+16. 브랜치 보호 실검증 확인:
+   - PR #1: `https://github.com/dyjeong1/style-finder/pull/1`
+   - `pull_request` 기준 백엔드/프론트 required check 생성 확인
+17. GitHub Actions Node 24 대응 확인:
+   - `actions/checkout@v5`
+   - `actions/setup-python@v6`
+   - `actions/setup-node@v5`
+   - `actions/upload-artifact@v6`
+18. 브랜치 보호 운영 정책 메모:
+   - 현재 단독 운영 저장소 기준으로 리뷰 승인 수는 `0`
+   - required check는 유지하고 승인 병목만 제거
+19. required check 정합성 메모:
+   - required check는 `Backend Tests / test (pull_request)`, `Frontend E2E / e2e (pull_request)` 기준으로 조정
 
 ---
 
