@@ -7,7 +7,7 @@ created_at: 2026-04-15
 updated_at: 2026-04-15
 related:
   plan: [PLAN-20260415-업로드이미지분석고도화]
-  tasks: [TSK-0001-백엔드이미지분석및점수고도화, TSK-0002-프론트분석결과노출, TSK-0003-프론트E2E목응답동기화]
+  tasks: [TSK-0001-백엔드이미지분석및점수고도화, TSK-0002-프론트분석결과노출, TSK-0003-프론트E2E목응답동기화, TSK-0004-업로드히스토리연결]
 tags: [backend, upload, recommendation]
 ---
 
@@ -35,9 +35,11 @@ tags: [backend, upload, recommendation]
   - `frontend/app/(main)/recommendations/page.tsx`
   - `frontend/app/globals.css`
   - `frontend/e2e/core-flow.spec.ts`
+  - `frontend/app/(main)/upload/page.tsx`
 
 ## 5. 수용 기준
 - [x] 업로드 분석 필드 추가
 - [x] 추천 점수 계산 고도화
 - [x] 프론트 노출 및 빌드 검증
 - [x] E2E mock 응답 동기화 및 테스트 통과
+- [x] 업로드 히스토리 연결 및 빌드 검증

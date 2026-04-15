@@ -3,6 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8
 const TOKEN_KEY = "stylematch_access_token";
 const UPLOADED_IMAGE_ID_KEY = "stylematch_uploaded_image_id";
 const UPLOADED_IMAGE_ANALYSIS_KEY = "stylematch_uploaded_image_analysis";
+const UPLOAD_HISTORY_KEY = "stylematch_upload_history";
 
 type ApiMeta = {
   request_id: string;
@@ -39,6 +40,14 @@ export type UploadedImage = {
   id: string;
   image_url: string;
   created_at: string;
+  analysis: UploadAnalysis;
+};
+
+export type UploadHistoryItem = {
+  id: string;
+  image_url: string;
+  created_at: string;
+  file_name: string;
   analysis: UploadAnalysis;
 };
 
@@ -211,6 +220,37 @@ export function setStoredUploadedImageAnalysis(analysis: UploadAnalysis): void {
     return;
   }
   window.localStorage.setItem(UPLOADED_IMAGE_ANALYSIS_KEY, JSON.stringify(analysis));
+}
+
+export function getUploadHistory(): UploadHistoryItem[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const rawValue = window.localStorage.getItem(UPLOAD_HISTORY_KEY);
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(rawValue) as UploadHistoryItem[];
+  } catch {
+    return [];
+  }
+}
+
+export function prependUploadHistory(item: UploadHistoryItem): UploadHistoryItem[] {
+  if (typeof window === "undefined") {
+    return [item];
+  }
+
+  const nextItems = [
+    item,
+    ...getUploadHistory().filter((existingItem) => existingItem.id !== item.id),
+  ].slice(0, 6);
+
+  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
+  return nextItems;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {

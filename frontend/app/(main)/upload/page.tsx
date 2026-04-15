@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import {
+  getUploadHistory,
   getStoredToken,
+  prependUploadHistory,
   setStoredUploadedImageAnalysis,
   setStoredUploadedImageId,
   UploadAnalysis,
+  UploadHistoryItem,
   uploadImage,
 } from "@/lib/api";
 
@@ -20,8 +23,13 @@ export default function UploadPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [analysis, setAnalysis] = useState<UploadAnalysis | null>(null);
+  const [recentUploads, setRecentUploads] = useState<UploadHistoryItem[]>([]);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
+
+  useEffect(() => {
+    setRecentUploads(getUploadHistory());
+  }, []);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -65,6 +73,15 @@ export default function UploadPage() {
       setStoredUploadedImageId(uploaded.id);
       setStoredUploadedImageAnalysis(uploaded.analysis);
       setAnalysis(uploaded.analysis);
+      setRecentUploads(
+        prependUploadHistory({
+          id: uploaded.id,
+          image_url: uploaded.image_url,
+          created_at: uploaded.created_at,
+          file_name: selectedFile.name,
+          analysis: uploaded.analysis,
+        }),
+      );
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
       router.push("/recommendations");
     } catch (error) {
@@ -73,6 +90,12 @@ export default function UploadPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  function handleReuseUpload(item: UploadHistoryItem) {
+    setStoredUploadedImageId(item.id);
+    setStoredUploadedImageAnalysis(item.analysis);
+    router.push("/recommendations");
   }
 
   return (
@@ -135,11 +158,26 @@ export default function UploadPage() {
       <article className="card" aria-labelledby="recent-upload-title">
         <p className="eyebrow">Recent</p>
         <h2 id="recent-upload-title">최근 업로드</h2>
-        <ul className="simple-list">
-          <li>street-look-0413.png</li>
-          <li>spring-office-fit.jpg</li>
-          <li>weekend-casual.webp</li>
-        </ul>
+        {recentUploads.length > 0 ? (
+          <ul className="simple-list recent-upload-list">
+            {recentUploads.map((item) => (
+              <li key={item.id}>
+                <div>
+                  <strong>{item.file_name}</strong>
+                  <p className="hint-text">
+                    {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
+                  </p>
+                  <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
+                </div>
+                <button type="button" className="ghost-button" onClick={() => handleReuseUpload(item)}>
+                  추천 다시 보기
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="hint-text">아직 최근 업로드가 없습니다. 첫 이미지를 올리면 여기에 기록됩니다.</p>
+        )}
       </article>
     </section>
   );

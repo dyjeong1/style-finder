@@ -325,6 +325,13 @@ button:disabled {
   border-radius: 10px;
 }
 
+.recent-upload-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .filter-row {
   margin-top: 14px;
   display: grid;
