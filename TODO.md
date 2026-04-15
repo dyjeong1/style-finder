@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260415-필수체크이름정합성수정] required check exact name 정합성 수정
+- [x] [TSK-0001-브랜치보호체크이름수정] expected check 이름과 PR 성공 체크 이름 일치화
 - [x] [PLAN-20260415-브랜치보호운영정책정리] solo 운영 기준 브랜치 보호 정책 정리
 - [x] [TSK-0001-솔로운영병합정책조정] 승인 수 정책 조정 및 운영 문서 정리
 - [x] [PLAN-20260415-GitHubActionsNode24대응] GitHub Actions Node 24 대응

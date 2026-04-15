@@ -24,8 +24,8 @@ scripts/apply-branch-protection.sh owner/repo main
 
 ## 현재 정책 요약
 - required check:
-  - `Backend Tests / test`
-  - `Frontend E2E / e2e`
+  - `Backend Tests / test (pull_request)`
+  - `Frontend E2E / e2e (pull_request)`
 - direct push: 차단
 - linear history: 활성화
 - required conversation resolution: 활성화
@@ -35,6 +35,11 @@ scripts/apply-branch-protection.sh owner/repo main
 - 자기 PR은 스스로 승인할 수 없으므로, 단독 운영 저장소에서는 승인 수를 `0`으로 두는 것이 현실적입니다.
 - 대신 required check 2종과 대화 해결 조건은 유지해 품질 게이트를 확보합니다.
 - 협업 저장소로 전환되면 `required_approving_review_count`를 다시 `1` 이상으로 올리는 것을 권장합니다.
+
+## exact check name 메모
+- 현재 GitHub PR 화면에서는 같은 워크플로우가 `push`, `pull_request` 각각 별도 체크 이름으로 표시됩니다.
+- 머지 게이트에는 `pull_request` 기준 체크 이름만 required check로 등록합니다.
+- 정책 변경 후에도 PR이 계속 `Expected` 상태면, PR 새로고침 또는 체크 재실행이 필요할 수 있습니다.
 
 ## 적용 후 확인할 항목
 - `main` 브랜치 direct push 제한 여부
