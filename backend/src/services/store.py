@@ -2,7 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import hashlib
+import math
 from uuid import uuid4
+
+
+@dataclass
+class UploadAnalysis:
+    checksum: str
+    dominant_tone: str
+    style_mood: str
+    silhouette: str
+    preferred_categories: tuple[str, ...]
+    feature_vector: tuple[float, ...]
 
 
 @dataclass
@@ -14,6 +26,7 @@ class UploadedImageRecord:
     content_type: str
     size_bytes: int
     created_at: str
+    analysis: UploadAnalysis
 
 
 @dataclass
@@ -25,6 +38,10 @@ class ProductRecord:
     price: int
     product_url: str
     image_url: str
+    dominant_tone: str
+    style_mood: str
+    silhouette: str
+    feature_vector: tuple[float, ...]
 
 
 class InMemoryStore:
@@ -43,6 +60,10 @@ class InMemoryStore:
                 price=39000,
                 product_url="https://example.com/products/prd-top-001",
                 image_url="https://example.com/images/prd-top-001.jpg",
+                dominant_tone="cool",
+                style_mood="casual",
+                silhouette="relaxed",
+                feature_vector=(0.91, 0.58, 0.27, 0.73),
             ),
             ProductRecord(
                 id="prd-bottom-001",
@@ -52,6 +73,10 @@ class InMemoryStore:
                 price=59000,
                 product_url="https://example.com/products/prd-bottom-001",
                 image_url="https://example.com/images/prd-bottom-001.jpg",
+                dominant_tone="cool",
+                style_mood="minimal",
+                silhouette="relaxed",
+                feature_vector=(0.84, 0.22, 0.36, 0.64),
             ),
             ProductRecord(
                 id="prd-outer-001",
@@ -61,6 +86,10 @@ class InMemoryStore:
                 price=89000,
                 product_url="https://example.com/products/prd-outer-001",
                 image_url="https://example.com/images/prd-outer-001.jpg",
+                dominant_tone="neutral",
+                style_mood="street",
+                silhouette="layered",
+                feature_vector=(0.38, 0.92, 0.71, 0.42),
             ),
             ProductRecord(
                 id="prd-shoes-001",
@@ -70,6 +99,10 @@ class InMemoryStore:
                 price=99000,
                 product_url="https://example.com/products/prd-shoes-001",
                 image_url="https://example.com/images/prd-shoes-001.jpg",
+                dominant_tone="neutral",
+                style_mood="minimal",
+                silhouette="balanced",
+                feature_vector=(0.19, 0.31, 0.95, 0.53),
             ),
             ProductRecord(
                 id="prd-bag-001",
@@ -79,6 +112,10 @@ class InMemoryStore:
                 price=45000,
                 product_url="https://example.com/products/prd-bag-001",
                 image_url="https://example.com/images/prd-bag-001.jpg",
+                dominant_tone="warm",
+                style_mood="feminine",
+                silhouette="balanced",
+                feature_vector=(0.67, 0.41, 0.88, 0.24),
             ),
             ProductRecord(
                 id="prd-top-002",
@@ -88,6 +125,10 @@ class InMemoryStore:
                 price=32000,
                 product_url="https://example.com/products/prd-top-002",
                 image_url="https://example.com/images/prd-top-002.jpg",
+                dominant_tone="warm",
+                style_mood="minimal",
+                silhouette="slim",
+                feature_vector=(0.55, 0.17, 0.61, 0.89),
             ),
         ]
         return {item.id: item for item in seeded}
@@ -98,10 +139,12 @@ class InMemoryStore:
         filename: str,
         content_type: str,
         size_bytes: int,
+        content: bytes,
     ) -> UploadedImageRecord:
         upload_id = str(uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
         image_url = f"/mock-storage/{upload_id}-{filename}"
+        analysis = self._analyze_upload(content=content, filename=filename, content_type=content_type)
 
         record = UploadedImageRecord(
             id=upload_id,
@@ -111,9 +154,46 @@ class InMemoryStore:
             content_type=content_type,
             size_bytes=size_bytes,
             created_at=created_at,
+            analysis=analysis,
         )
         self.uploads[upload_id] = record
         return record
+
+    def _analyze_upload(self, content: bytes, filename: str, content_type: str) -> UploadAnalysis:
+        source = content or f"{filename}:{content_type}".encode()
+        digest = hashlib.sha256(source).digest()
+
+        tones = ("warm", "cool", "neutral")
+        moods = ("minimal", "casual", "street", "feminine")
+        silhouettes = ("relaxed", "slim", "layered", "balanced")
+        categories = ("top", "bottom", "outer", "shoes", "bag")
+
+        feature_vector = tuple(round((digest[idx] / 255), 4) for idx in range(4))
+        preferred_categories = tuple(
+            dict.fromkeys(
+                (
+                    categories[digest[4] % len(categories)],
+                    categories[digest[5] % len(categories)],
+                )
+            )
+        )
+
+        return UploadAnalysis(
+            checksum=digest.hex()[:16],
+            dominant_tone=tones[digest[0] % len(tones)],
+            style_mood=moods[digest[1] % len(moods)],
+            silhouette=silhouettes[digest[2] % len(silhouettes)],
+            preferred_categories=preferred_categories,
+            feature_vector=feature_vector,
+        )
+
+    def _cosine_similarity(self, left: tuple[float, ...], right: tuple[float, ...]) -> float:
+        numerator = sum(a * b for a, b in zip(left, right))
+        left_norm = math.sqrt(sum(a * a for a in left))
+        right_norm = math.sqrt(sum(b * b for b in right))
+        if left_norm == 0 or right_norm == 0:
+            return 0.0
+        return numerator / (left_norm * right_norm)
 
     def get_upload(self, upload_id: str) -> UploadedImageRecord | None:
         return self.uploads.get(upload_id)
@@ -127,7 +207,8 @@ class InMemoryStore:
         sort: str,
         limit: int,
     ) -> list[dict]:
-        if uploaded_image_id not in self.uploads:
+        upload = self.uploads.get(uploaded_image_id)
+        if upload is None:
             return []
 
         items = list(self.products.values())
@@ -139,9 +220,24 @@ class InMemoryStore:
             items = [item for item in items if item.price <= max_price]
 
         scored: list[dict] = []
-        for idx, item in enumerate(items):
-            # mock score for deterministic sorting
-            similarity = round(max(0.1, 0.95 - (idx * 0.08)), 4)
+        for item in items:
+            vector_similarity = self._cosine_similarity(upload.analysis.feature_vector, item.feature_vector)
+            tone_bonus = 0.08 if upload.analysis.dominant_tone == item.dominant_tone else 0.0
+            mood_bonus = 0.06 if upload.analysis.style_mood == item.style_mood else 0.0
+            silhouette_bonus = 0.05 if upload.analysis.silhouette == item.silhouette else 0.0
+            category_bonus = 0.04 if item.category in upload.analysis.preferred_categories else 0.0
+            similarity = round(
+                min(
+                    0.99,
+                    0.35
+                    + (vector_similarity * 0.45)
+                    + tone_bonus
+                    + mood_bonus
+                    + silhouette_bonus
+                    + category_bonus,
+                ),
+                4,
+            )
             scored.append(
                 {
                     "product_id": item.id,
@@ -152,6 +248,19 @@ class InMemoryStore:
                     "product_url": item.product_url,
                     "image_url": item.image_url,
                     "similarity_score": similarity,
+                    "score_breakdown": {
+                        "vector_similarity": round(vector_similarity, 4),
+                        "tone_bonus": round(tone_bonus, 4),
+                        "mood_bonus": round(mood_bonus, 4),
+                        "silhouette_bonus": round(silhouette_bonus, 4),
+                        "category_bonus": round(category_bonus, 4),
+                    },
+                    "matched_signals": {
+                        "dominant_tone": upload.analysis.dominant_tone,
+                        "style_mood": upload.analysis.style_mood,
+                        "silhouette": upload.analysis.silhouette,
+                        "preferred_categories": list(upload.analysis.preferred_categories),
+                    },
                 }
             )
 

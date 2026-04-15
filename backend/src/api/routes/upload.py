@@ -32,6 +32,7 @@ async def upload_image(
         filename=filename,
         content_type=image.content_type,
         size_bytes=size_bytes,
+        content=content,
     )
 
     return ok_response(
@@ -39,5 +40,12 @@ async def upload_image(
             "id": record.id,
             "image_url": record.image_url,
             "created_at": record.created_at,
+            "analysis": {
+                "checksum": record.analysis.checksum,
+                "dominant_tone": record.analysis.dominant_tone,
+                "style_mood": record.analysis.style_mood,
+                "silhouette": record.analysis.silhouette,
+                "preferred_categories": list(record.analysis.preferred_categories),
+            },
         }
     )

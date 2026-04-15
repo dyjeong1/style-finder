@@ -88,3 +88,36 @@ def test_wishlist_duplicate_and_delete_not_found() -> None:
     deleted_again = client.delete(f"/wishlist/{product_id}", headers=headers)
     assert deleted_again.status_code == 404
     assert deleted_again.json()["error"]["code"] == "WISHLIST_NOT_FOUND"
+
+
+def test_recommendation_changes_by_uploaded_image_features() -> None:
+    headers = _login_headers()
+
+    first_upload = client.post(
+        "/images/upload",
+        headers=headers,
+        files={"image": ("cool-look.png", b"cool-minimal-look", "image/png")},
+    )
+    second_upload = client.post(
+        "/images/upload",
+        headers=headers,
+        files={"image": ("warm-look.png", b"warm-street-look-with-layer", "image/png")},
+    )
+
+    assert first_upload.status_code == 200
+    assert second_upload.status_code == 200
+
+    first_id = first_upload.json()["data"]["id"]
+    second_id = second_upload.json()["data"]["id"]
+
+    first_rec = client.get("/recommendations", headers=headers, params={"uploaded_image_id": first_id, "limit": 3})
+    second_rec = client.get("/recommendations", headers=headers, params={"uploaded_image_id": second_id, "limit": 3})
+
+    assert first_rec.status_code == 200
+    assert second_rec.status_code == 200
+
+    first_items = first_rec.json()["data"]["items"]
+    second_items = second_rec.json()["data"]["items"]
+
+    assert [item["similarity_score"] for item in first_items] != [item["similarity_score"] for item in second_items]
+    assert first_upload.json()["data"]["analysis"] != second_upload.json()["data"]["analysis"]

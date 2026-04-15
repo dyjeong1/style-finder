@@ -25,6 +25,9 @@ def test_core_e2e_flow() -> None:
     assert upload_resp.status_code == 200
     upload_data = upload_resp.json()["data"]
     uploaded_image_id = upload_data["id"]
+    assert upload_data["analysis"]["dominant_tone"] in {"warm", "cool", "neutral"}
+    assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
+    assert len(upload_data["analysis"]["preferred_categories"]) >= 1
 
     rec_resp = client.get(
         "/recommendations",
@@ -34,6 +37,8 @@ def test_core_e2e_flow() -> None:
     assert rec_resp.status_code == 200
     rec_items = rec_resp.json()["data"]["items"]
     assert len(rec_items) >= 1
+    assert "score_breakdown" in rec_items[0]
+    assert "matched_signals" in rec_items[0]
     first_product_id = rec_items[0]["product_id"]
 
     add_wishlist_resp = client.post(
