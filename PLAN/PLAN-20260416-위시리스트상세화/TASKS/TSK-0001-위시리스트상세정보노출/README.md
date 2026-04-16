@@ -2,7 +2,7 @@
 id: TSK-0001-위시리스트상세정보노출
 plan_id: PLAN-20260416-위시리스트상세화
 owner: Codex
-status: doing
+status: done
 estimate: 0.5d
 updated_at: 2026-04-16
 ---
@@ -43,6 +43,6 @@ updated_at: 2026-04-16
 - 위시리스트 mock 응답이 실제 응답과 달라지지 않게 함께 갱신해야 합니다.
 
 ## 완료 기준(DoD)
-- [ ] 백엔드/프론트 검증 통과
-- [ ] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
-- [ ] README/TODO 갱신
+- [x] 백엔드/프론트 검증 통과
+- [x] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
+- [x] README/TODO 갱신

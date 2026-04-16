@@ -6,7 +6,7 @@ priority: P1
 created_at: 2026-04-16
 updated_at: 2026-04-16
 related:
-  tasks: [TSK-0001-위시리스트상세정보노출]
+  tasks: [TSK-0001-위시리스트상세정보노출, TSK-0002-위시리스트카드UI강화]
 tags: [frontend, backend, wishlist]
 ---
 
@@ -24,6 +24,7 @@ tags: [frontend, backend, wishlist]
   - 위시리스트 응답 스키마 확장
   - 저장 시각 영속화
   - 위시리스트 화면 정보 강화
+  - 카드형 썸네일 UI 보강
   - 테스트 및 문서 갱신
 - 제외 범위:
   - 외부 DB 도입
@@ -46,3 +47,4 @@ tags: [frontend, backend, wishlist]
 ## 7. 변경 이력
 - 2026-04-16: PLAN 생성
 - 2026-04-16: 위시리스트 상세 정보 응답과 프론트 목록 UI 구현
+- 2026-04-16: 위시리스트 카드 썸네일 UI 강화 착수
