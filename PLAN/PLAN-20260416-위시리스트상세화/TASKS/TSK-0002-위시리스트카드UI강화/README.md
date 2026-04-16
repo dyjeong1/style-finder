@@ -2,7 +2,7 @@
 id: TSK-0002-위시리스트카드UI강화
 plan_id: PLAN-20260416-위시리스트상세화
 owner: Codex
-status: doing
+status: done
 estimate: 0.5d
 updated_at: 2026-04-16
 ---
