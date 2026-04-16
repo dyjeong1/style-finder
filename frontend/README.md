@@ -34,7 +34,7 @@ npm run test:e2e
 ## 현재 연결된 API 흐름
 - `/upload`: `POST /images/upload` 호출 후 업로드 ID를 `stylematch_uploaded_image_id`에 저장
 - `/recommendations`: `GET /recommendations` 조회 및 `POST /wishlist` 찜 추가
-- `/wishlist`: `GET /wishlist` 조회 및 `DELETE /wishlist/{product_id}` 찜 삭제
+- `/wishlist`: `GET /wishlist` 조회 시 상품명/가격/쇼핑몰/카테고리/링크를 함께 노출하고 `DELETE /wishlist/{product_id}`로 찜 삭제
 
 ## UI 개선 사항 (TSK-0003)
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내

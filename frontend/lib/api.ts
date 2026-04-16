@@ -81,6 +81,12 @@ type RecommendationListResponse = {
 export type WishlistItem = {
   id: string;
   product_id: string;
+  product_name: string;
+  source: string;
+  category: string;
+  price: number;
+  product_url: string;
+  image_url: string;
   created_at: string;
 };
 

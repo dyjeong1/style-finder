@@ -56,10 +56,17 @@ def test_wishlist_duplicate_and_delete_not_found() -> None:
 
     first_add = client.post("/wishlist", json={"product_id": product_id})
     assert first_add.status_code == 200
+    created_at = first_add.json()["data"]["created_at"]
 
     second_add = client.post("/wishlist", json={"product_id": product_id})
     assert second_add.status_code == 409
     assert second_add.json()["error"]["code"] == "WISHLIST_ALREADY_EXISTS"
+
+    listed = client.get("/wishlist")
+    assert listed.status_code == 200
+    listed_item = next((item for item in listed.json()["data"]["items"] if item["product_id"] == product_id), None)
+    assert listed_item is not None
+    assert listed_item["created_at"] == created_at
 
     deleted = client.delete(f"/wishlist/{product_id}")
     assert deleted.status_code == 204

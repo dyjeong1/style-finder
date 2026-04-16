@@ -48,7 +48,7 @@ class InMemoryStore:
     def __init__(self) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
         self.products: dict[str, ProductRecord] = self._seed_products()
-        self.wishlist_by_user: dict[str, set[str]] = {}
+        self.wishlist_by_user: dict[str, dict[str, str]] = {}
 
     def _seed_products(self) -> dict[str, ProductRecord]:
         seeded = [
@@ -281,13 +281,13 @@ class InMemoryStore:
 
     def add_wishlist(self, user_id: str, product_id: str) -> bool:
         if user_id not in self.wishlist_by_user:
-            self.wishlist_by_user[user_id] = set()
+            self.wishlist_by_user[user_id] = {}
 
         user_wishlist = self.wishlist_by_user[user_id]
         if product_id in user_wishlist:
             return False
 
-        user_wishlist.add(product_id)
+        user_wishlist[product_id] = datetime.now(timezone.utc).isoformat()
         return True
 
     def remove_wishlist(self, user_id: str, product_id: str) -> bool:
@@ -295,13 +295,13 @@ class InMemoryStore:
         if not user_wishlist or product_id not in user_wishlist:
             return False
 
-        user_wishlist.remove(product_id)
+        user_wishlist.pop(product_id, None)
         return True
 
     def list_wishlist(self, user_id: str, category: str | None) -> list[dict]:
-        user_wishlist = self.wishlist_by_user.get(user_id, set())
+        user_wishlist = self.wishlist_by_user.get(user_id, {})
         items: list[dict] = []
-        for product_id in user_wishlist:
+        for product_id, created_at in user_wishlist.items():
             product = self.products.get(product_id)
             if product is None:
                 continue
@@ -311,11 +311,17 @@ class InMemoryStore:
                 {
                     "id": f"wsh-{product.id}",
                     "product_id": product.id,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "product_name": product.product_name,
+                    "source": product.source,
+                    "category": product.category,
+                    "price": product.price,
+                    "product_url": product.product_url,
+                    "image_url": product.image_url,
+                    "created_at": created_at,
                 }
             )
 
-        items.sort(key=lambda x: x["product_id"])
+        items.sort(key=lambda x: x["created_at"], reverse=True)
         return items
 
 

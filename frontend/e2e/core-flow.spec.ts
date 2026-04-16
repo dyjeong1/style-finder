@@ -12,7 +12,17 @@ function okResponse(data: unknown) {
 }
 
 test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한다", async ({ page }) => {
-  const wishlistItems: Array<{ id: string; product_id: string; created_at: string }> = [];
+  const wishlistItems: Array<{
+    id: string;
+    product_id: string;
+    product_name: string;
+    source: string;
+    category: string;
+    price: number;
+    product_url: string;
+    image_url: string;
+    created_at: string;
+  }> = [];
   const uploadedImageId = "upload-e2e-001";
   const productId = "prd-top-001";
   const apiBase = "http://localhost:8000";
@@ -97,6 +107,12 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
       wishlistItems.push({
         id: "wsh-prd-top-001",
         product_id: productId,
+        product_name: "오버핏 스트라이프 셔츠",
+        source: "zigzag",
+        category: "top",
+        price: 39000,
+        product_url: "https://example.com/products/prd-top-001",
+        image_url: "https://example.com/images/prd-top-001.jpg",
         created_at: "2026-04-14T00:00:00Z",
       });
 
@@ -153,7 +169,8 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
 
   await page.goto("/wishlist");
   await expect(page.getByRole("heading", { name: "Wishlist" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(productId)).toBeVisible();
+  await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
+  await expect(page.getByText("ZIGZAG · TOP · 39,000원")).toBeVisible();
 
   await page.getByRole("button", { name: `${productId} 찜 해제` }).click();
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();

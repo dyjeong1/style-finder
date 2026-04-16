@@ -39,7 +39,13 @@ def test_core_e2e_flow() -> None:
     list_wishlist_resp = client.get("/wishlist")
     assert list_wishlist_resp.status_code == 200
     wishlist_items = list_wishlist_resp.json()["data"]["items"]
-    assert any(item["product_id"] == first_product_id for item in wishlist_items)
+    matched_item = next((item for item in wishlist_items if item["product_id"] == first_product_id), None)
+    assert matched_item is not None
+    assert matched_item["product_name"]
+    assert matched_item["source"] in {"zigzag", "29cm"}
+    assert matched_item["category"] in {"top", "bottom", "outer", "shoes", "bag"}
+    assert matched_item["price"] > 0
+    assert matched_item["product_url"].startswith("https://")
 
     delete_wishlist_resp = client.delete(f"/wishlist/{first_product_id}")
     assert delete_wishlist_resp.status_code == 204

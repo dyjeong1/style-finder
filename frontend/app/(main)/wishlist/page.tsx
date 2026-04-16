@@ -77,10 +77,16 @@ export default function WishlistPage() {
         {items.map((item) => (
           <li key={item.id}>
             <div>
-              <strong>{item.product_id}</strong>
-              <p>{new Date(item.created_at).toLocaleString("ko-KR")}</p>
+              <strong>{item.product_name}</strong>
+              <p className="hint-text">
+                {item.source.toUpperCase()} · {item.category.toUpperCase()} · {item.price.toLocaleString("ko-KR")}원
+              </p>
+              <p className="hint-text">saved {new Date(item.created_at).toLocaleString("ko-KR")}</p>
             </div>
             <div className="wishlist-right">
+              <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
+                상품 보기
+              </a>
               <button type="button" aria-label={`${item.product_id} 찜 해제`} onClick={() => handleRemove(item.product_id)}>
                 Remove
               </button>
