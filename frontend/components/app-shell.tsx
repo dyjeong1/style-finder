@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
-import { clearStoredToken, clearStoredUploadedImageId, getStoredToken } from "@/lib/api";
+import { clearStoredUploadedImageAnalysis, clearStoredUploadedImageId } from "@/lib/api";
 
 const navItems = [
-  { href: "/login", label: "Login" },
   { href: "/upload", label: "Upload" },
   { href: "/recommendations", label: "Recommendations" },
   { href: "/wishlist", label: "Wishlist" },
@@ -15,16 +13,10 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    setIsLoggedIn(Boolean(getStoredToken()));
-  }, [pathname]);
-
-  function handleSignOut() {
-    clearStoredToken();
+  function handleResetUpload() {
     clearStoredUploadedImageId();
-    setIsLoggedIn(false);
+    clearStoredUploadedImageAnalysis();
   }
 
   return (
@@ -52,12 +44,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </ul>
           <div className="auth-chip-wrap">
-            <span className={isLoggedIn ? "auth-chip auth-chip-on" : "auth-chip auth-chip-off"}>
-              {isLoggedIn ? "Signed In" : "Guest"}
-            </span>
-            {isLoggedIn ? (
-              <button type="button" className="ghost-button" onClick={handleSignOut}>
-                Sign Out
+            <span className="auth-chip auth-chip-on">Local Mode</span>
+            {pathname !== "/upload" ? (
+              <button type="button" className="ghost-button" onClick={handleResetUpload}>
+                Reset Upload
               </button>
             ) : null}
           </div>

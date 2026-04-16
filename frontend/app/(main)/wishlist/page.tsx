@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { getStoredToken, getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
+import { getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
 
 export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -11,20 +11,12 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const token = useMemo(() => getStoredToken(), []);
-
   async function loadWishlist() {
-    if (!token) {
-      setErrorMessage("로그인이 필요합니다. /login에서 먼저 로그인해주세요.");
-      setItems([]);
-      return;
-    }
-
     setLoading(true);
     setErrorMessage(null);
 
     try {
-      const result = await getWishlist(token, category || undefined);
+      const result = await getWishlist(category || undefined);
       setItems(result.items);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 목록 조회 중 오류가 발생했습니다.";
@@ -40,13 +32,8 @@ export default function WishlistPage() {
   }, [category]);
 
   async function handleRemove(productId: string) {
-    if (!token) {
-      setErrorMessage("로그인이 필요합니다.");
-      return;
-    }
-
     try {
-      await removeWishlist(productId, token);
+      await removeWishlist(productId);
       setItems((prev) => prev.filter((item) => item.product_id !== productId));
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 해제 중 오류가 발생했습니다.";

@@ -7,7 +7,6 @@ import {
   addWishlist,
   getRecommendations,
   getStoredUploadedImageAnalysis,
-  getStoredToken,
   getStoredUploadedImageId,
   RecommendationItem,
 } from "@/lib/api";
@@ -24,17 +23,10 @@ export default function RecommendationPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
-  const token = useMemo(() => getStoredToken(), []);
   const uploadedImageId = useMemo(() => getStoredUploadedImageId(), []);
   const uploadedImageAnalysis = useMemo(() => getStoredUploadedImageAnalysis(), []);
 
   async function loadRecommendations() {
-    if (!token) {
-      setErrorMessage("로그인이 필요합니다. /login에서 먼저 로그인해주세요.");
-      setItems([]);
-      return;
-    }
-
     if (!uploadedImageId) {
       setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
       setItems([]);
@@ -53,7 +45,6 @@ export default function RecommendationPage() {
           minPrice: minPrice ? Number(minPrice) : undefined,
           maxPrice: maxPrice ? Number(maxPrice) : undefined,
         },
-        token,
       );
       setItems(result.items);
     } catch (error) {
@@ -77,14 +68,9 @@ export default function RecommendationPage() {
   }
 
   async function handleAddWishlist(productId: string) {
-    if (!token) {
-      setErrorMessage("로그인이 필요합니다.");
-      return;
-    }
-
     setFeedbackMessage(null);
     try {
-      await addWishlist(productId, token);
+      await addWishlist(productId);
       setFeedbackMessage(`상품이 찜 목록에 추가되었습니다: ${productId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 추가 중 오류가 발생했습니다.";

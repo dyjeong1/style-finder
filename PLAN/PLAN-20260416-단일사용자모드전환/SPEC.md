@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260416-단일사용자모드전환
 title: 단일 사용자 모드 전환 스펙
-status: doing
+status: done
 priority: P1
 created_at: 2026-04-16
 updated_at: 2026-04-16
@@ -30,6 +30,6 @@ tags: [auth, local-dev]
 - 문서: 루트/백엔드/프론트 README와 TODO, PLAN/TASK 문서 갱신
 
 ## 5. 수용 기준
-- [ ] 브라우저에서 로그인 없이 `/upload`부터 사용 가능
-- [ ] `backend` 테스트 통과
-- [ ] `frontend` 빌드 및 E2E 통과
+- [x] 브라우저에서 로그인 없이 `/upload`부터 사용 가능
+- [x] `backend` 테스트 통과
+- [x] `frontend` 빌드 및 E2E 통과

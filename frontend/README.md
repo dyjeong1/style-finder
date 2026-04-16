@@ -19,7 +19,6 @@ npm run test:e2e
 ```
 
 ## 주요 라우트
-- `/login`
 - `/upload`
 - `/recommendations`
 - `/wishlist`
@@ -33,7 +32,6 @@ npm run test:e2e
 - 검증: `npm audit` 기준 `0 vulnerabilities`
 
 ## 현재 연결된 API 흐름
-- `/login`: `POST /auth/login` 호출 후 토큰을 `stylematch_access_token`에 저장
 - `/upload`: `POST /images/upload` 호출 후 업로드 ID를 `stylematch_uploaded_image_id`에 저장
 - `/recommendations`: `GET /recommendations` 조회 및 `POST /wishlist` 찜 추가
 - `/wishlist`: `GET /wishlist` 조회 및 `DELETE /wishlist/{product_id}` 찜 삭제
@@ -41,11 +39,11 @@ npm run test:e2e
 ## UI 개선 사항 (TSK-0003)
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내
 - 찜 페이지: 카테고리 필터, 재조회, 빈 상태 CTA
-- 공통 네비게이션: 로그인 상태 배지 및 로그아웃 버튼
+- 공통 네비게이션: 로컬 모드 배지 및 업로드 상태 초기화 버튼
 
 ## E2E 자동화
 - 도구: `@playwright/test`
-- 시나리오: 로그인 → 업로드 → 추천 조회 → 찜 추가 → 찜 해제
+- 시나리오: 업로드 → 추천 조회 → 찜 추가 → 찜 해제
 - 테스트 파일: `frontend/e2e/core-flow.spec.ts`
 
 ## CI 자동화

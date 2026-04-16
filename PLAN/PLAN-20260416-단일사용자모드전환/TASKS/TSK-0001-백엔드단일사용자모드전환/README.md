@@ -34,5 +34,5 @@ updated_at: 2026-04-16
 
 ## 완료 기준(DoD)
 - [x] 유닛/통합 테스트 통과
-- [ ] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
+- [x] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
 - [x] README/TODO 갱신

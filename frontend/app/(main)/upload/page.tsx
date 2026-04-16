@@ -2,11 +2,9 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import {
   getUploadHistory,
-  getStoredToken,
   prependUploadHistory,
   setStoredUploadedImageAnalysis,
   setStoredUploadedImageId,
@@ -53,12 +51,6 @@ export default function UploadPage() {
   }
 
   async function handleUpload() {
-    const token = getStoredToken();
-    if (!token) {
-      setErrorMessage("로그인이 필요합니다. 먼저 로그인해주세요.");
-      return;
-    }
-
     if (!selectedFile) {
       setErrorMessage("업로드할 이미지 파일을 선택해주세요.");
       return;
@@ -69,7 +61,7 @@ export default function UploadPage() {
     setSuccessMessage(null);
 
     try {
-      const uploaded = await uploadImage(selectedFile, token);
+      const uploaded = await uploadImage(selectedFile);
       setStoredUploadedImageId(uploaded.id);
       setStoredUploadedImageAnalysis(uploaded.analysis);
       setAnalysis(uploaded.analysis);
@@ -151,9 +143,6 @@ export default function UploadPage() {
             </p>
           ) : null}
         </div>
-        <p className="hint-text">
-          로그인을 아직 하지 않았다면 <Link href="/login">로그인 페이지</Link>에서 먼저 인증하세요.
-        </p>
       </article>
       <article className="card" aria-labelledby="recent-upload-title">
         <p className="eyebrow">Recent</p>

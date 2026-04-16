@@ -1,6 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-const TOKEN_KEY = "stylematch_access_token";
 const UPLOADED_IMAGE_ID_KEY = "stylematch_uploaded_image_id";
 const UPLOADED_IMAGE_ANALYSIS_KEY = "stylematch_uploaded_image_analysis";
 const UPLOAD_HISTORY_KEY = "stylematch_upload_history";
@@ -20,12 +19,6 @@ type ApiEnvelope<T> = {
   data: T;
   error: ApiError | null;
   meta: ApiMeta;
-};
-
-type LoginResponse = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
 };
 
 export type UploadAnalysis = {
@@ -116,13 +109,9 @@ function parseHttpError(fallbackMessage: string, payload: unknown): Error {
   return new Error(fallbackMessage);
 }
 
-async function apiRequest<T>(path: string, options?: RequestInit & { token?: string }): Promise<T> {
-  const { token, headers, ...restOptions } = options ?? {};
+async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const { headers, ...restOptions } = options ?? {};
   const mergedHeaders = new Headers(headers ?? {});
-
-  if (token) {
-    mergedHeaders.set("Authorization", `Bearer ${token}`);
-  }
 
   const hasFormDataBody = typeof FormData !== "undefined" && restOptions.body instanceof FormData;
   if (!hasFormDataBody && !mergedHeaders.has("Content-Type")) {
@@ -154,27 +143,6 @@ async function apiRequest<T>(path: string, options?: RequestInit & { token?: str
   }
 
   return payload.data;
-}
-
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return window.localStorage.getItem(TOKEN_KEY);
-}
-
-export function setStoredToken(token: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearStoredToken(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(TOKEN_KEY);
 }
 
 export function getStoredUploadedImageId(): string | null {
@@ -222,6 +190,13 @@ export function setStoredUploadedImageAnalysis(analysis: UploadAnalysis): void {
   window.localStorage.setItem(UPLOADED_IMAGE_ANALYSIS_KEY, JSON.stringify(analysis));
 }
 
+export function clearStoredUploadedImageAnalysis(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(UPLOADED_IMAGE_ANALYSIS_KEY);
+}
+
 export function getUploadHistory(): UploadHistoryItem[] {
   if (typeof window === "undefined") {
     return [];
@@ -253,21 +228,13 @@ export function prependUploadHistory(item: UploadHistoryItem): UploadHistoryItem
   return nextItems;
 }
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  return apiRequest<LoginResponse>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
-}
-
-export async function uploadImage(image: File, token: string): Promise<UploadedImage> {
+export async function uploadImage(image: File): Promise<UploadedImage> {
   const formData = new FormData();
   formData.append("image", image);
 
   return apiRequest<UploadedImage>("/images/upload", {
     method: "POST",
     body: formData,
-    token,
   });
 }
 
@@ -280,7 +247,7 @@ export type RecommendationQuery = {
   limit?: number;
 };
 
-export async function getRecommendations(query: RecommendationQuery, token: string): Promise<RecommendationListResponse> {
+export async function getRecommendations(query: RecommendationQuery): Promise<RecommendationListResponse> {
   const searchParams = new URLSearchParams();
   searchParams.set("uploaded_image_id", query.uploadedImageId);
 
@@ -300,27 +267,23 @@ export async function getRecommendations(query: RecommendationQuery, token: stri
     searchParams.set("limit", String(query.limit));
   }
 
-  return apiRequest<RecommendationListResponse>(`/recommendations?${searchParams.toString()}`, {
-    token,
-  });
+  return apiRequest<RecommendationListResponse>(`/recommendations?${searchParams.toString()}`);
 }
 
-export async function getWishlist(token: string, category?: string): Promise<WishlistListResponse> {
+export async function getWishlist(category?: string): Promise<WishlistListResponse> {
   const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return apiRequest<WishlistListResponse>(`/wishlist${query}`, { token });
+  return apiRequest<WishlistListResponse>(`/wishlist${query}`);
 }
 
-export async function addWishlist(productId: string, token: string): Promise<WishlistItem> {
+export async function addWishlist(productId: string): Promise<WishlistItem> {
   return apiRequest<WishlistItem>("/wishlist", {
     method: "POST",
-    token,
     body: JSON.stringify({ product_id: productId }),
   });
 }
 
-export async function removeWishlist(productId: string, token: string): Promise<void> {
+export async function removeWishlist(productId: string): Promise<void> {
   return apiRequest<void>(`/wishlist/${encodeURIComponent(productId)}`, {
     method: "DELETE",
-    token,
   });
 }
