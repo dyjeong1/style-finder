@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260415-로컬개발CORS정리`
-- 상세 문서: `PLAN/PLAN-20260415-로컬개발CORS정리/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260415-로컬개발CORS정리/SPEC.md`
-- 상태: `done` (로컬 로그인 CORS 오류 수정 완료, 2026-04-15)
+- `PLAN-20260416-단일사용자모드전환`
+- 상세 문서: `PLAN/PLAN-20260416-단일사용자모드전환/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260416-단일사용자모드전환/SPEC.md`
+- 상태: `doing` (백엔드 단일 사용자 모드 전환 완료, 프론트 인증 제거 진행 중, 2026-04-16)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,10 +57,10 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로컬 로그인 CORS 오류 수정까지 완료된 상태입니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로컬 로그인 CORS 오류 수정, 백엔드 단일 사용자 모드 전환까지 완료된 상태입니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 최신 PLAN 확인: `PLAN/PLAN-20260415-로컬개발CORS정리/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260416-단일사용자모드전환/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -88,7 +88,6 @@
    - `frontend/components/app-shell.tsx`
 10. 프론트 API 연동 확인:
    - `frontend/lib/api.ts`
-   - 로그인 토큰 저장 키: `stylematch_access_token`
    - 업로드 이미지 ID 저장 키: `stylematch_uploaded_image_id`
 11. 프론트 보안 업그레이드 확인:
    - `frontend/package.json`
@@ -129,6 +128,9 @@
 22. 업로드 히스토리 메모:
    - `/upload`의 Recent 목록이 실제 최근 업로드 기록과 연결됨
    - 이전 업로드를 선택해 추천 페이지로 바로 이동 가능
+23. 단일 사용자 모드 메모:
+   - 백엔드 업로드/추천/찜 API는 로그인 없이 바로 호출 가능
+   - 위시리스트는 로컬 단일 사용자 기준으로 저장됨
 
 ---
 
@@ -204,7 +206,7 @@
 
 ## 5. 사용자 흐름
 
-1. 사용자가 웹 서비스에 로그인
+1. 사용자가 웹 서비스에 접속
 2. 코디/착장 이미지를 업로드
 3. 시스템이 이미지 속 패션 아이템을 분석
 4. 지그재그와 29CM에서 유사 상품을 탐색
