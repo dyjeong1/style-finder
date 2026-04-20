@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260420-프론트로컬실행안정화`
-- 상세 문서: `PLAN/PLAN-20260420-프론트로컬실행안정화/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260420-프론트로컬실행안정화/SPEC.md`
-- 상태: `done` (로컬 안정 실행 스크립트 추가 완료, 2026-04-20)
+- `PLAN-20260420-추천오래된업로드상태복구`
+- 상세 문서: `PLAN/PLAN-20260420-추천오래된업로드상태복구/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260420-추천오래된업로드상태복구/SPEC.md`
+- 상태: `done` (stale 업로드 상태 자동 복구 완료, 2026-04-20)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -57,7 +57,7 @@
 ```
 
 ### 설치/실행 (1차)
-현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로그인 없는 로컬 단일 사용자 모드 전환, 위시리스트 상세화, Pretendard 기반 프론트 비주얼 리프레시, 추천 저장 상태 연결, 추천 페이지 hydration mismatch 수정, 프론트 로컬 안정 실행 스크립트 추가까지 완료됐습니다.
+현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로그인 없는 로컬 단일 사용자 모드 전환, 위시리스트 상세화, Pretendard 기반 프론트 비주얼 리프레시, 추천 저장 상태 연결, 추천 페이지 hydration mismatch 수정, 프론트 로컬 안정 실행 스크립트 추가, stale 업로드 상태 자동 복구까지 완료됐습니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
 2. 최신 PLAN 확인: `PLAN/PLAN-20260420-프론트하이드레이션정합성수정/PLAN.md`
@@ -150,6 +150,9 @@
 28. 프론트 로컬 실행 안정화 메모:
    - `npm run local`이 `build + start --hostname 127.0.0.1 --port 3000`를 한 번에 실행함
    - 로컬 화면 확인은 `next dev`보다 `npm run local`을 기본 경로로 권장함
+29. 추천 stale 업로드 상태 복구 메모:
+   - 백엔드 재시작 후 이전 `uploaded_image_id`가 남아 있어도 추천 페이지가 치명적으로 깨지지 않음
+   - stale 업로드 상태를 자동 초기화하고 `/upload` 재업로드를 안내함
 
 ---
 

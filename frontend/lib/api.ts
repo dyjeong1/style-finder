@@ -100,6 +100,14 @@ function parseHttpError(fallbackMessage: string, payload: unknown): Error {
     return new Error(fallbackMessage);
   }
 
+  const apiError = (payload as { error?: unknown }).error;
+  if (typeof apiError === "object" && apiError !== null) {
+    const apiErrorMessage = (apiError as { message?: unknown }).message;
+    if (typeof apiErrorMessage === "string" && apiErrorMessage.length > 0) {
+      return new Error(apiErrorMessage);
+    }
+  }
+
   const detail = (payload as { detail?: unknown }).detail;
   if (typeof detail === "string") {
     return new Error(detail);

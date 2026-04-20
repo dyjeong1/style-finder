@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import {
   addWishlist,
+  clearStoredUploadedImageAnalysis,
+  clearStoredUploadedImageId,
   getRecommendations,
   getStoredUploadedImageAnalysis,
   getStoredUploadedImageId,
@@ -98,6 +100,21 @@ export default function RecommendationPage() {
       setTotalCount(result.total_count);
     } catch (error) {
       const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
+      const isStaleUpload =
+        message.includes("Recommendation result does not exist for uploaded_image_id") ||
+        message.includes("uploaded_image_id");
+
+      if (isStaleUpload) {
+        clearStoredUploadedImageId();
+        clearStoredUploadedImageAnalysis();
+        setUploadedImageId(null);
+        setUploadedImageAnalysis(null);
+        setErrorMessage("이전 업로드 정보가 만료되었습니다. /upload에서 이미지를 다시 올려주세요.");
+        setItems([]);
+        setTotalCount(0);
+        return;
+      }
+
       setErrorMessage(message);
       setItems([]);
       setTotalCount(0);

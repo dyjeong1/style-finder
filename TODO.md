@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260420-추천오래된업로드상태복구] 오래된 업로드 ID 자동 복구
+- [x] [TSK-0001-오래된업로드상태초기화] stale 업로드 상태 감지 및 localStorage 초기화
 - [x] [PLAN-20260420-프론트로컬실행안정화] 프론트 로컬 안정 실행 경로 정리
 - [x] [TSK-0001-안정실행스크립트추가] `npm run local` 추가 및 실행 문서 갱신
 - [x] [PLAN-20260420-프론트하이드레이션정합성수정] 추천 페이지 hydration mismatch 수정
