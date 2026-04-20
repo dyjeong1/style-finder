@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
+
+type WishlistSortOption = "latest" | "oldest" | "price_asc" | "price_desc" | "name_asc";
 
 function buildWishlistFallbackImage(item: WishlistItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -31,8 +33,36 @@ export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
+  const [sort, setSort] = useState<WishlistSortOption>("latest");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const sortedItems = useMemo(() => {
+    const nextItems = [...items];
+
+    if (sort === "oldest") {
+      nextItems.sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime());
+      return nextItems;
+    }
+
+    if (sort === "price_asc") {
+      nextItems.sort((left, right) => left.price - right.price);
+      return nextItems;
+    }
+
+    if (sort === "price_desc") {
+      nextItems.sort((left, right) => right.price - left.price);
+      return nextItems;
+    }
+
+    if (sort === "name_asc") {
+      nextItems.sort((left, right) => left.product_name.localeCompare(right.product_name, "ko-KR"));
+      return nextItems;
+    }
+
+    nextItems.sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
+    return nextItems;
+  }, [items, sort]);
 
   async function loadWishlist() {
     setLoading(true);
@@ -85,6 +115,10 @@ export default function WishlistPage() {
               <span className="summary-label">Filter</span>
               <strong>{category || "all"}</strong>
             </div>
+            <div className="summary-pill">
+              <span className="summary-label">Sort</span>
+              <strong>{sort}</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -98,6 +132,16 @@ export default function WishlistPage() {
             <option value="outer">Outer</option>
             <option value="shoes">Shoes</option>
             <option value="bag">Bag</option>
+          </select>
+        </label>
+        <label className="control-field" htmlFor="wishlist-sort">
+          <span className="field-label">Sort</span>
+          <select id="wishlist-sort" value={sort} onChange={(event) => setSort(event.target.value as WishlistSortOption)}>
+            <option value="latest">Latest</option>
+            <option value="oldest">Oldest</option>
+            <option value="price_asc">Price Asc</option>
+            <option value="price_desc">Price Desc</option>
+            <option value="name_asc">Name A-Z</option>
           </select>
         </label>
         <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
@@ -117,7 +161,7 @@ export default function WishlistPage() {
         ) : null}
       </div>
       <ul className="wishlist-list" aria-label="찜 목록">
-        {items.map((item) => (
+        {sortedItems.map((item) => (
           <li key={item.id}>
             <div className="wishlist-thumbnail-wrap">
               <img

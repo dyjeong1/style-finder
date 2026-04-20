@@ -654,6 +654,10 @@ button:disabled {
   justify-content: space-between;
 }
 
+.wishlist-toolbar .control-field {
+  min-width: 180px;
+}
+
 .card-grid {
   display: grid;
   gap: 16px;
