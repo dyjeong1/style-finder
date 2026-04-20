@@ -52,6 +52,14 @@ function buildRecommendationFallbackImage(item: RecommendationItem): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function resolveRecommendationImage(item: RecommendationItem): string {
+  if (!item.image_url || item.image_url.includes("example.com/")) {
+    return buildRecommendationFallbackImage(item);
+  }
+
+  return item.image_url;
+}
+
 export default function RecommendationPage() {
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -315,7 +323,7 @@ export default function RecommendationPage() {
             <article className="product-card product-card-rich" key={item.product_id} role="listitem">
               <div className="product-visual-wrap">
                 <img
-                  src={item.image_url}
+                  src={resolveRecommendationImage(item)}
                   alt={`${item.product_name} 상품 이미지`}
                   className="product-visual"
                   onError={(event) => {

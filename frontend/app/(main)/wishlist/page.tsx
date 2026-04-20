@@ -45,6 +45,14 @@ function buildWishlistFallbackImage(item: WishlistItem): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function resolveWishlistImage(item: WishlistItem): string {
+  if (!item.image_url || item.image_url.includes("example.com/")) {
+    return buildWishlistFallbackImage(item);
+  }
+
+  return item.image_url;
+}
+
 export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -182,7 +190,7 @@ export default function WishlistPage() {
           <li key={item.id}>
             <div className="wishlist-thumbnail-wrap">
               <img
-                src={item.image_url}
+                src={resolveWishlistImage(item)}
                 alt={`${item.product_name} 썸네일`}
                 className="wishlist-thumbnail"
                 onError={(event) => {
