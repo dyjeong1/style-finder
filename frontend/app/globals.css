@@ -702,6 +702,12 @@ button:disabled {
   gap: 8px;
 }
 
+.product-badge-stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .product-card-body {
   display: grid;
   gap: 8px;
@@ -754,6 +760,23 @@ button:disabled {
 .neutral-badge {
   background: rgba(255, 255, 255, 0.86);
   color: var(--text-strong);
+}
+
+.saved-badge {
+  background: rgba(23, 114, 69, 0.14);
+  color: #177245;
+}
+
+.saved-button {
+  background: rgba(23, 114, 69, 0.12);
+  color: #177245;
+  border: 1px solid rgba(23, 114, 69, 0.22);
+}
+
+.saved-button:disabled {
+  opacity: 1;
+  cursor: default;
+  box-shadow: none;
 }
 
 .signal-list {

@@ -8,6 +8,7 @@ import {
   getRecommendations,
   getStoredUploadedImageAnalysis,
   getStoredUploadedImageId,
+  getWishlist,
   RecommendationItem,
 } from "@/lib/api";
 
@@ -43,11 +44,27 @@ export default function RecommendationPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savedProductIds, setSavedProductIds] = useState<string[]>([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const uploadedImageId = useMemo(() => getStoredUploadedImageId(), []);
   const uploadedImageAnalysis = useMemo(() => getStoredUploadedImageAnalysis(), []);
+
+
+  async function loadSavedWishlistState() {
+    setWishlistLoading(true);
+    try {
+      const result = await getWishlist();
+      setSavedProductIds(result.items.map((item) => item.product_id));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "찜 상태 조회 중 오류가 발생했습니다.";
+      setErrorMessage(message);
+    } finally {
+      setWishlistLoading(false);
+    }
+  }
 
   async function loadRecommendations() {
     if (!uploadedImageId) {
@@ -84,6 +101,10 @@ export default function RecommendationPage() {
     void loadRecommendations();
   }, [category, sort, minPrice, maxPrice]);
 
+  useEffect(() => {
+    void loadSavedWishlistState();
+  }, []);
+
   function resetFilters() {
     setCategory("");
     setSort("similarity_desc");
@@ -91,11 +112,12 @@ export default function RecommendationPage() {
     setMaxPrice("");
   }
 
-  async function handleAddWishlist(productId: string) {
+  async function handleAddWishlist(productId: string, productName: string) {
     setFeedbackMessage(null);
     try {
       await addWishlist(productId);
-      setFeedbackMessage(`상품이 찜 목록에 추가되었습니다: ${productId}`);
+      setSavedProductIds((prev) => (prev.includes(productId) ? prev : [...prev, productId]));
+      setFeedbackMessage(`상품이 찜 목록에 추가되었습니다: ${productName}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 추가 중 오류가 발생했습니다.";
       setErrorMessage(message);
@@ -123,6 +145,10 @@ export default function RecommendationPage() {
             <div className="summary-pill">
               <span className="summary-label">Category</span>
               <strong>{category || "all"}</strong>
+            </div>
+            <div className="summary-pill">
+              <span className="summary-label">Saved</span>
+              <strong>{savedProductIds.length}</strong>
             </div>
           </div>
         </div>
@@ -190,6 +216,11 @@ export default function RecommendationPage() {
             추천 결과를 불러오는 중입니다...
           </p>
         ) : null}
+        {wishlistLoading ? (
+          <p className="hint-text" role="status">
+            저장 상태를 동기화하는 중입니다...
+          </p>
+        ) : null}
         {errorMessage ? (
           <p className="error-text" role="alert">
             {errorMessage}
@@ -228,62 +259,75 @@ export default function RecommendationPage() {
               </article>
             ))
           : null}
-        {items.map((item) => (
-          <article className="product-card product-card-rich" key={item.product_id} role="listitem">
-            <div className="product-visual-wrap">
-              <img
-                src={item.image_url}
-                alt={`${item.product_name} 상품 이미지`}
-                className="product-visual"
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = buildRecommendationFallbackImage(item);
-                }}
-              />
-              <div className="product-badges">
-                <span className="badge neutral-badge">{item.source.toUpperCase()}</span>
-                <span className="badge">#{item.rank}</span>
+        {items.map((item) => {
+          const saved = savedProductIds.includes(item.product_id);
+
+          return (
+            <article className="product-card product-card-rich" key={item.product_id} role="listitem">
+              <div className="product-visual-wrap">
+                <img
+                  src={item.image_url}
+                  alt={`${item.product_name} 상품 이미지`}
+                  className="product-visual"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = buildRecommendationFallbackImage(item);
+                  }}
+                />
+                <div className="product-badges">
+                  <span className="badge neutral-badge">{item.source.toUpperCase()}</span>
+                  <div className="product-badge-stack">
+                    {saved ? <span className="badge saved-badge">Saved</span> : null}
+                    <span className="badge">#{item.rank}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="product-card-body">
-              <p className="product-category">{item.category.toUpperCase()}</p>
-              <h3>{item.product_name}</h3>
-              <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
-              <small>similarity {item.similarity_score.toFixed(2)}</small>
-              <div className="signal-list">
-                <span>tone {item.matched_signals.dominant_tone}</span>
-                <span>mood {item.matched_signals.style_mood}</span>
-                <span>fit {item.matched_signals.silhouette}</span>
+              <div className="product-card-body">
+                <p className="product-category">{item.category.toUpperCase()}</p>
+                <h3>{item.product_name}</h3>
+                <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
+                <small>similarity {item.similarity_score.toFixed(2)}</small>
+                <div className="signal-list">
+                  <span>tone {item.matched_signals.dominant_tone}</span>
+                  <span>mood {item.matched_signals.style_mood}</span>
+                  <span>fit {item.matched_signals.silhouette}</span>
+                </div>
+                <dl className="score-breakdown">
+                  <div>
+                    <dt>Vector</dt>
+                    <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tone</dt>
+                    <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
+                  </div>
+                  <div>
+                    <dt>Mood</dt>
+                    <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
+                  </div>
+                  <div>
+                    <dt>Fit</dt>
+                    <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
+                  </div>
+                </dl>
+                <div className="product-actions">
+                  <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
+                    상품 보기
+                  </a>
+                  <button
+                    type="button"
+                    className={saved ? "saved-button" : undefined}
+                    aria-label={`${item.product_name} 찜 추가`}
+                    onClick={() => handleAddWishlist(item.product_id, item.product_name)}
+                    disabled={saved}
+                  >
+                    {saved ? "Saved in Wishlist" : "Add to Wishlist"}
+                  </button>
+                </div>
               </div>
-              <dl className="score-breakdown">
-                <div>
-                  <dt>Vector</dt>
-                  <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
-                </div>
-                <div>
-                  <dt>Tone</dt>
-                  <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
-                </div>
-                <div>
-                  <dt>Mood</dt>
-                  <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
-                </div>
-                <div>
-                  <dt>Fit</dt>
-                  <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
-                </div>
-              </dl>
-              <div className="product-actions">
-                <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
-                  상품 보기
-                </a>
-                <button type="button" aria-label={`${item.product_name} 찜 추가`} onClick={() => handleAddWishlist(item.product_id)}>
-                  Add to Wishlist
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
       {!loading && items.length === 0 && !errorMessage ? (
         <div className="empty-box soft-empty-box">
