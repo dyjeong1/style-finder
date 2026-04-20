@@ -242,6 +242,22 @@ export function prependUploadHistory(item: UploadHistoryItem): UploadHistoryItem
   return nextItems;
 }
 
+export function removeUploadHistoryItem(uploadHistoryId: string): UploadHistoryItem[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const nextItems = getUploadHistory().filter((item) => item.id !== uploadHistoryId);
+  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
+
+  if (getStoredUploadedImageId() === uploadHistoryId) {
+    clearStoredUploadedImageId();
+    clearStoredUploadedImageAnalysis();
+  }
+
+  return nextItems;
+}
+
 export async function uploadImage(image: File): Promise<UploadedImage> {
   const formData = new FormData();
   formData.append("image", image);

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   getUploadHistory,
   prependUploadHistory,
+  removeUploadHistoryItem,
   setStoredUploadedImageAnalysis,
   setStoredUploadedImageId,
   UploadAnalysis,
@@ -169,6 +170,11 @@ export default function UploadPage() {
     router.push("/recommendations");
   }
 
+  function handleDeleteRecentUpload(itemId: string, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    setRecentUploads(removeUploadHistoryItem(itemId));
+  }
+
   return (
     <section className="split-grid upload-reference-grid" aria-labelledby="upload-title">
       <article className="card upload-reference-shell" aria-busy={uploading}>
@@ -198,14 +204,13 @@ export default function UploadPage() {
               <div className="upload-stage-unified-copy">
                 <strong>{fileName || "코디 이미지 업로드"}</strong>
                 <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 주세요."}</span>
-                <small>허용 형식: PNG, JPG, JPEG, WEBP</small>
               </div>
               <div className="upload-stage-square">
                 {filePreviewUrl ? (
                   <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
                 ) : (
                   <div className="upload-stage-placeholder" aria-hidden="true">
-                    <strong>이미지를 선택하면 여기에 보입니다</strong>
+                    <strong>PNG, JPG, JPEG, WEBP</strong>
                   </div>
                 )}
               </div>
@@ -275,24 +280,29 @@ export default function UploadPage() {
           <ul className="simple-list recent-upload-list">
             {recentUploads.map((item) => (
               <li key={item.id} className="recent-upload-card">
-                <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
-                  <img
-                    src={item.image_url}
-                    alt={`${item.file_name} 썸네일`}
-                    className="recent-upload-thumb"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = buildRecentFallbackImage(item);
-                    }}
-                  />
-                  <div className="recent-upload-body">
-                    <strong>{item.file_name}</strong>
-                    <p className="hint-text">
-                      {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
-                    </p>
-                    <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
-                  </div>
-                </button>
+                <div className="recent-upload-card-shell">
+                  <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
+                    <img
+                      src={item.image_url}
+                      alt={`${item.file_name} 썸네일`}
+                      className="recent-upload-thumb"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = buildRecentFallbackImage(item);
+                      }}
+                    />
+                    <div className="recent-upload-body">
+                      <strong>{item.file_name}</strong>
+                      <p className="hint-text">
+                        {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
+                      </p>
+                      <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
+                    </div>
+                  </button>
+                  <button type="button" className="recent-upload-delete-button" onClick={(event) => handleDeleteRecentUpload(item.id, event)}>
+                    삭제
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

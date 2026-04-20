@@ -599,12 +599,6 @@ button:disabled {
   max-width: 30ch;
 }
 
-.upload-stage-unified-copy small {
-  color: var(--text-soft);
-  font-size: 10pt;
-  letter-spacing: -0.01em;
-}
-
 .upload-remove-button {
   min-height: 42px;
   padding: 0 16px;
@@ -623,7 +617,7 @@ button:disabled {
 .upload-stage-placeholder strong {
   font-size: 16pt;
   color: var(--text-muted);
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
 }
 
 .upload-stage-placeholder p {
@@ -770,6 +764,11 @@ button:disabled {
   cursor: pointer;
 }
 
+.recent-upload-card-shell {
+  display: grid;
+  gap: 10px;
+}
+
 .recent-upload-card-button:hover {
   transform: translateY(-2px);
   box-shadow:
@@ -796,6 +795,22 @@ button:disabled {
 .recent-upload-body strong {
   font-size: 16pt;
   letter-spacing: -0.04em;
+}
+
+.recent-upload-delete-button {
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(24, 34, 50, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text-strong);
+  font-size: 10.5pt;
+  font-weight: 700;
+}
+
+.recent-upload-delete-button:hover {
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .filter-panel {
