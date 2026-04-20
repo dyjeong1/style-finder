@@ -157,20 +157,17 @@ export default function UploadPage() {
     <section className="split-grid upload-reference-grid" aria-labelledby="upload-title">
       <article className="card upload-reference-shell" aria-busy={uploading}>
         <div className="upload-stage-card">
-          <p className="eyebrow">Style intake</p>
           <div className="upload-stage-frame">
             <div className="upload-stage-copy">
               <h1 id="upload-title">코디 이미지를 올려보세요</h1>
-              <p className="lead page-lead">한 장의 이미지로 톤, 무드, 실루엣을 분석하고 추천 리스트를 만듭니다.</p>
+              <p className="lead page-lead">한 장만 올리면 바로 추천 리스트를 만듭니다.</p>
             </div>
             <div className="upload-stage-preview">
               {filePreviewUrl ? (
                 <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
               ) : (
                 <div className="upload-stage-placeholder" aria-hidden="true">
-                  <span className="upload-stage-placeholder-chip">Preview</span>
-                  <strong>선택한 이미지가 이곳에 표시됩니다</strong>
-                  <p>룩북, 셀피, 스크린샷 모두 업로드할 수 있어요.</p>
+                  <strong>선택한 이미지가 여기에 보입니다</strong>
                 </div>
               )}
               {analysis ? (
@@ -193,26 +190,20 @@ export default function UploadPage() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <span className="dropzone-badge">Drop or browse</span>
             <strong>{fileName || "코디 이미지 업로드"}</strong>
-            <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "JPG, PNG, WEBP 이미지를 올리면 바로 분석을 시작합니다."}</span>
+            <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "JPG, PNG, WEBP 파일을 올려주세요."}</span>
           </label>
         </div>
         <input
           id="image-input"
           type="file"
           accept="image/*"
-          aria-describedby="upload-description upload-help"
           onChange={handleFileChange}
         />
-        <p id="upload-help" className="hint-text compact-hint">
-          모바일 스크린샷, 룩북 이미지, 셀피 착장 사진 모두 테스트 가능합니다.
-        </p>
         <div className="upload-primary-row">
           <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading} aria-busy={uploading}>
             {uploading ? "이미지 분석 중..." : "이미지 분석하기"}
           </button>
-          <span className="micro-copy">로컬 단일 사용자 모드로 바로 저장됩니다.</span>
         </div>
         {analysis ? (
           <div className="analysis-panel upload-inline-analysis">
@@ -246,41 +237,37 @@ export default function UploadPage() {
       <article className="card side-panel upload-recent-panel" aria-labelledby="recent-upload-title">
         <div className="section-heading-row">
           <div>
-            <p className="eyebrow">Recent</p>
             <h2 id="recent-upload-title">최근 업로드</h2>
           </div>
-          <span className="section-badge">{recentUploads.length} items</span>
         </div>
         {recentUploads.length > 0 ? (
           <ul className="simple-list recent-upload-list">
             {recentUploads.map((item) => (
               <li key={item.id} className="recent-upload-card">
-                <img
-                  src={item.image_url}
-                  alt={`${item.file_name} 썸네일`}
-                  className="recent-upload-thumb"
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src = buildRecentFallbackImage(item);
-                  }}
-                />
-                <div className="recent-upload-body">
-                  <strong>{item.file_name}</strong>
-                  <p className="hint-text">
-                    {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
-                  </p>
-                  <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
-                  <button type="button" className="recent-upload-action" onClick={() => handleReuseUpload(item)}>
-                    추천 상품 보기
-                  </button>
-                </div>
+                <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
+                  <img
+                    src={item.image_url}
+                    alt={`${item.file_name} 썸네일`}
+                    className="recent-upload-thumb"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = buildRecentFallbackImage(item);
+                    }}
+                  />
+                  <div className="recent-upload-body">
+                    <strong>{item.file_name}</strong>
+                    <p className="hint-text">
+                      {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
+                    </p>
+                    <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
+                  </div>
+                </button>
               </li>
             ))}
           </ul>
         ) : (
           <div className="empty-box soft-empty-box">
             <p className="lead">아직 최근 업로드가 없습니다.</p>
-            <p className="hint-text">첫 이미지를 올리면 여기서 최근 분석 이력을 다시 확인할 수 있습니다.</p>
           </div>
         )}
       </article>
