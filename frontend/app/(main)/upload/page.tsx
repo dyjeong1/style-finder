@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -43,6 +43,7 @@ export default function UploadPage() {
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [analysis, setAnalysis] = useState<UploadAnalysis | null>(null);
   const [recentUploads, setRecentUploads] = useState<UploadHistoryItem[]>([]);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
 
@@ -63,12 +64,53 @@ export default function UploadPage() {
     };
   }, [selectedFile]);
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextFile = event.target.files?.[0] ?? null;
+  function applySelectedFile(nextFile: File | null) {
     setSelectedFile(nextFile);
     setErrorMessage(null);
     setSuccessMessage(null);
     setAnalysis(null);
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    applySelectedFile(event.target.files?.[0] ?? null);
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragActive(true);
+  }
+
+  function handleDragOver(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDragActive(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragActive(false);
+  }
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragActive(false);
+
+    const nextFile = event.dataTransfer.files?.[0] ?? null;
+    if (!nextFile) {
+      return;
+    }
+
+    if (!nextFile.type.startsWith("image/")) {
+      setErrorMessage("이미지 파일만 업로드할 수 있습니다.");
+      setSuccessMessage(null);
+      return;
+    }
+
+    applySelectedFile(nextFile);
   }
 
   async function handleUpload() {
@@ -143,10 +185,17 @@ export default function UploadPage() {
         </div>
 
         <div className="upload-action-card">
-          <label className="dropzone upload-reference-dropzone" htmlFor="image-input">
+          <label
+            className={`dropzone upload-reference-dropzone${isDragActive ? " is-drag-active" : ""}`}
+            htmlFor="image-input"
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <span className="dropzone-badge">Drop or browse</span>
             <strong>{fileName || "코디 이미지 업로드"}</strong>
-            <span>JPG, PNG, WEBP 이미지를 올리면 바로 분석을 시작합니다.</span>
+            <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "JPG, PNG, WEBP 이미지를 올리면 바로 분석을 시작합니다."}</span>
           </label>
         </div>
         <input
