@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260420-프론트로컬실행안정화] 프론트 로컬 안정 실행 경로 정리
+- [x] [TSK-0001-안정실행스크립트추가] `npm run local` 추가 및 실행 문서 갱신
 - [x] [PLAN-20260420-프론트하이드레이션정합성수정] 추천 페이지 hydration mismatch 수정
 - [x] [TSK-0001-추천페이지로컬상태동기화] localStorage mount 이후 동기화
 - [x] [PLAN-20260420-추천저장상태연결] 추천 결과와 위시리스트 저장 상태 연결

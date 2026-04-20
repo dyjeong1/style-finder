@@ -11,6 +11,17 @@ npm install
 npm run dev
 ```
 
+## 권장 로컬 실행
+`next dev`에서 간헐적으로 HMR/캐시 꼬임이 생길 수 있어서, 화면 확인은 아래 명령을 기본으로 권장합니다.
+
+```bash
+cd frontend
+npm run local
+```
+
+- 접속 주소: `http://127.0.0.1:3000`
+- 포함 동작: `build` 후 `start --hostname 127.0.0.1 --port 3000`
+
 ## 테스트
 ```bash
 cd frontend
@@ -65,3 +76,7 @@ npm run test:e2e
 ## 최근 하이드레이션 안정화
 - 추천 페이지의 업로드 상태는 mount 이후 로컬 저장소에서 동기화
 - SSR/CSR 초기 렌더 차이로 생기던 hydration mismatch를 줄임
+
+## 최근 로컬 실행 안정화
+- `npm run local` 스크립트 추가
+- `next dev` 대신 프로덕션 빌드 기반으로 페이지를 확인하는 흐름 정리
