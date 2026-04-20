@@ -210,7 +210,7 @@ export default function UploadPage() {
                   <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
                 ) : (
                   <div className="upload-stage-placeholder" aria-hidden="true">
-                    <strong>PNG, JPG, JPEG, WEBP</strong>
+                    <strong>허용 이미지: PNG, JPG, JPEG, WEBP</strong>
                   </div>
                 )}
               </div>
@@ -281,6 +281,14 @@ export default function UploadPage() {
             {recentUploads.map((item) => (
               <li key={item.id} className="recent-upload-card">
                 <div className="recent-upload-card-shell">
+                  <button
+                    type="button"
+                    className="recent-upload-delete-icon"
+                    aria-label={`${item.file_name} 최근 업로드 삭제`}
+                    onClick={(event) => handleDeleteRecentUpload(item.id, event)}
+                  >
+                    ×
+                  </button>
                   <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
                     <img
                       src={item.image_url}
@@ -298,9 +306,6 @@ export default function UploadPage() {
                       </p>
                       <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
                     </div>
-                  </button>
-                  <button type="button" className="recent-upload-delete-button" onClick={(event) => handleDeleteRecentUpload(item.id, event)}>
-                    삭제
                   </button>
                 </div>
               </li>
