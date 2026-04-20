@@ -519,7 +519,8 @@ button:disabled {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 18px;
+  align-content: start;
+  gap: 16px;
   min-height: 420px;
   padding: 28px 24px 24px;
   border-radius: 30px;
@@ -580,6 +581,7 @@ button:disabled {
   gap: 8px;
   justify-items: center;
   text-align: center;
+  padding-top: 4px;
 }
 
 .upload-stage-unified-copy strong {
