@@ -197,7 +197,7 @@ export default function UploadPage() {
             >
               <div className="upload-stage-unified-copy">
                 <strong>{fileName || "코디 이미지 업로드"}</strong>
-                <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 선택하세요."}</span>
+                <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 주세요."}</span>
               </div>
               <div className="upload-stage-square">
                 {filePreviewUrl ? (
