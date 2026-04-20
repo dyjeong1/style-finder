@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -30,7 +31,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="top-nav fade-in">
         <div className="nav-shell">
           <Link href="/upload" className="brand" aria-label="StyleMatch 홈으로 이동">
-            <span className="brand-mark">S</span>
+            <span className="brand-mark">
+              <Image src="/brand/stylefinder_logo.png" alt="StyleMatch 로고" width={40} height={40} className="brand-logo-image" priority />
+            </span>
             <span className="brand-copy">
               <strong>StyleMatch</strong>
               <small>Private styling workspace</small>

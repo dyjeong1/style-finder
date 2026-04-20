@@ -200,11 +200,15 @@ small {
   border-radius: 16px;
   display: grid;
   place-items: center;
-  color: #fff;
-  font-size: 16.2pt;
-  font-weight: 800;
-  background: linear-gradient(145deg, var(--bg-ink), var(--bg-navy));
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 14px 28px rgba(24, 34, 50, 0.18);
+}
+
+.brand-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand-copy {
