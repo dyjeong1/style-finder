@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260420-업로드영역통합UX개선] 업로드 선택/미리보기/삭제 흐름 통합
+- [x] [TSK-0001-업로드선택미리보기통합] 통합 업로드 박스, 정사각형 미리보기, 삭제 버튼 추가
 - [x] [PLAN-20260420-프론트폰트단위pt전환] 프론트 전역 폰트 크기 pt 단위 정리
 - [x] [TSK-0001-글로벌폰트단위pt정리] globals.css font-size 선언을 pt로 정리하고 업로드 타이틀 36pt 적용
 - [x] [TSK-0002-반응형clamp제거] 버튼 포함 남아 있는 clamp font-size 제거 및 고정 pt 값 전환

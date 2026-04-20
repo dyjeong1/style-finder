@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -36,6 +36,7 @@ function buildRecentFallbackImage(item: UploadHistoryItem): string {
 
 export default function UploadPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -71,30 +72,45 @@ export default function UploadPage() {
     setAnalysis(null);
   }
 
+  function handleOpenFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function handleResetSelectedFile(event?: MouseEvent<HTMLButtonElement>) {
+    event?.stopPropagation();
+    setSelectedFile(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setAnalysis(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     applySelectedFile(event.target.files?.[0] ?? null);
   }
 
-  function handleDragEnter(event: DragEvent<HTMLLabelElement>) {
+  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
     setIsDragActive(true);
   }
 
-  function handleDragOver(event: DragEvent<HTMLLabelElement>) {
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "copy";
     setIsDragActive(true);
   }
 
-  function handleDragLeave(event: DragEvent<HTMLLabelElement>) {
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
     setIsDragActive(false);
   }
 
-  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
     setIsDragActive(false);
@@ -162,14 +178,41 @@ export default function UploadPage() {
               <h1 id="upload-title">코디 이미지를 올려보세요</h1>
               <p className="lead page-lead">한 장만 올리면 바로 추천 리스트를 만듭니다.</p>
             </div>
-            <div className="upload-stage-preview">
-              {filePreviewUrl ? (
-                <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
-              ) : (
-                <div className="upload-stage-placeholder" aria-hidden="true">
-                  <strong>선택한 이미지가 여기에 보입니다</strong>
-                </div>
-              )}
+            <div
+              className={`upload-stage-unified-zone${isDragActive ? " is-drag-active" : ""}${filePreviewUrl ? " has-preview" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-label="코디 이미지 업로드 영역"
+              onClick={handleOpenFilePicker}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleOpenFilePicker();
+                }
+              }}
+            >
+              <div className="upload-stage-square">
+                {filePreviewUrl ? (
+                  <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
+                ) : (
+                  <div className="upload-stage-placeholder" aria-hidden="true">
+                    <strong>이미지를 선택하면 여기에 보입니다</strong>
+                  </div>
+                )}
+              </div>
+              <div className="upload-stage-unified-copy">
+                <strong>{fileName || "코디 이미지 업로드"}</strong>
+                <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 선택하세요."}</span>
+              </div>
+              {selectedFile ? (
+                <button type="button" className="upload-remove-button" onClick={handleResetSelectedFile}>
+                  사진 삭제
+                </button>
+              ) : null}
               {analysis ? (
                 <div className="upload-stage-analysis">
                   <span>{analysis.dominant_tone}</span>
@@ -180,28 +223,15 @@ export default function UploadPage() {
             </div>
           </div>
         </div>
-
-        <div className="upload-action-card">
-          <label
-            className={`dropzone upload-reference-dropzone${isDragActive ? " is-drag-active" : ""}`}
-            htmlFor="image-input"
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <strong>{fileName || "코디 이미지 업로드"}</strong>
-            <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "JPG, PNG, WEBP 파일을 올려주세요."}</span>
-          </label>
-        </div>
         <input
+          ref={fileInputRef}
           id="image-input"
           type="file"
           accept="image/*"
           onChange={handleFileChange}
         />
         <div className="upload-primary-row">
-          <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading} aria-busy={uploading}>
+          <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading || !selectedFile} aria-busy={uploading}>
             {uploading ? "이미지 분석 중..." : "이미지 분석하기"}
           </button>
         </div>
