@@ -510,7 +510,7 @@ button:disabled {
 }
 
 .upload-stage-copy h1 {
-  font-size: clamp(2.8rem, 5vw, 4.3rem);
+  font-size: clamp(2.2rem, 4.2vw, 3.4rem);
   letter-spacing: -0.07em;
   line-height: 0.98;
 }
@@ -1271,7 +1271,7 @@ button:disabled {
   }
 
   .upload-stage-copy h1 {
-    font-size: clamp(2.4rem, 10vw, 3.4rem);
+    font-size: clamp(1.9rem, 8vw, 2.8rem);
   }
 
   .upload-primary-button {
