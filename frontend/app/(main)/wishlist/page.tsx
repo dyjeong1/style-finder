@@ -18,9 +18,9 @@ function buildWishlistFallbackImage(item: WishlistItem): string {
       </defs>
       <rect width="320" height="220" rx="24" fill="url(#g)" />
       <rect x="18" y="18" width="284" height="184" rx="18" fill="rgba(255,255,255,0.55)" />
-      <text x="30" y="66" fill="#7c2d12" font-family="Arial, sans-serif" font-size="18" font-weight="700">${subtitle}</text>
-      <text x="30" y="108" fill="#111827" font-family="Arial, sans-serif" font-size="26" font-weight="700">${title}</text>
-      <text x="30" y="152" fill="#4b5563" font-family="Arial, sans-serif" font-size="16">Saved in StyleMatch</text>
+      <text x="30" y="66" fill="#7c2d12" font-family="Pretendard, Arial, sans-serif" font-size="18" font-weight="700">${subtitle}</text>
+      <text x="30" y="108" fill="#111827" font-family="Pretendard, Arial, sans-serif" font-size="26" font-weight="700">${title}</text>
+      <text x="30" y="152" fill="#4b5563" font-family="Pretendard, Arial, sans-serif" font-size="16">Saved in StyleMatch</text>
     </svg>
   `;
 
@@ -29,6 +29,7 @@ function buildWishlistFallbackImage(item: WishlistItem): string {
 
 export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -40,10 +41,12 @@ export default function WishlistPage() {
     try {
       const result = await getWishlist(category || undefined);
       setItems(result.items);
+      setTotalCount(result.total_count);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 목록 조회 중 오류가 발생했습니다.";
       setErrorMessage(message);
       setItems([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -57,6 +60,7 @@ export default function WishlistPage() {
     try {
       await removeWishlist(productId);
       setItems((prev) => prev.filter((item) => item.product_id !== productId));
+      setTotalCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 해제 중 오류가 발생했습니다.";
       setErrorMessage(message);
@@ -64,12 +68,29 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="card" aria-labelledby="wishlist-title" aria-busy={loading}>
-      <p className="eyebrow">Saved Items</p>
-      <h1 id="wishlist-title">Wishlist</h1>
-      <div className="action-row">
+    <section className="card wishlist-shell" aria-labelledby="wishlist-title" aria-busy={loading}>
+      <div className="page-header page-header-soft">
+        <p className="eyebrow">Saved Items</p>
+        <div className="page-title-row">
+          <div>
+            <h1 id="wishlist-title">Wishlist</h1>
+            <p className="lead page-lead">저장해둔 상품을 다시 확인하고 바로 쇼핑몰 링크로 이동할 수 있습니다.</p>
+          </div>
+          <div className="page-summary-grid compact-summary-grid">
+            <div className="summary-pill">
+              <span className="summary-label">Items</span>
+              <strong>{totalCount}</strong>
+            </div>
+            <div className="summary-pill">
+              <span className="summary-label">Filter</span>
+              <strong>{category || "all"}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="action-row wishlist-toolbar">
         <label className="control-field" htmlFor="wishlist-category">
-          <span className="sr-only">찜 카테고리 필터</span>
+          <span className="field-label">Category</span>
           <select id="wishlist-category" value={category} onChange={(event) => setCategory(event.target.value)}>
             <option value="">All Category</option>
             <option value="top">Top</option>
@@ -130,7 +151,7 @@ export default function WishlistPage() {
         ))}
       </ul>
       {!loading && items.length === 0 && !errorMessage ? (
-        <div className="empty-box">
+        <div className="empty-box soft-empty-box">
           <p className="lead">저장된 찜 상품이 없습니다.</p>
           <p className="hint-text">
             <Link href="/recommendations">추천 페이지</Link>에서 마음에 드는 상품을 추가해보세요.

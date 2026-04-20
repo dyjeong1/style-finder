@@ -51,3 +51,8 @@ npm run test:e2e
 - 워크플로우: `.github/workflows/frontend-e2e.yml`
 - 트리거: `frontend/**` 또는 워크플로우 파일 변경 시
 - 업로드 아티팩트: `playwright-report`, `test-results`
+
+## 최근 비주얼 리프레시
+- 전역 폰트: Pretendard
+- 공통 앱 셸: 유리 질감 네비게이션, 브랜드 헤더, 웜 톤 배경
+- 업로드/추천/위시리스트: 페이지 헤더 강화, 카드 레이아웃 정리, 추천/최근 업로드 썸네일 밀도 향상

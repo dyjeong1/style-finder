@@ -93,13 +93,32 @@ export default function UploadPage() {
   return (
     <section className="split-grid" aria-labelledby="upload-title">
       <article className="card upload-dropzone" aria-busy={uploading}>
-        <p className="eyebrow">Step 1</p>
-        <h1 id="upload-title">Upload Outfit Image</h1>
-        <p id="upload-description" className="lead">
-          코디 이미지를 올리면 카테고리별 추천 결과를 생성합니다.
-        </p>
+        <div className="page-header page-header-accent">
+          <p className="eyebrow">Style intake</p>
+          <h1 id="upload-title">오늘의 코디 이미지를 올려보세요</h1>
+          <p className="lead page-lead">
+            한 장의 이미지로 톤, 무드, 실루엣을 분석하고 바로 추천 리스트를 만듭니다.
+          </p>
+          <div className="page-summary-grid">
+            <div className="summary-pill">
+              <span className="summary-label">Mode</span>
+              <strong>Single user</strong>
+            </div>
+            <div className="summary-pill">
+              <span className="summary-label">Recent uploads</span>
+              <strong>{recentUploads.length}</strong>
+            </div>
+            <div className="summary-pill">
+              <span className="summary-label">Best with</span>
+              <strong>OOTD, lookbook</strong>
+            </div>
+          </div>
+        </div>
+
         <label className="dropzone" htmlFor="image-input">
-          {fileName || "Drop image here or click to browse"}
+          <span className="dropzone-badge">Drop or browse</span>
+          <strong>{fileName || "코디 이미지 업로드"}</strong>
+          <span>JPG, PNG, WEBP 이미지를 올리면 바로 분석을 시작합니다.</span>
         </label>
         <input
           id="image-input"
@@ -108,20 +127,26 @@ export default function UploadPage() {
           aria-describedby="upload-description upload-help"
           onChange={handleFileChange}
         />
-        <p id="upload-help" className="hint-text">
-          JPG, PNG, WEBP 등 이미지 파일을 선택할 수 있습니다.
+        <p id="upload-help" className="hint-text compact-hint">
+          모바일 스크린샷, 룩북 이미지, 셀피 착장 사진 모두 테스트 가능합니다.
         </p>
-        <button type="button" onClick={handleUpload} disabled={uploading} aria-busy={uploading}>
-          {uploading ? "Uploading..." : "Upload & Analyze"}
-        </button>
+        <div className="button-row">
+          <button type="button" onClick={handleUpload} disabled={uploading} aria-busy={uploading}>
+            {uploading ? "Analyzing..." : "Upload & Analyze"}
+          </button>
+          <span className="micro-copy">로컬 단일 사용자 모드로 바로 저장됩니다.</span>
+        </div>
         {filePreviewUrl ? (
-          <div className="preview-wrap">
+          <div className="preview-wrap preview-frame">
             <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="preview-image" />
           </div>
         ) : null}
         {analysis ? (
           <div className="analysis-panel">
-            <h2>Quick Analysis</h2>
+            <div className="panel-title-row">
+              <h2>Quick Analysis</h2>
+              <span className="metric-chip">ready for recommendations</span>
+            </div>
             <div className="analysis-chip-row">
               <span className="analysis-chip">tone {analysis.dominant_tone}</span>
               <span className="analysis-chip">mood {analysis.style_mood}</span>
@@ -144,14 +169,21 @@ export default function UploadPage() {
           ) : null}
         </div>
       </article>
-      <article className="card" aria-labelledby="recent-upload-title">
-        <p className="eyebrow">Recent</p>
-        <h2 id="recent-upload-title">최근 업로드</h2>
+
+      <article className="card side-panel" aria-labelledby="recent-upload-title">
+        <div className="section-heading-row">
+          <div>
+            <p className="eyebrow">Recent</p>
+            <h2 id="recent-upload-title">최근 업로드</h2>
+          </div>
+          <span className="section-badge">{recentUploads.length} items</span>
+        </div>
         {recentUploads.length > 0 ? (
           <ul className="simple-list recent-upload-list">
             {recentUploads.map((item) => (
-              <li key={item.id}>
-                <div>
+              <li key={item.id} className="recent-upload-card">
+                <img src={item.image_url} alt={`${item.file_name} 썸네일`} className="recent-upload-thumb" />
+                <div className="recent-upload-body">
                   <strong>{item.file_name}</strong>
                   <p className="hint-text">
                     {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
@@ -165,7 +197,10 @@ export default function UploadPage() {
             ))}
           </ul>
         ) : (
-          <p className="hint-text">아직 최근 업로드가 없습니다. 첫 이미지를 올리면 여기에 기록됩니다.</p>
+          <div className="empty-box soft-empty-box">
+            <p className="lead">아직 최근 업로드가 없습니다.</p>
+            <p className="hint-text">첫 이미지를 올리면 여기서 최근 분석 이력을 다시 확인할 수 있습니다.</p>
+          </div>
         )}
       </article>
     </section>
