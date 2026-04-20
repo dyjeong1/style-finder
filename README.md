@@ -13,10 +13,10 @@
 - 루트 `README.md`/`TODO.md`는 작업 전후로 갱신합니다.
 
 ### 현재 활성 PLAN
-- `PLAN-20260420-추천저장상태연결`
-- 상세 문서: `PLAN/PLAN-20260420-추천저장상태연결/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260420-추천저장상태연결/SPEC.md`
-- 상태: `done` (추천 카드 Saved 배지와 중복 찜 방지 상태 연결 완료, 2026-04-20)
+- `PLAN-20260420-프론트하이드레이션정합성수정`
+- 상세 문서: `PLAN/PLAN-20260420-프론트하이드레이션정합성수정/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260420-프론트하이드레이션정합성수정/SPEC.md`
+- 상태: `done` (추천 페이지 hydration mismatch 수정 완료, 2026-04-20)
 
 ### 현재 저장소 구조(초기)
 ```text
@@ -60,7 +60,7 @@
 현재는 백엔드 기초, 프론트 MVP, E2E CI, `main` 브랜치 보호 규칙 적용, PR 기준 required check 실동작 검증, GitHub Actions Node 24 대응, solo 운영 기준 브랜치 보호 정책 정리, required check 이름 정합성 수정, 업로드 이미지 분석/추천 점수 고도화와 업로드 히스토리 연결, 로그인 없는 로컬 단일 사용자 모드 전환, 위시리스트 상세화, Pretendard 기반 프론트 비주얼 리프레시, 추천 저장 상태 연결까지 완료됐습니다.
 
 1. 저장소 문서 확인: `README.md`, `AGENTS.md`, `TODO.md`
-2. 최신 PLAN 확인: `PLAN/PLAN-20260420-추천저장상태연결/PLAN.md`
+2. 최신 PLAN 확인: `PLAN/PLAN-20260420-프론트하이드레이션정합성수정/PLAN.md`
 3. API/DDL 초안 확인:
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/openapi.yaml`
    - `PLAN/PLAN-20260331-MVP초기세팅/TASKS/TSK-0002-아키텍처초안정의/schema.sql`
@@ -143,6 +143,9 @@
    - 추천 카드에서 이미 저장된 상품에 `Saved` 배지가 표시됨
    - 저장된 상품은 버튼이 비활성화되어 중복 찜을 막음
    - 저장 직후 추천 화면 요약과 카드 상태가 즉시 갱신됨
+27. 프론트 하이드레이션 정합성 메모:
+   - 추천 페이지는 localStorage 값을 mount 이후에만 읽도록 변경됨
+   - SSR/CSR 초기 DOM 차이를 줄여 hydration mismatch를 방지함
 
 ---
 

@@ -61,3 +61,7 @@ npm run test:e2e
 - 추천 화면에서 위시리스트를 함께 조회해 Saved 상태를 즉시 표시
 - 저장된 상품은 `Saved in Wishlist` 버튼으로 비활성화
 - 저장 직후 추천 카드 상태와 상단 요약이 즉시 갱신
+
+## 최근 하이드레이션 안정화
+- 추천 페이지의 업로드 상태는 mount 이후 로컬 저장소에서 동기화
+- SSR/CSR 초기 렌더 차이로 생기던 hydration mismatch를 줄임

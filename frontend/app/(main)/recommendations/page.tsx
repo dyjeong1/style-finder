@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -46,12 +46,17 @@ export default function RecommendationPage() {
   const [loading, setLoading] = useState(false);
   const [savedProductIds, setSavedProductIds] = useState<string[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
+  const [uploadedImageAnalysis, setUploadedImageAnalysis] = useState<ReturnType<typeof getStoredUploadedImageAnalysis>>(null);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
-  const uploadedImageId = useMemo(() => getStoredUploadedImageId(), []);
-  const uploadedImageAnalysis = useMemo(() => getStoredUploadedImageAnalysis(), []);
-
+  useEffect(() => {
+    setUploadedImageId(getStoredUploadedImageId());
+    setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
+    setIsClientReady(true);
+  }, []);
 
   async function loadSavedWishlistState() {
     setWishlistLoading(true);
@@ -67,6 +72,10 @@ export default function RecommendationPage() {
   }
 
   async function loadRecommendations() {
+    if (!isClientReady) {
+      return;
+    }
+
     if (!uploadedImageId) {
       setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
       setItems([]);
@@ -98,12 +107,20 @@ export default function RecommendationPage() {
   }
 
   useEffect(() => {
+    if (!isClientReady) {
+      return;
+    }
+
     void loadRecommendations();
-  }, [category, sort, minPrice, maxPrice]);
+  }, [category, sort, minPrice, maxPrice, isClientReady, uploadedImageId]);
 
   useEffect(() => {
+    if (!isClientReady) {
+      return;
+    }
+
     void loadSavedWishlistState();
-  }, []);
+  }, [isClientReady]);
 
   function resetFilters() {
     setCategory("");

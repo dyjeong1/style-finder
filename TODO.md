@@ -1,6 +1,8 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [PLAN-20260420-프론트하이드레이션정합성수정] 추천 페이지 hydration mismatch 수정
+- [x] [TSK-0001-추천페이지로컬상태동기화] localStorage mount 이후 동기화
 - [x] [PLAN-20260420-추천저장상태연결] 추천 결과와 위시리스트 저장 상태 연결
 - [x] [TSK-0001-추천저장배지및중복방지] 추천 카드 Saved 배지 및 중복 찜 방지
 - [x] [PLAN-20260417-프론트비주얼리프레시] Pretendard 적용 및 핵심 화면 비주얼 리프레시
