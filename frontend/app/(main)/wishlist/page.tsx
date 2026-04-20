@@ -7,6 +7,22 @@ import { getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
 
 type WishlistSortOption = "latest" | "oldest" | "price_asc" | "price_desc" | "name_asc";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  top: "상의",
+  bottom: "하의",
+  outer: "아우터",
+  shoes: "신발",
+  bag: "가방",
+};
+
+const SORT_LABELS: Record<WishlistSortOption, string> = {
+  latest: "최신순",
+  oldest: "오래된 순",
+  price_asc: "가격 낮은 순",
+  price_desc: "가격 높은 순",
+  name_asc: "이름순",
+};
+
 function buildWishlistFallbackImage(item: WishlistItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -83,6 +99,7 @@ export default function WishlistPage() {
   }
 
   useEffect(() => {
+    document.title = "스타일매치 | 위시리스트";
     void loadWishlist();
   }, [category]);
 
@@ -100,52 +117,52 @@ export default function WishlistPage() {
   return (
     <section className="card wishlist-shell" aria-labelledby="wishlist-title" aria-busy={loading}>
       <div className="page-header page-header-soft">
-        <p className="eyebrow">Saved Items</p>
+        <p className="eyebrow">위시리스트</p>
         <div className="page-title-row">
           <div>
-            <h1 id="wishlist-title">Wishlist</h1>
+            <h1 id="wishlist-title">찜 목록</h1>
             <p className="lead page-lead">저장해둔 상품을 다시 확인하고 바로 쇼핑몰 링크로 이동할 수 있습니다.</p>
           </div>
           <div className="page-summary-grid compact-summary-grid">
             <div className="summary-pill">
-              <span className="summary-label">Items</span>
+              <span className="summary-label">상품 수</span>
               <strong>{totalCount}</strong>
             </div>
             <div className="summary-pill">
-              <span className="summary-label">Filter</span>
-              <strong>{category || "all"}</strong>
+              <span className="summary-label">필터</span>
+              <strong>{category ? CATEGORY_LABELS[category] ?? category : "전체"}</strong>
             </div>
             <div className="summary-pill">
-              <span className="summary-label">Sort</span>
-              <strong>{sort}</strong>
+              <span className="summary-label">정렬</span>
+              <strong>{SORT_LABELS[sort]}</strong>
             </div>
           </div>
         </div>
       </div>
       <div className="action-row wishlist-toolbar">
         <label className="control-field" htmlFor="wishlist-category">
-          <span className="field-label">Category</span>
+          <span className="field-label">카테고리</span>
           <select id="wishlist-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-            <option value="">All Category</option>
-            <option value="top">Top</option>
-            <option value="bottom">Bottom</option>
-            <option value="outer">Outer</option>
-            <option value="shoes">Shoes</option>
-            <option value="bag">Bag</option>
+            <option value="">전체</option>
+            <option value="top">상의</option>
+            <option value="bottom">하의</option>
+            <option value="outer">아우터</option>
+            <option value="shoes">신발</option>
+            <option value="bag">가방</option>
           </select>
         </label>
         <label className="control-field" htmlFor="wishlist-sort">
-          <span className="field-label">Sort</span>
+          <span className="field-label">정렬</span>
           <select id="wishlist-sort" value={sort} onChange={(event) => setSort(event.target.value as WishlistSortOption)}>
-            <option value="latest">Latest</option>
-            <option value="oldest">Oldest</option>
-            <option value="price_asc">Price Asc</option>
-            <option value="price_desc">Price Desc</option>
-            <option value="name_asc">Name A-Z</option>
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된 순</option>
+            <option value="price_asc">가격 낮은 순</option>
+            <option value="price_desc">가격 높은 순</option>
+            <option value="name_asc">이름순</option>
           </select>
         </label>
         <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
-          Refresh
+          새로고침
         </button>
       </div>
       <div className="status-region" aria-live="polite" aria-atomic="true">
@@ -181,13 +198,13 @@ export default function WishlistPage() {
               </div>
               <strong>{item.product_name}</strong>
               <p className="wishlist-price">{item.price.toLocaleString("ko-KR")}원</p>
-              <p className="hint-text">saved {new Date(item.created_at).toLocaleString("ko-KR")}</p>
+              <p className="hint-text">저장 일시 {new Date(item.created_at).toLocaleString("ko-KR")}</p>
               <div className="wishlist-right">
                 <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
                   상품 보기
                 </a>
                 <button type="button" aria-label={`${item.product_id} 찜 해제`} onClick={() => handleRemove(item.product_id)}>
-                  Remove
+                  삭제
                 </button>
               </div>
             </div>

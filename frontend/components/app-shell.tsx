@@ -7,9 +7,9 @@ import { usePathname } from "next/navigation";
 import { clearStoredUploadedImageAnalysis, clearStoredUploadedImageId } from "@/lib/api";
 
 const navItems = [
-  { href: "/upload", label: "Upload" },
-  { href: "/recommendations", label: "Recommendations" },
-  { href: "/wishlist", label: "Wishlist" },
+  { href: "/upload", label: "업로드" },
+  { href: "/recommendations", label: "추천" },
+  { href: "/wishlist", label: "위시리스트" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <span className="brand-copy">
               <strong>StyleMatch</strong>
-              <small>Private styling workspace</small>
+              <small>개인 스타일 워크스페이스</small>
             </span>
           </Link>
           <nav className="top-nav-right" aria-label="주요 메뉴">
@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="auth-chip-wrap">
               {pathname !== "/upload" ? (
                 <button type="button" className="ghost-button" onClick={handleResetUpload}>
-                  Reset Upload
+                  업로드 초기화
                 </button>
               ) : null}
             </div>

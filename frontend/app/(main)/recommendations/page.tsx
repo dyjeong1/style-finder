@@ -16,6 +16,20 @@ import {
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  top: "상의",
+  bottom: "하의",
+  outer: "아우터",
+  shoes: "신발",
+  bag: "가방",
+};
+
+const SORT_LABELS: Record<SortOption, string> = {
+  similarity_desc: "유사도 높은 순",
+  price_asc: "가격 낮은 순",
+  price_desc: "가격 높은 순",
+};
+
 function buildRecommendationFallbackImage(item: RecommendationItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -55,6 +69,7 @@ export default function RecommendationPage() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    document.title = "스타일매치 | 추천 상품";
     setUploadedImageId(getStoredUploadedImageId());
     setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
     setIsClientReady(true);
@@ -161,27 +176,27 @@ export default function RecommendationPage() {
   return (
     <section className="card recommendations-shell" aria-labelledby="recommendations-title" aria-busy={loading}>
       <div className="page-header page-header-secondary">
-        <p className="eyebrow">Step 2</p>
+        <p className="eyebrow">추천</p>
         <div className="page-title-row">
           <div>
-            <h1 id="recommendations-title">Recommendations</h1>
+            <h1 id="recommendations-title">추천 상품</h1>
             <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
           </div>
           <div className="page-summary-grid compact-summary-grid">
             <div className="summary-pill">
-              <span className="summary-label">Results</span>
+              <span className="summary-label">추천 수</span>
               <strong>{totalCount}</strong>
             </div>
             <div className="summary-pill">
-              <span className="summary-label">Sort</span>
-              <strong>{sort.replace("_", " ")}</strong>
+              <span className="summary-label">정렬</span>
+              <strong>{SORT_LABELS[sort]}</strong>
             </div>
             <div className="summary-pill">
-              <span className="summary-label">Category</span>
-              <strong>{category || "all"}</strong>
+              <span className="summary-label">카테고리</span>
+              <strong>{category ? CATEGORY_LABELS[category] ?? category : "전체"}</strong>
             </div>
             <div className="summary-pill">
-              <span className="summary-label">Saved</span>
+              <span className="summary-label">저장됨</span>
               <strong>{savedProductIds.length}</strong>
             </div>
           </div>
@@ -191,44 +206,44 @@ export default function RecommendationPage() {
       <div className="filter-panel">
         <div className="filter-row">
           <label className="control-field" htmlFor="recommendation-category">
-            <span className="field-label">Category</span>
+            <span className="field-label">카테고리</span>
             <select id="recommendation-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="">All Category</option>
-              <option value="top">Top</option>
-              <option value="bottom">Bottom</option>
-              <option value="outer">Outer</option>
-              <option value="shoes">Shoes</option>
-              <option value="bag">Bag</option>
+              <option value="">전체</option>
+              <option value="top">상의</option>
+              <option value="bottom">하의</option>
+              <option value="outer">아우터</option>
+              <option value="shoes">신발</option>
+              <option value="bag">가방</option>
             </select>
           </label>
           <label className="control-field" htmlFor="recommendation-sort">
-            <span className="field-label">Sort</span>
+            <span className="field-label">정렬</span>
             <select id="recommendation-sort" value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
-              <option value="similarity_desc">Similarity Desc</option>
-              <option value="price_asc">Price Asc</option>
-              <option value="price_desc">Price Desc</option>
+              <option value="similarity_desc">유사도 높은 순</option>
+              <option value="price_asc">가격 낮은 순</option>
+              <option value="price_desc">가격 높은 순</option>
             </select>
           </label>
           <label className="control-field" htmlFor="recommendation-min-price">
-            <span className="field-label">Min price</span>
+            <span className="field-label">최소 가격</span>
             <input
               id="recommendation-min-price"
               type="number"
               min={0}
               inputMode="numeric"
-              placeholder="Min Price"
+              placeholder="최소 가격"
               value={minPrice}
               onChange={(event) => setMinPrice(event.target.value)}
             />
           </label>
           <label className="control-field" htmlFor="recommendation-max-price">
-            <span className="field-label">Max price</span>
+            <span className="field-label">최대 가격</span>
             <input
               id="recommendation-max-price"
               type="number"
               min={0}
               inputMode="numeric"
-              placeholder="Max Price"
+              placeholder="최대 가격"
               value={maxPrice}
               onChange={(event) => setMaxPrice(event.target.value)}
             />
@@ -236,10 +251,10 @@ export default function RecommendationPage() {
         </div>
         <div className="action-row">
           <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
-            Refresh
+            새로고침
           </button>
           <button type="button" className="ghost-button" onClick={resetFilters}>
-            Reset Filters
+            필터 초기화
           </button>
         </div>
       </div>
@@ -270,15 +285,15 @@ export default function RecommendationPage() {
       {uploadedImageAnalysis ? (
         <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
           <div className="panel-title-row">
-            <h2>Upload Analysis</h2>
-            <span className="metric-chip">from latest upload</span>
+            <h2>업로드 분석</h2>
+            <span className="metric-chip">최근 업로드 기준</span>
           </div>
           <div className="analysis-chip-row">
-            <span className="analysis-chip">tone {uploadedImageAnalysis.dominant_tone}</span>
-            <span className="analysis-chip">mood {uploadedImageAnalysis.style_mood}</span>
-            <span className="analysis-chip">fit {uploadedImageAnalysis.silhouette}</span>
+            <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
+            <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
+            <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
           </div>
-          <p className="hint-text">preferred categories: {uploadedImageAnalysis.preferred_categories.join(", ")}</p>
+          <p className="hint-text">선호 카테고리: {uploadedImageAnalysis.preferred_categories.join(", ")}</p>
         </section>
       ) : null}
 
@@ -311,7 +326,7 @@ export default function RecommendationPage() {
                 <div className="product-badges">
                   <span className="badge neutral-badge">{item.source.toUpperCase()}</span>
                   <div className="product-badge-stack">
-                    {saved ? <span className="badge saved-badge">Saved</span> : null}
+                    {saved ? <span className="badge saved-badge">저장됨</span> : null}
                     <span className="badge">#{item.rank}</span>
                   </div>
                 </div>
@@ -320,27 +335,27 @@ export default function RecommendationPage() {
                 <p className="product-category">{item.category.toUpperCase()}</p>
                 <h3>{item.product_name}</h3>
                 <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
-                <small>similarity {item.similarity_score.toFixed(2)}</small>
+                <small>유사도 {item.similarity_score.toFixed(2)}</small>
                 <div className="signal-list">
-                  <span>tone {item.matched_signals.dominant_tone}</span>
-                  <span>mood {item.matched_signals.style_mood}</span>
-                  <span>fit {item.matched_signals.silhouette}</span>
+                  <span>톤 {item.matched_signals.dominant_tone}</span>
+                  <span>무드 {item.matched_signals.style_mood}</span>
+                  <span>실루엣 {item.matched_signals.silhouette}</span>
                 </div>
                 <dl className="score-breakdown">
                   <div>
-                    <dt>Vector</dt>
+                    <dt>벡터</dt>
                     <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
                   </div>
                   <div>
-                    <dt>Tone</dt>
+                    <dt>톤</dt>
                     <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
                   </div>
                   <div>
-                    <dt>Mood</dt>
+                    <dt>무드</dt>
                     <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
                   </div>
                   <div>
-                    <dt>Fit</dt>
+                    <dt>실루엣</dt>
                     <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
                   </div>
                 </dl>
@@ -355,7 +370,7 @@ export default function RecommendationPage() {
                     onClick={() => handleAddWishlist(item.product_id, item.product_name)}
                     disabled={saved}
                   >
-                    {saved ? "Saved in Wishlist" : "Add to Wishlist"}
+                    {saved ? "위시리스트 저장됨" : "위시리스트 담기"}
                   </button>
                 </div>
               </div>

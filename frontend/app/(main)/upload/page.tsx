@@ -50,6 +50,7 @@ export default function UploadPage() {
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
 
   useEffect(() => {
+    document.title = "스타일매치 | 업로드";
     setRecentUploads(getUploadHistory());
   }, []);
 
@@ -241,16 +242,16 @@ export default function UploadPage() {
         {analysis ? (
           <div className="analysis-panel upload-inline-analysis">
             <div className="panel-title-row">
-              <h2>Quick Analysis</h2>
-              <span className="metric-chip">ready for recommendations</span>
+              <h2>빠른 분석</h2>
+              <span className="metric-chip">추천 준비 완료</span>
             </div>
             <div className="analysis-chip-row">
-              <span className="analysis-chip">tone {analysis.dominant_tone}</span>
-              <span className="analysis-chip">mood {analysis.style_mood}</span>
-              <span className="analysis-chip">fit {analysis.silhouette}</span>
+              <span className="analysis-chip">톤 {analysis.dominant_tone}</span>
+              <span className="analysis-chip">무드 {analysis.style_mood}</span>
+              <span className="analysis-chip">실루엣 {analysis.silhouette}</span>
             </div>
-            <p className="hint-text">preferred: {analysis.preferred_categories.join(", ")}</p>
-            <p className="hint-text">checksum: {analysis.checksum}</p>
+            <p className="hint-text">선호 카테고리: {analysis.preferred_categories.join(", ")}</p>
+            <p className="hint-text">분석 코드: {analysis.checksum}</p>
           </div>
         ) : null}
         <div className="status-region" aria-live="polite" aria-atomic="true">
