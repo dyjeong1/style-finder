@@ -6,7 +6,7 @@ priority: P1
 created_at: 2026-04-20
 updated_at: 2026-04-20
 related:
-  tasks: [TSK-0001-글로벌폰트단위pt정리]
+  tasks: [TSK-0001-글로벌폰트단위pt정리, TSK-0002-반응형clamp제거]
 tags: [frontend, typography, style]
 ---
 
@@ -45,3 +45,5 @@ tags: [frontend, typography, style]
 ## 7. 변경 이력
 - 2026-04-20: 프론트 폰트 단위 pt 전환 작업 착수
 - 2026-04-20: `globals.css` 전역 폰트 크기 선언을 pt 단위로 정리하고 업로드 타이틀을 36pt로 조정
+- 2026-04-20: 남아 있는 반응형 `clamp(...)` 폰트 선언 제거 작업 추가
+- 2026-04-20: 버튼 포함 남은 `clamp(...)` font-size를 모두 고정 pt 값으로 전환

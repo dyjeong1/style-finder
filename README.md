@@ -172,6 +172,7 @@
 35. 프론트 폰트 단위 pt 전환 메모:
    - `frontend/app/globals.css`의 `font-size` 선언을 pt 기준으로 정리함
    - 업로드 화면 메인 타이틀은 요청값인 `36pt`로 고정함
+   - 남아 있던 반응형 `clamp(...)` font-size는 모두 제거하고 고정 pt 값으로 통일함
 
 ---
 

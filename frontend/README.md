@@ -105,3 +105,4 @@ npm run test:e2e
 ## 최근 폰트 단위 정리
 - `frontend/app/globals.css`의 폰트 크기 선언을 `pt` 기준으로 정리
 - 업로드 화면 메인 타이틀 `.upload-stage-copy h1`은 `36pt`로 적용
+- 남아 있던 반응형 `clamp(...)` font-size도 제거해 버튼을 포함한 주요 텍스트를 고정 pt 값으로 정리

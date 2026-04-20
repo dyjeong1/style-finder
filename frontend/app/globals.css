@@ -64,12 +64,12 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(25.2pt, 4vw, 42pt);
+  font-size: 32pt;
   font-weight: 800;
 }
 
 h2 {
-  font-size: clamp(15.6pt, 2.4vw, 24pt);
+  font-size: 20pt;
   font-weight: 750;
 }
 
@@ -552,7 +552,7 @@ button:disabled {
 }
 
 .upload-stage-placeholder strong {
-  font-size: clamp(13.2pt, 2vw, 18pt);
+  font-size: 16pt;
   color: var(--text-muted);
   letter-spacing: -0.05em;
 }
@@ -641,7 +641,7 @@ button:disabled {
 }
 
 .dropzone strong {
-  font-size: clamp(18pt, 3vw, 24pt);
+  font-size: 20pt;
   color: var(--text-strong);
   letter-spacing: -0.04em;
 }
@@ -673,7 +673,7 @@ button:disabled {
   min-width: 248px;
   min-height: 92px;
   padding: 24px 34px;
-  font-size: clamp(15.6pt, 2vw, 22.8pt);
+  font-size: 16pt;
   border-radius: 28px;
 }
 
@@ -794,7 +794,7 @@ button:disabled {
 }
 
 .recent-upload-body strong {
-  font-size: clamp(14.4pt, 2vw, 20.4pt);
+  font-size: 16pt;
   letter-spacing: -0.04em;
 }
 
