@@ -510,7 +510,7 @@ button:disabled {
 }
 
 .upload-stage-copy h1 {
-  font-size: 36pt;
+  font-size: 30pt;
   letter-spacing: -0.07em;
   line-height: 0.98;
 }
@@ -670,11 +670,11 @@ button:disabled {
 }
 
 .upload-primary-button {
-  min-width: 248px;
-  min-height: 92px;
-  padding: 24px 34px;
-  font-size: 16pt;
-  border-radius: 28px;
+  min-width: 196px;
+  min-height: 68px;
+  padding: 16px 24px;
+  font-size: 14pt;
+  border-radius: 22px;
 }
 
 .preview-wrap {
