@@ -4,8 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { clearStoredUploadedImageAnalysis, clearStoredUploadedImageId } from "@/lib/api";
-
 const navItems = [
   { href: "/upload", label: "업로드" },
   { href: "/recommendations", label: "추천" },
@@ -15,10 +13,6 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  function handleResetUpload() {
-    clearStoredUploadedImageId();
-    clearStoredUploadedImageAnalysis();
-  }
 
   return (
     <div className="app-background">
@@ -52,13 +46,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </ul>
-            <div className="auth-chip-wrap">
-              {pathname !== "/upload" ? (
-                <button type="button" className="ghost-button" onClick={handleResetUpload}>
-                  업로드 초기화
-                </button>
-              ) : null}
-            </div>
           </nav>
         </div>
       </header>
