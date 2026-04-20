@@ -53,7 +53,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </ul>
             <div className="auth-chip-wrap">
-              <span className="auth-chip auth-chip-on">Local Mode</span>
               {pathname !== "/upload" ? (
                 <button type="button" className="ghost-button" onClick={handleResetUpload}>
                   Reset Upload

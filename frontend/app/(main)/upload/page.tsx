@@ -176,7 +176,7 @@ export default function UploadPage() {
           <div className="upload-stage-frame">
             <div className="upload-stage-copy">
               <h1 id="upload-title">코디 이미지를 올려보세요</h1>
-              <p className="lead page-lead">한 장만 올리면 바로 추천 리스트를 만듭니다.</p>
+              <p className="lead page-lead">이미지를 넣으면 유사한 상품을 추천해드립니다.</p>
             </div>
             <div
               className={`upload-stage-unified-zone${isDragActive ? " is-drag-active" : ""}${filePreviewUrl ? " has-preview" : ""}`}
@@ -198,6 +198,7 @@ export default function UploadPage() {
               <div className="upload-stage-unified-copy">
                 <strong>{fileName || "코디 이미지 업로드"}</strong>
                 <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 주세요."}</span>
+                <small>허용 형식: PNG, JPG, JPEG, WEBP</small>
               </div>
               <div className="upload-stage-square">
                 {filePreviewUrl ? (
