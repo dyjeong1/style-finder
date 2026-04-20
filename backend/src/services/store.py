@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
+import json
 import math
+from pathlib import Path
 from uuid import uuid4
 
 
@@ -45,10 +47,43 @@ class ProductRecord:
 
 
 class InMemoryStore:
-    def __init__(self) -> None:
+    def __init__(self, wishlist_store_path: Path | None = None) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
         self.products: dict[str, ProductRecord] = self._seed_products()
-        self.wishlist_by_user: dict[str, dict[str, str]] = {}
+        self.wishlist_store_path = wishlist_store_path or Path(__file__).resolve().parents[2] / "data" / "wishlist.json"
+        self.wishlist_by_user: dict[str, dict[str, str]] = self._load_wishlist()
+
+    def _load_wishlist(self) -> dict[str, dict[str, str]]:
+        if not self.wishlist_store_path.exists():
+            return {}
+
+        try:
+            raw_payload = json.loads(self.wishlist_store_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+        if not isinstance(raw_payload, dict):
+            return {}
+
+        restored: dict[str, dict[str, str]] = {}
+        for user_id, items in raw_payload.items():
+            if not isinstance(user_id, str) or not isinstance(items, dict):
+                continue
+
+            restored[user_id] = {
+                product_id: created_at
+                for product_id, created_at in items.items()
+                if isinstance(product_id, str) and isinstance(created_at, str)
+            }
+
+        return restored
+
+    def _persist_wishlist(self) -> None:
+        self.wishlist_store_path.parent.mkdir(parents=True, exist_ok=True)
+        self.wishlist_store_path.write_text(
+            json.dumps(self.wishlist_by_user, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
     def _seed_products(self) -> dict[str, ProductRecord]:
         seeded = [
@@ -288,6 +323,7 @@ class InMemoryStore:
             return False
 
         user_wishlist[product_id] = datetime.now(timezone.utc).isoformat()
+        self._persist_wishlist()
         return True
 
     def remove_wishlist(self, user_id: str, product_id: str) -> bool:
@@ -296,6 +332,7 @@ class InMemoryStore:
             return False
 
         user_wishlist.pop(product_id, None)
+        self._persist_wishlist()
         return True
 
     def list_wishlist(self, user_id: str, category: str | None) -> list[dict]:
