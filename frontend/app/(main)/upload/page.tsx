@@ -204,16 +204,13 @@ export default function UploadPage() {
               <div className="upload-stage-unified-copy">
                 <strong>{fileName || "코디 이미지 업로드"}</strong>
                 <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 주세요."}</span>
+                <small>허용 이미지: PNG, JPG, JPEG, WEBP</small>
               </div>
-              <div className="upload-stage-square">
-                {filePreviewUrl ? (
+              {filePreviewUrl ? (
+                <div className="upload-stage-square">
                   <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
-                ) : (
-                  <div className="upload-stage-placeholder" aria-hidden="true">
-                    <strong>허용 이미지: PNG, JPG, JPEG, WEBP</strong>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
               {selectedFile ? (
                 <button type="button" className="upload-remove-button" onClick={handleResetSelectedFile}>
                   사진 삭제

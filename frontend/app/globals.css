@@ -525,7 +525,7 @@ button:disabled {
   justify-items: center;
   align-content: start;
   gap: 16px;
-  min-height: 420px;
+  min-height: 220px;
   padding: 28px 24px 24px;
   border-radius: 30px;
   border: 1px dashed rgba(24, 34, 50, 0.14);
@@ -550,6 +550,7 @@ button:disabled {
 }
 
 .upload-stage-unified-zone.has-preview {
+  min-height: 420px;
   border-style: solid;
 }
 
@@ -567,17 +568,6 @@ button:disabled {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.upload-stage-placeholder {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 14px;
-  min-height: 260px;
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
 }
 
 .upload-stage-unified-copy {
@@ -599,6 +589,12 @@ button:disabled {
   max-width: 30ch;
 }
 
+.upload-stage-unified-copy small {
+  color: var(--text-soft);
+  font-size: 10pt;
+  letter-spacing: -0.01em;
+}
+
 .upload-remove-button {
   min-height: 42px;
   padding: 0 16px;
@@ -612,16 +608,6 @@ button:disabled {
 
 .upload-remove-button:hover {
   background: rgba(255, 255, 255, 0.96);
-}
-
-.upload-stage-placeholder strong {
-  font-size: 16pt;
-  color: var(--text-muted);
-  letter-spacing: -0.03em;
-}
-
-.upload-stage-placeholder p {
-  max-width: 32ch;
 }
 
 .upload-stage-analysis {
