@@ -241,12 +241,13 @@ class InMemoryStore:
         max_price: int | None,
         sort: str,
         limit: int,
+        candidate_products: list[ProductRecord] | None = None,
     ) -> list[dict]:
         upload = self.uploads.get(uploaded_image_id)
         if upload is None:
             return []
 
-        items = list(self.products.values())
+        items = candidate_products or list(self.products.values())
         if category:
             items = [item for item in items if item.category == category]
         if min_price is not None:
@@ -310,6 +311,11 @@ class InMemoryStore:
             item["rank"] = rank
 
         return scored[:limit]
+
+
+    def register_products(self, products: list[ProductRecord]) -> None:
+        for product in products:
+            self.products[product.id] = product
 
     def has_product(self, product_id: str) -> bool:
         return product_id in self.products

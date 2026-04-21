@@ -27,3 +27,20 @@ pip install -e .
 - `GET /wishlist`
 - `POST /wishlist`
 - `DELETE /wishlist/{product_id}`
+
+## 네이버 쇼핑 검색 API 연동
+- 추천 API는 네이버 쇼핑 검색 API 키가 있으면 실제 네이버 쇼핑 상품 후보를 조회합니다.
+- 키가 없거나 호출에 실패하면 기존 샘플 상품 데이터로 자동 fallback 합니다.
+- 설정 파일 예시는 `backend/.env.example`을 참고하세요.
+
+```bash
+cd backend
+cp .env.example .env
+# .env에 NAVER_SHOPPING_CLIENT_ID, NAVER_SHOPPING_CLIENT_SECRET 입력
+```
+
+사용하는 주요 설정:
+- `NAVER_SHOPPING_CLIENT_ID`
+- `NAVER_SHOPPING_CLIENT_SECRET`
+- `NAVER_SHOPPING_DISPLAY`
+- `NAVER_SHOPPING_TIMEOUT_SECONDS`

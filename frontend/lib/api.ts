@@ -76,6 +76,8 @@ export type RecommendationItem = {
 type RecommendationListResponse = {
   items: RecommendationItem[];
   total_count: number;
+  source?: "naver_shopping" | "mock";
+  query?: string;
 };
 
 export type WishlistItem = {

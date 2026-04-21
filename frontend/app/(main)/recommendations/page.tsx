@@ -30,6 +30,11 @@ const SORT_LABELS: Record<SortOption, string> = {
   price_desc: "가격 높은 순",
 };
 
+const DATA_SOURCE_LABELS: Record<string, string> = {
+  naver_shopping: "네이버 쇼핑",
+  mock: "샘플 데이터",
+};
+
 function buildRecommendationFallbackImage(item: RecommendationItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -75,6 +80,8 @@ export default function RecommendationPage() {
   const [isClientReady, setIsClientReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState("mock");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
@@ -105,6 +112,10 @@ export default function RecommendationPage() {
       setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
       setItems([]);
       setTotalCount(0);
+      setDataSource("mock");
+      setSearchQuery("");
+      setDataSource("mock");
+      setSearchQuery("");
       return;
     }
 
@@ -121,6 +132,8 @@ export default function RecommendationPage() {
       });
       setItems(result.items);
       setTotalCount(result.total_count);
+      setDataSource(result.source ?? "mock");
+      setSearchQuery(result.query ?? "");
     } catch (error) {
       const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
       const isStaleUpload =
@@ -135,12 +148,16 @@ export default function RecommendationPage() {
         setErrorMessage("이전 업로드 정보가 만료되었습니다. /upload에서 이미지를 다시 올려주세요.");
         setItems([]);
         setTotalCount(0);
+        setDataSource("mock");
+        setSearchQuery("");
         return;
       }
 
       setErrorMessage(message);
       setItems([]);
       setTotalCount(0);
+      setDataSource("mock");
+      setSearchQuery("");
     } finally {
       setLoading(false);
     }
@@ -207,9 +224,15 @@ export default function RecommendationPage() {
               <span className="summary-label">저장됨</span>
               <strong>{savedProductIds.length}</strong>
             </div>
+            <div className="summary-pill">
+              <span className="summary-label">데이터</span>
+              <strong>{DATA_SOURCE_LABELS[dataSource] ?? dataSource}</strong>
+            </div>
           </div>
         </div>
       </div>
+
+      {searchQuery ? <p className="hint-text">검색어: {searchQuery}</p> : null}
 
       <div className="filter-panel">
         <div className="filter-row">

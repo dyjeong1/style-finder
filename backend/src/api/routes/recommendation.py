@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
 from src.core.auth import get_current_user
+from src.core.config import get_settings
 from src.core.response import ok_response
 from src.services.auth_service import AuthUser
+from src.services.naver_shopping import NaverShoppingClient, NaverShoppingConfig, build_naver_query
 from src.services.store import store
 
 router = APIRouter()
@@ -49,6 +51,22 @@ def get_recommendations(
             },
         )
 
+    upload = store.get_upload(uploaded_image_id)
+    settings = get_settings()
+    naver_client = NaverShoppingClient(
+        NaverShoppingConfig(
+            client_id=settings.naver_shopping_client_id,
+            client_secret=settings.naver_shopping_client_secret,
+            display=settings.naver_shopping_display,
+            timeout_seconds=settings.naver_shopping_timeout_seconds,
+        )
+    )
+    query = build_naver_query(upload.analysis, category) if upload is not None else "패션 의류"
+    naver_products = naver_client.search_products(query=query, category=category, limit=limit)
+
+    if naver_products:
+        store.register_products(naver_products)
+
     items = store.list_recommendations(
         uploaded_image_id=uploaded_image_id,
         category=category,
@@ -56,5 +74,13 @@ def get_recommendations(
         max_price=max_price,
         sort=sort,
         limit=limit,
+        candidate_products=naver_products or None,
     )
-    return ok_response({"items": items, "total_count": len(items)})
+    return ok_response(
+        {
+            "items": items,
+            "total_count": len(items),
+            "source": "naver_shopping" if naver_products else "mock",
+            "query": query,
+        }
+    )

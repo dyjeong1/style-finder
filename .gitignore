@@ -4,3 +4,7 @@ frontend/.next
 frontend/playwright-report
 frontend/test-results
 backend/data/wishlist.json
+
+.env
+backend/.env
+frontend/.env.local
