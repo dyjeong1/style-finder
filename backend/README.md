@@ -45,3 +45,8 @@ cp .env.example .env
 - `NAVER_SHOPPING_CLIENT_SECRET`
 - `NAVER_SHOPPING_DISPLAY`
 - `NAVER_SHOPPING_TIMEOUT_SECONDS`
+
+## 업로드 이미지 파일 응답
+- 업로드 응답의 `image_url`은 `/images/{uploaded_image_id}/file`입니다.
+- 해당 URL은 업로드 원본 bytes를 `content_type`과 함께 반환합니다.
+- 현재 로컬 단일 사용자 모드에서는 업로드 파일을 메모리에 보관하므로 백엔드 재시작 후 이전 업로드 파일은 사라질 수 있습니다.

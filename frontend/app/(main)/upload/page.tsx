@@ -7,6 +7,7 @@ import {
   getUploadHistory,
   prependUploadHistory,
   removeUploadHistoryItem,
+  resolveApiAssetUrl,
   setStoredUploadedImageAnalysis,
   setStoredUploadedImageId,
   UploadAnalysis,
@@ -202,7 +203,7 @@ export default function UploadPage() {
       setRecentUploads(
         prependUploadHistory({
           id: uploaded.id,
-          image_url: uploaded.image_url,
+          image_url: resolveApiAssetUrl(uploaded.image_url),
           thumbnail_url: thumbnailUrl || undefined,
           created_at: uploaded.created_at,
           file_name: selectedFile.name,
@@ -343,7 +344,7 @@ export default function UploadPage() {
                   </button>
                   <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
                     <img
-                      src={item.thumbnail_url || item.image_url}
+                      src={item.thumbnail_url || resolveApiAssetUrl(item.image_url)}
                       alt={`${item.file_name} 썸네일`}
                       className="recent-upload-thumb"
                       onError={(event) => {

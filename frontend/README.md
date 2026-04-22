@@ -158,3 +158,7 @@ npm run test:e2e
 - 새 업로드 성공 시 브라우저에서 최근 업로드 카드용 정사각 썸네일을 생성합니다.
 - 썸네일은 `thumbnail_url`로 localStorage 히스토리에 저장되며, 최근 업로드 카드에서 우선 표시됩니다.
 - 기존 기록은 서버에 실제 이미지가 없어 fallback 썸네일이 유지될 수 있습니다.
+
+## 최근 업로드 이미지 URL 정규화
+- 백엔드가 반환하는 `/images/{uploaded_image_id}/file` 상대경로를 API 서버 절대 URL로 변환해 저장합니다.
+- 최근 업로드 카드는 `thumbnail_url`이 있으면 우선 사용하고, 없으면 실제 백엔드 이미지 URL을 사용합니다.

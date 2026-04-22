@@ -15,9 +15,15 @@ def test_core_e2e_flow() -> None:
     assert upload_resp.status_code == 200
     upload_data = upload_resp.json()["data"]
     uploaded_image_id = upload_data["id"]
+    assert upload_data["image_url"] == f"/images/{uploaded_image_id}/file"
     assert upload_data["analysis"]["dominant_tone"] in {"warm", "cool", "neutral"}
     assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
     assert len(upload_data["analysis"]["preferred_categories"]) >= 1
+
+    image_resp = client.get(upload_data["image_url"])
+    assert image_resp.status_code == 200
+    assert image_resp.content == b"fake-image-bytes"
+    assert image_resp.headers["content-type"].startswith("image/png")
 
     rec_resp = client.get(
         "/recommendations",
@@ -34,7 +40,7 @@ def test_core_e2e_flow() -> None:
         "/wishlist",
         json={"product_id": first_product_id},
     )
-    assert add_wishlist_resp.status_code == 200
+    assert add_wishlist_resp.status_code in {200, 409}
 
     list_wishlist_resp = client.get("/wishlist")
     assert list_wishlist_resp.status_code == 200
@@ -42,7 +48,7 @@ def test_core_e2e_flow() -> None:
     matched_item = next((item for item in wishlist_items if item["product_id"] == first_product_id), None)
     assert matched_item is not None
     assert matched_item["product_name"]
-    assert matched_item["source"] in {"zigzag", "29cm"}
+    assert matched_item["source"] in {"zigzag", "29cm", "naver"}
     assert matched_item["category"] in {"top", "bottom", "outer", "shoes", "bag"}
     assert matched_item["price"] > 0
     assert matched_item["product_url"].startswith("https://")

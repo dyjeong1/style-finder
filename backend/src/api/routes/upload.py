@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
 from src.core.auth import get_current_user
 from src.core.response import ok_response
@@ -6,6 +6,26 @@ from src.services.auth_service import AuthUser
 from src.services.store import store
 
 router = APIRouter()
+
+
+@router.get("/{upload_id}/file")
+def get_uploaded_image_file(upload_id: str) -> Response:
+    record = store.get_upload(upload_id)
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "UPLOAD_NOT_FOUND",
+                "message": "Uploaded image does not exist.",
+                "detail": {"uploaded_image_id": upload_id},
+            },
+        )
+
+    return Response(
+        content=record.content,
+        media_type=record.content_type,
+        headers={"Content-Disposition": f'inline; filename="{record.filename}"'},
+    )
 
 
 @router.post("/upload")

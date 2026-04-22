@@ -263,6 +263,15 @@ export function removeUploadHistoryItem(uploadHistoryId: string): UploadHistoryI
   return nextItems;
 }
 
+export function resolveApiAssetUrl(url: string): string {
+  if (!url || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) {
+    return url;
+  }
+
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
 export async function uploadImage(image: File): Promise<UploadedImage> {
   const formData = new FormData();
   formData.append("image", image);

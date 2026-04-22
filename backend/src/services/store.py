@@ -27,6 +27,7 @@ class UploadedImageRecord:
     filename: str
     content_type: str
     size_bytes: int
+    content: bytes
     created_at: str
     analysis: UploadAnalysis
 
@@ -178,7 +179,7 @@ class InMemoryStore:
     ) -> UploadedImageRecord:
         upload_id = str(uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
-        image_url = f"/mock-storage/{upload_id}-{filename}"
+        image_url = f"/images/{upload_id}/file"
         analysis = self._analyze_upload(content=content, filename=filename, content_type=content_type)
 
         record = UploadedImageRecord(
@@ -188,6 +189,7 @@ class InMemoryStore:
             filename=filename,
             content_type=content_type,
             size_bytes=size_bytes,
+            content=content,
             created_at=created_at,
             analysis=analysis,
         )
