@@ -14,6 +14,8 @@ import {
   uploadImage,
 } from "@/lib/api";
 
+const RECENT_UPLOAD_THUMBNAIL_SIZE = 360;
+
 function buildRecentFallbackImage(item: UploadHistoryItem): string {
   const label = item.file_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.analysis.dominant_tone} / ${item.analysis.style_mood} / ${item.analysis.silhouette}`;
@@ -33,6 +35,56 @@ function buildRecentFallbackImage(item: UploadHistoryItem): string {
   `;
 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function createRecentUploadThumbnail(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = RECENT_UPLOAD_THUMBNAIL_SIZE;
+      canvas.height = RECENT_UPLOAD_THUMBNAIL_SIZE;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("Canvas context is not available."));
+        return;
+      }
+
+      const naturalWidth = image.naturalWidth || image.width;
+      const naturalHeight = image.naturalHeight || image.height;
+      const sourceSize = Math.min(naturalWidth, naturalHeight);
+      const sourceX = Math.max(0, (naturalWidth - sourceSize) / 2);
+      const sourceY = Math.max(0, (naturalHeight - sourceSize) / 2);
+
+      context.fillStyle = "#f7f0e6";
+      context.fillRect(0, 0, RECENT_UPLOAD_THUMBNAIL_SIZE, RECENT_UPLOAD_THUMBNAIL_SIZE);
+      context.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        RECENT_UPLOAD_THUMBNAIL_SIZE,
+        RECENT_UPLOAD_THUMBNAIL_SIZE,
+      );
+
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image for thumbnail."));
+    };
+
+    image.src = objectUrl;
+  });
 }
 
 export default function UploadPage() {
@@ -143,6 +195,7 @@ export default function UploadPage() {
 
     try {
       const uploaded = await uploadImage(selectedFile);
+      const thumbnailUrl = await createRecentUploadThumbnail(selectedFile).catch(() => "");
       setStoredUploadedImageId(uploaded.id);
       setStoredUploadedImageAnalysis(uploaded.analysis);
       setAnalysis(uploaded.analysis);
@@ -150,6 +203,7 @@ export default function UploadPage() {
         prependUploadHistory({
           id: uploaded.id,
           image_url: uploaded.image_url,
+          thumbnail_url: thumbnailUrl || undefined,
           created_at: uploaded.created_at,
           file_name: selectedFile.name,
           analysis: uploaded.analysis,
@@ -289,7 +343,7 @@ export default function UploadPage() {
                   </button>
                   <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
                     <img
-                      src={item.image_url}
+                      src={item.thumbnail_url || item.image_url}
                       alt={`${item.file_name} 썸네일`}
                       className="recent-upload-thumb"
                       onError={(event) => {

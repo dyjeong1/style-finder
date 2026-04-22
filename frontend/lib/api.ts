@@ -39,6 +39,7 @@ export type UploadedImage = {
 export type UploadHistoryItem = {
   id: string;
   image_url: string;
+  thumbnail_url?: string;
   created_at: string;
   file_name: string;
   analysis: UploadAnalysis;
