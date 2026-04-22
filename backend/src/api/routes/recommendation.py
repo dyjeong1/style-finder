@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
@@ -5,10 +7,47 @@ from src.core.auth import get_current_user
 from src.core.config import get_settings
 from src.core.response import ok_response
 from src.services.auth_service import AuthUser
-from src.services.naver_shopping import NaverShoppingClient, NaverShoppingConfig, build_naver_query
+from src.services.naver_shopping import (
+    NaverShoppingClient,
+    NaverShoppingConfig,
+    NaverShoppingSearchResult,
+    build_naver_category_queries,
+    build_naver_query,
+)
+from src.services.store import ProductRecord, UploadAnalysis
 from src.services.store import store
 
 router = APIRouter()
+
+
+def _search_naver_candidates(
+    client: NaverShoppingClient,
+    analysis: UploadAnalysis,
+    category: str | None,
+    limit: int,
+) -> tuple[list[ProductRecord], str, str | None, str | None]:
+    if category:
+        query = build_naver_query(analysis, category)
+        result = client.search(query=query, category=category, limit=limit)
+        return result.products, query, result.fallback_reason, result.fallback_message
+
+    category_queries = build_naver_category_queries(analysis)
+    per_category_limit = max(3, (limit + len(category_queries) - 1) // len(category_queries))
+    query_label = " / ".join(query for _, query in category_queries)
+    fallback_result: NaverShoppingSearchResult | None = None
+    products_by_id: dict[str, ProductRecord] = {}
+
+    for item_category, query in category_queries:
+        result = client.search(query=query, category=item_category, limit=per_category_limit)
+        if fallback_result is None and result.fallback_reason:
+            fallback_result = result
+
+        for product in result.products:
+            products_by_id.setdefault(product.id, product)
+
+    fallback_reason = fallback_result.fallback_reason if fallback_result and not products_by_id else None
+    fallback_message = fallback_result.fallback_message if fallback_result and not products_by_id else None
+    return list(products_by_id.values()), query_label, fallback_reason, fallback_message
 
 
 @router.get("")
@@ -61,9 +100,12 @@ def get_recommendations(
             timeout_seconds=settings.naver_shopping_timeout_seconds,
         )
     )
-    query = build_naver_query(upload.analysis, category) if upload is not None else "패션 의류"
-    naver_result = naver_client.search(query=query, category=category, limit=limit)
-    naver_products = naver_result.products
+    naver_products, query, fallback_reason, fallback_message = _search_naver_candidates(
+        client=naver_client,
+        analysis=upload.analysis,
+        category=category,
+        limit=limit,
+    )
 
     if naver_products:
         store.register_products(naver_products)
@@ -83,7 +125,7 @@ def get_recommendations(
             "total_count": len(items),
             "source": "naver_shopping" if naver_products else "mock",
             "query": query,
-            "fallback_reason": naver_result.fallback_reason,
-            "fallback_message": naver_result.fallback_message,
+            "fallback_reason": fallback_reason,
+            "fallback_message": fallback_message,
         }
     )

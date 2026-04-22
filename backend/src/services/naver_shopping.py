@@ -20,6 +20,8 @@ CATEGORY_QUERIES = {
     "bag": "가방",
 }
 
+CATEGORY_ORDER = ("top", "bottom", "outer", "shoes", "bag")
+
 MOOD_QUERIES = {
     "minimal": "미니멀",
     "casual": "캐주얼",
@@ -71,6 +73,10 @@ def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
         category_keyword,
     ]
     return " ".join(part for part in query_parts if part).strip() or "패션 의류"
+
+
+def build_naver_category_queries(analysis: UploadAnalysis) -> list[tuple[str, str]]:
+    return [(category, build_naver_query(analysis, category)) for category in CATEGORY_ORDER]
 
 
 class NaverShoppingClient:

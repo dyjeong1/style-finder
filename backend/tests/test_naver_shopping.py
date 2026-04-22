@@ -5,7 +5,13 @@ from urllib.error import HTTPError
 
 import pytest
 
-from src.services.naver_shopping import NaverShoppingClient, NaverShoppingConfig, build_naver_query
+from src.services.naver_shopping import (
+    CATEGORY_ORDER,
+    NaverShoppingClient,
+    NaverShoppingConfig,
+    build_naver_category_queries,
+    build_naver_query,
+)
 from src.services.store import UploadAnalysis
 
 
@@ -81,3 +87,25 @@ def test_build_naver_query_uses_analysis_and_category() -> None:
 
     assert build_naver_query(analysis, "bag") == "쿨톤 미니멀 가방"
     assert build_naver_query(analysis, None) == "쿨톤 미니멀 아우터"
+
+
+def test_build_naver_category_queries_covers_all_recommendation_categories() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="neutral",
+        style_mood="feminine",
+        silhouette="layered",
+        preferred_categories=("bag",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+    )
+
+    queries = build_naver_category_queries(analysis)
+
+    assert [category for category, _ in queries] == list(CATEGORY_ORDER)
+    assert queries == [
+        ("top", "뉴트럴 페미닌 상의"),
+        ("bottom", "뉴트럴 페미닌 하의"),
+        ("outer", "뉴트럴 페미닌 아우터"),
+        ("shoes", "뉴트럴 페미닌 신발"),
+        ("bag", "뉴트럴 페미닌 가방"),
+    ]
