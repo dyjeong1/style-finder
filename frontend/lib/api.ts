@@ -78,6 +78,8 @@ type RecommendationListResponse = {
   total_count: number;
   source?: "naver_shopping" | "mock";
   query?: string;
+  fallback_reason?: string | null;
+  fallback_message?: string | null;
 };
 
 export type WishlistItem = {

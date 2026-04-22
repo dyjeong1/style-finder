@@ -52,6 +52,13 @@ class NaverShoppingConfig:
         return bool(self.client_id and self.client_secret)
 
 
+@dataclass(frozen=True)
+class NaverShoppingSearchResult:
+    products: list[ProductRecord]
+    fallback_reason: str | None = None
+    fallback_message: str | None = None
+
+
 def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
     category_keyword = CATEGORY_QUERIES.get(category or "")
     if category_keyword is None:
@@ -73,8 +80,15 @@ class NaverShoppingClient:
         self.config = config
 
     def search_products(self, query: str, category: str | None, limit: int) -> list[ProductRecord]:
+        return self.search(query=query, category=category, limit=limit).products
+
+    def search(self, query: str, category: str | None, limit: int) -> NaverShoppingSearchResult:
         if not self.config.enabled:
-            return []
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason="credentials_missing",
+                fallback_message="네이버 쇼핑 API 키가 없어 샘플 데이터로 표시하고 있습니다.",
+            )
 
         display = max(1, min(limit, self.config.display, 100))
         params = urlencode({"query": query, "display": display, "start": 1, "sort": "sim"})
@@ -90,12 +104,33 @@ class NaverShoppingClient:
         try:
             with urlopen(request, timeout=self.config.timeout_seconds) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError):
-            return []
+        except HTTPError as error:
+            reason = "auth_failed" if error.code in {401, 403} else "api_error"
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason=reason,
+                fallback_message=_build_http_error_message(error),
+            )
+        except (URLError, TimeoutError, OSError):
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason="network_error",
+                fallback_message="네이버 쇼핑 API 연결이 원활하지 않아 샘플 데이터로 표시하고 있습니다.",
+            )
+        except json.JSONDecodeError:
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason="invalid_response",
+                fallback_message="네이버 쇼핑 API 응답을 해석하지 못해 샘플 데이터로 표시하고 있습니다.",
+            )
 
         items = payload.get("items")
         if not isinstance(items, list):
-            return []
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason="invalid_response",
+                fallback_message="네이버 쇼핑 API 응답 형식이 달라 샘플 데이터로 표시하고 있습니다.",
+            )
 
         products: list[ProductRecord] = []
         for item in items:
@@ -106,7 +141,14 @@ class NaverShoppingClient:
             if product is not None:
                 products.append(product)
 
-        return products
+        if not products:
+            return NaverShoppingSearchResult(
+                products=[],
+                fallback_reason="no_products",
+                fallback_message="네이버 쇼핑에서 조건에 맞는 상품을 찾지 못해 샘플 데이터로 표시하고 있습니다.",
+            )
+
+        return NaverShoppingSearchResult(products=products)
 
     def _parse_item(self, item: dict, category_hint: str | None) -> ProductRecord | None:
         title = _strip_html(str(item.get("title") or "")).strip()
@@ -179,3 +221,21 @@ def _infer_category(item: dict, title: str) -> str:
 def _fallback_image_url(title: str) -> str:
     safe_title = _stable_digest(title)[:16]
     return f"https://example.com/naver/{safe_title}.jpg"
+
+
+def _build_http_error_message(error: HTTPError) -> str:
+    base_message = "네이버 쇼핑 API 인증에 실패해 샘플 데이터로 표시하고 있습니다."
+    if error.code not in {401, 403}:
+        base_message = "네이버 쇼핑 API 호출에 실패해 샘플 데이터로 표시하고 있습니다."
+
+    try:
+        payload = json.loads(error.read().decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        return base_message
+
+    raw_message = payload.get("errorMessage") if isinstance(payload, dict) else None
+    if not isinstance(raw_message, str) or not raw_message:
+        return base_message
+
+    sanitized_message = re.sub(r"\s+", " ", raw_message).strip()
+    return f"{base_message} 네이버 응답: {sanitized_message}"

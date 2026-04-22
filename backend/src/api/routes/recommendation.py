@@ -62,7 +62,8 @@ def get_recommendations(
         )
     )
     query = build_naver_query(upload.analysis, category) if upload is not None else "패션 의류"
-    naver_products = naver_client.search_products(query=query, category=category, limit=limit)
+    naver_result = naver_client.search(query=query, category=category, limit=limit)
+    naver_products = naver_result.products
 
     if naver_products:
         store.register_products(naver_products)
@@ -82,5 +83,7 @@ def get_recommendations(
             "total_count": len(items),
             "source": "naver_shopping" if naver_products else "mock",
             "query": query,
+            "fallback_reason": naver_result.fallback_reason,
+            "fallback_message": naver_result.fallback_message,
         }
     )

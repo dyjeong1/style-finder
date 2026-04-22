@@ -82,6 +82,7 @@ export default function RecommendationPage() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState("mock");
   const [searchQuery, setSearchQuery] = useState("");
+  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
@@ -114,13 +115,13 @@ export default function RecommendationPage() {
       setTotalCount(0);
       setDataSource("mock");
       setSearchQuery("");
-      setDataSource("mock");
-      setSearchQuery("");
+      setFallbackMessage(null);
       return;
     }
 
     setLoading(true);
     setErrorMessage(null);
+    setFallbackMessage(null);
 
     try {
       const result = await getRecommendations({
@@ -134,6 +135,7 @@ export default function RecommendationPage() {
       setTotalCount(result.total_count);
       setDataSource(result.source ?? "mock");
       setSearchQuery(result.query ?? "");
+      setFallbackMessage(result.fallback_message ?? null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
       const isStaleUpload =
@@ -150,6 +152,7 @@ export default function RecommendationPage() {
         setTotalCount(0);
         setDataSource("mock");
         setSearchQuery("");
+        setFallbackMessage(null);
         return;
       }
 
@@ -158,6 +161,7 @@ export default function RecommendationPage() {
       setTotalCount(0);
       setDataSource("mock");
       setSearchQuery("");
+      setFallbackMessage(null);
     } finally {
       setLoading(false);
     }
@@ -233,6 +237,11 @@ export default function RecommendationPage() {
       </div>
 
       {searchQuery ? <p className="hint-text">검색어: {searchQuery}</p> : null}
+      {fallbackMessage ? (
+        <p className="warning-text" role="status">
+          {fallbackMessage}
+        </p>
+      ) : null}
 
       <div className="filter-panel">
         <div className="filter-row">

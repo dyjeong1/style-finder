@@ -31,6 +31,7 @@ pip install -e .
 ## 네이버 쇼핑 검색 API 연동
 - 추천 API는 네이버 쇼핑 검색 API 키가 있으면 실제 네이버 쇼핑 상품 후보를 조회합니다.
 - 키가 없거나 호출에 실패하면 기존 샘플 상품 데이터로 자동 fallback 합니다.
+- 호출 실패 시 응답에 `fallback_reason`, `fallback_message`를 포함해 인증 실패/네트워크 오류 등을 확인할 수 있습니다.
 - 설정 파일 예시는 `backend/.env.example`을 참고하세요.
 
 ```bash
