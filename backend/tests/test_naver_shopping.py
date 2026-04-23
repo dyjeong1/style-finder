@@ -13,6 +13,7 @@ from src.services.naver_shopping import (
     build_custom_naver_query,
     build_naver_category_queries,
     build_naver_query,
+    infer_custom_query_categories,
 )
 from src.services.store import UploadAnalysis
 
@@ -129,4 +130,18 @@ def test_build_custom_naver_category_queries_covers_all_recommendation_categorie
         ("outer", "블랙 미니멀 아우터"),
         ("shoes", "블랙 미니멀 신발"),
         ("bag", "블랙 미니멀 가방"),
+    ]
+
+
+def test_infer_custom_query_categories_detects_product_group_keywords() -> None:
+    assert infer_custom_query_categories("검은색 신발") == ["shoes"]
+    assert infer_custom_query_categories("미니멀 재킷과 토트백") == ["outer", "bag"]
+    assert infer_custom_query_categories("블랙 미니멀") == []
+
+
+def test_build_custom_naver_category_queries_limits_to_explicit_product_group() -> None:
+    assert build_custom_naver_category_queries("검은색 신발") == [("shoes", "검은색 신발")]
+    assert build_custom_naver_category_queries("미니멀 재킷과 토트백") == [
+        ("outer", "미니멀 재킷과 토트백 아우터"),
+        ("bag", "미니멀 재킷과 토트백 가방"),
     ]

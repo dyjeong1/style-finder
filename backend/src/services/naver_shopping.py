@@ -22,6 +22,14 @@ CATEGORY_QUERIES = {
 
 CATEGORY_ORDER = ("top", "bottom", "outer", "shoes", "bag")
 
+CATEGORY_KEYWORDS = {
+    "top": ("상의", "셔츠", "티셔츠", "니트", "블라우스", "맨투맨", "후드"),
+    "bottom": ("하의", "팬츠", "바지", "스커트", "데님", "슬랙스"),
+    "outer": ("아우터", "자켓", "재킷", "코트", "점퍼", "가디건"),
+    "shoes": ("신발", "슈즈", "스니커즈", "운동화", "로퍼", "부츠", "샌들"),
+    "bag": ("가방", "백팩", "토트백", "숄더백", "크로스백", "미니백"),
+}
+
 MOOD_QUERIES = {
     "minimal": "미니멀",
     "casual": "캐주얼",
@@ -84,12 +92,25 @@ def build_custom_naver_query(custom_query: str, category: str | None) -> str:
     return normalized_query or "패션 의류"
 
 
+def infer_custom_query_categories(custom_query: str) -> list[str]:
+    normalized_query = " ".join(custom_query.split())
+
+    return [
+        category
+        for category in CATEGORY_ORDER
+        if any(keyword in normalized_query for keyword in CATEGORY_KEYWORDS[category])
+    ]
+
+
 def build_naver_category_queries(analysis: UploadAnalysis) -> list[tuple[str, str]]:
     return [(category, build_naver_query(analysis, category)) for category in CATEGORY_ORDER]
 
 
 def build_custom_naver_category_queries(custom_query: str) -> list[tuple[str, str]]:
-    return [(category, build_custom_naver_query(custom_query, category)) for category in CATEGORY_ORDER]
+    inferred_categories = infer_custom_query_categories(custom_query)
+    categories = inferred_categories or list(CATEGORY_ORDER)
+
+    return [(category, build_custom_naver_query(custom_query, category)) for category in categories]
 
 
 class NaverShoppingClient:
