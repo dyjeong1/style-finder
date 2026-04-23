@@ -35,6 +35,16 @@ const DATA_SOURCE_LABELS: Record<string, string> = {
   mock: "샘플 데이터",
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  naver: "네이버 쇼핑",
+  zigzag: "지그재그",
+  "29cm": "29CM",
+};
+
+function formatSimilarity(score: number): string {
+  return `${Math.round(score * 100)}%`;
+}
+
 function buildRecommendationFallbackImage(item: RecommendationItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -364,41 +374,23 @@ export default function RecommendationPage() {
                   }}
                 />
                 <div className="product-badges">
-                  <span className="badge neutral-badge">{item.source.toUpperCase()}</span>
+                  <span className="badge neutral-badge">{SOURCE_LABELS[item.source] ?? item.source.toUpperCase()}</span>
                   <div className="product-badge-stack">
                     {saved ? <span className="badge saved-badge">저장됨</span> : null}
                     <span className="badge">#{item.rank}</span>
                   </div>
                 </div>
+                <span className="product-category-chip">{CATEGORY_LABELS[item.category] ?? item.category}</span>
               </div>
               <div className="product-card-body">
-                <p className="product-category">{item.category.toUpperCase()}</p>
-                <h3>{item.product_name}</h3>
-                <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
-                <small>유사도 {item.similarity_score.toFixed(2)}</small>
-                <div className="signal-list">
-                  <span>톤 {item.matched_signals.dominant_tone}</span>
-                  <span>무드 {item.matched_signals.style_mood}</span>
-                  <span>실루엣 {item.matched_signals.silhouette}</span>
+                <div className="product-meta-row">
+                  <span>추천 정확도</span>
+                  <span>매칭 {formatSimilarity(item.similarity_score)}</span>
                 </div>
-                <dl className="score-breakdown">
-                  <div>
-                    <dt>벡터</dt>
-                    <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
-                  </div>
-                  <div>
-                    <dt>톤</dt>
-                    <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
-                  </div>
-                  <div>
-                    <dt>무드</dt>
-                    <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
-                  </div>
-                  <div>
-                    <dt>실루엣</dt>
-                    <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
-                  </div>
-                </dl>
+                <h3>{item.product_name}</h3>
+                <div className="product-price-row">
+                  <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
+                </div>
                 <div className="product-actions">
                   <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
                     상품 보기
@@ -413,6 +405,32 @@ export default function RecommendationPage() {
                     {saved ? "위시리스트 저장됨" : "위시리스트 담기"}
                   </button>
                 </div>
+                <details className="product-match-details">
+                  <summary>매칭 정보 보기</summary>
+                  <div className="signal-list">
+                    <span>톤 {item.matched_signals.dominant_tone}</span>
+                    <span>무드 {item.matched_signals.style_mood}</span>
+                    <span>실루엣 {item.matched_signals.silhouette}</span>
+                  </div>
+                  <dl className="score-breakdown">
+                    <div>
+                      <dt>벡터</dt>
+                      <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
+                    </div>
+                    <div>
+                      <dt>톤</dt>
+                      <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
+                    </div>
+                    <div>
+                      <dt>무드</dt>
+                      <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
+                    </div>
+                    <div>
+                      <dt>실루엣</dt>
+                      <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
+                    </div>
+                  </dl>
+                </details>
               </div>
             </article>
           );
