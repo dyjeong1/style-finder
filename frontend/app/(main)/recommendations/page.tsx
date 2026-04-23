@@ -24,6 +24,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   bag: "가방",
 };
 
+const CATEGORY_ORDER = ["top", "bottom", "outer", "shoes", "bag"] as const;
+const CATEGORY_ORDER_SET = new Set<string>(CATEGORY_ORDER);
+
 const SORT_LABELS: Record<SortOption, string> = {
   similarity_desc: "유사도 높은 순",
   price_asc: "가격 낮은 순",
@@ -43,6 +46,41 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function formatSimilarity(score: number): string {
   return `${Math.round(score * 100)}%`;
+}
+
+type RecommendationCategorySection = {
+  key: string;
+  label: string;
+  items: RecommendationItem[];
+};
+
+function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
+
+function buildRecommendationSections(items: RecommendationItem[]): RecommendationCategorySection[] {
+  const sections: RecommendationCategorySection[] = CATEGORY_ORDER.map((key) => ({
+    key,
+    label: getCategoryLabel(key),
+    items: items.filter((item) => item.category === key),
+  }));
+  const uncategorizedItems = items.filter((item) => !CATEGORY_ORDER_SET.has(item.category));
+
+  if (uncategorizedItems.length > 0) {
+    sections.push({
+      key: "etc",
+      label: "기타",
+      items: uncategorizedItems,
+    });
+  }
+
+  return sections.filter((section) => section.items.length > 0);
+}
+
+function getTopMatchLabel(items: RecommendationItem[]): string {
+  const topScore = Math.max(...items.map((item) => item.similarity_score));
+
+  return Number.isFinite(topScore) ? formatSimilarity(topScore) : "0%";
 }
 
 function buildRecommendationFallbackImage(item: RecommendationItem): string {
@@ -212,6 +250,86 @@ export default function RecommendationPage() {
     }
   }
 
+  const recommendationSections = buildRecommendationSections(items);
+
+  function renderProductCard(item: RecommendationItem) {
+    const saved = savedProductIds.includes(item.product_id);
+
+    return (
+      <article className="product-card product-card-rich" key={item.product_id} role="listitem">
+        <div className="product-visual-wrap">
+          <img
+            src={resolveRecommendationImage(item)}
+            alt={`${item.product_name} 상품 이미지`}
+            className="product-visual"
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = buildRecommendationFallbackImage(item);
+            }}
+          />
+          <div className="product-badges">
+            <span className="badge neutral-badge">{SOURCE_LABELS[item.source] ?? item.source.toUpperCase()}</span>
+            <div className="product-badge-stack">
+              {saved ? <span className="badge saved-badge">저장됨</span> : null}
+              <span className="badge">#{item.rank}</span>
+            </div>
+          </div>
+          <span className="product-category-chip">{getCategoryLabel(item.category)}</span>
+        </div>
+        <div className="product-card-body">
+          <div className="product-meta-row">
+            <span>추천 정확도</span>
+            <span>매칭 {formatSimilarity(item.similarity_score)}</span>
+          </div>
+          <h3>{item.product_name}</h3>
+          <div className="product-price-row">
+            <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
+          </div>
+          <div className="product-actions">
+            <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
+              상품 보기
+            </a>
+            <button
+              type="button"
+              className={saved ? "saved-button" : undefined}
+              aria-label={`${item.product_name} 찜 추가`}
+              onClick={() => handleAddWishlist(item.product_id, item.product_name)}
+              disabled={saved}
+            >
+              {saved ? "위시리스트 저장됨" : "위시리스트 담기"}
+            </button>
+          </div>
+          <details className="product-match-details">
+            <summary>매칭 정보 보기</summary>
+            <div className="signal-list">
+              <span>톤 {item.matched_signals.dominant_tone}</span>
+              <span>무드 {item.matched_signals.style_mood}</span>
+              <span>실루엣 {item.matched_signals.silhouette}</span>
+            </div>
+            <dl className="score-breakdown">
+              <div>
+                <dt>벡터</dt>
+                <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>톤</dt>
+                <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>무드</dt>
+                <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt>실루엣</dt>
+                <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
+              </div>
+            </dl>
+          </details>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <section className="card recommendations-shell" aria-labelledby="recommendations-title" aria-busy={loading}>
       <div className="page-header page-header-secondary">
@@ -347,95 +465,50 @@ export default function RecommendationPage() {
         </section>
       ) : null}
 
-      <div className="card-grid product-grid" role="list" aria-label="추천 상품 목록">
-        {loading
-          ? Array.from({ length: 4 }).map((_, idx) => (
-              <article className="product-card skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
-                <div className="product-visual skeleton-block" />
-                <div className="skeleton-line skeleton-title" />
-                <div className="skeleton-line" />
-                <div className="skeleton-line skeleton-short" />
-              </article>
-            ))
-          : null}
-        {items.map((item) => {
-          const saved = savedProductIds.includes(item.product_id);
-
-          return (
-            <article className="product-card product-card-rich" key={item.product_id} role="listitem">
-              <div className="product-visual-wrap">
-                <img
-                  src={resolveRecommendationImage(item)}
-                  alt={`${item.product_name} 상품 이미지`}
-                  className="product-visual"
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src = buildRecommendationFallbackImage(item);
-                  }}
-                />
-                <div className="product-badges">
-                  <span className="badge neutral-badge">{SOURCE_LABELS[item.source] ?? item.source.toUpperCase()}</span>
-                  <div className="product-badge-stack">
-                    {saved ? <span className="badge saved-badge">저장됨</span> : null}
-                    <span className="badge">#{item.rank}</span>
-                  </div>
-                </div>
-                <span className="product-category-chip">{CATEGORY_LABELS[item.category] ?? item.category}</span>
-              </div>
-              <div className="product-card-body">
-                <div className="product-meta-row">
-                  <span>추천 정확도</span>
-                  <span>매칭 {formatSimilarity(item.similarity_score)}</span>
-                </div>
-                <h3>{item.product_name}</h3>
-                <div className="product-price-row">
-                  <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
-                </div>
-                <div className="product-actions">
-                  <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
-                    상품 보기
-                  </a>
-                  <button
-                    type="button"
-                    className={saved ? "saved-button" : undefined}
-                    aria-label={`${item.product_name} 찜 추가`}
-                    onClick={() => handleAddWishlist(item.product_id, item.product_name)}
-                    disabled={saved}
-                  >
-                    {saved ? "위시리스트 저장됨" : "위시리스트 담기"}
-                  </button>
-                </div>
-                <details className="product-match-details">
-                  <summary>매칭 정보 보기</summary>
-                  <div className="signal-list">
-                    <span>톤 {item.matched_signals.dominant_tone}</span>
-                    <span>무드 {item.matched_signals.style_mood}</span>
-                    <span>실루엣 {item.matched_signals.silhouette}</span>
-                  </div>
-                  <dl className="score-breakdown">
-                    <div>
-                      <dt>벡터</dt>
-                      <dd>{item.score_breakdown.vector_similarity.toFixed(2)}</dd>
-                    </div>
-                    <div>
-                      <dt>톤</dt>
-                      <dd>+{item.score_breakdown.tone_bonus.toFixed(2)}</dd>
-                    </div>
-                    <div>
-                      <dt>무드</dt>
-                      <dd>+{item.score_breakdown.mood_bonus.toFixed(2)}</dd>
-                    </div>
-                    <div>
-                      <dt>실루엣</dt>
-                      <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
-                    </div>
-                  </dl>
-                </details>
-              </div>
+      {loading ? (
+        <div className="card-grid product-grid" role="list" aria-label="추천 상품 로딩 목록">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <article className="product-card skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
+              <div className="product-visual skeleton-block" />
+              <div className="skeleton-line skeleton-title" />
+              <div className="skeleton-line" />
+              <div className="skeleton-line skeleton-short" />
             </article>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : null}
+
+      {!loading && items.length > 0 && category ? (
+        <div className="card-grid product-grid" role="list" aria-label={`${getCategoryLabel(category)} 추천 상품 목록`}>
+          {items.map(renderProductCard)}
+        </div>
+      ) : null}
+
+      {!loading && items.length > 0 && !category ? (
+        <div className="recommendation-section-list" aria-label="카테고리별 추천 상품 목록">
+          {recommendationSections.map((section) => (
+            <section
+              className="recommendation-category-section"
+              key={section.key}
+              aria-labelledby={`recommendation-section-${section.key}`}
+            >
+              <div className="recommendation-section-header">
+                <div>
+                  <p className="eyebrow">카테고리 추천</p>
+                  <h2 id={`recommendation-section-${section.key}`}>{section.label}</h2>
+                </div>
+                <div className="section-stat-row" aria-label={`${section.label} 추천 요약`}>
+                  <span>{section.items.length}개 상품</span>
+                  <span>최고 매칭 {getTopMatchLabel(section.items)}</span>
+                </div>
+              </div>
+              <div className="card-grid product-grid" role="list" aria-label={`${section.label} 추천 상품 목록`}>
+                {section.items.map(renderProductCard)}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : null}
       {!loading && items.length === 0 && !errorMessage ? (
         <div className="empty-box soft-empty-box">
           <p className="lead">추천 결과가 없습니다.</p>
