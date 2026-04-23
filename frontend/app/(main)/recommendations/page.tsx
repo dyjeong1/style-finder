@@ -58,6 +58,10 @@ function getCategoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
 
+function getRecommendationSectionId(sectionKey: string): string {
+  return `recommendation-category-${sectionKey}`;
+}
+
 function buildRecommendationSections(items: RecommendationItem[]): RecommendationCategorySection[] {
   const sections: RecommendationCategorySection[] = CATEGORY_ORDER.map((key) => ({
     key,
@@ -465,6 +469,24 @@ export default function RecommendationPage() {
         </section>
       ) : null}
 
+      {!loading && items.length > 0 && !category ? (
+        <nav className="category-jump-panel" aria-label="추천 카테고리 바로가기">
+          <div className="category-jump-copy">
+            <p className="eyebrow">바로가기</p>
+            <strong>원하는 제품군으로 빠르게 이동하세요.</strong>
+          </div>
+          <div className="category-jump-list">
+            {recommendationSections.map((section) => (
+              <a className="category-jump-card" href={`#${getRecommendationSectionId(section.key)}`} key={section.key}>
+                <span>{section.label}</span>
+                <strong>{section.items.length}개</strong>
+                <small>최고 매칭 {getTopMatchLabel(section.items)}</small>
+              </a>
+            ))}
+          </div>
+        </nav>
+      ) : null}
+
       {loading ? (
         <div className="card-grid product-grid" role="list" aria-label="추천 상품 로딩 목록">
           {Array.from({ length: 4 }).map((_, idx) => (
@@ -486,27 +508,33 @@ export default function RecommendationPage() {
 
       {!loading && items.length > 0 && !category ? (
         <div className="recommendation-section-list" aria-label="카테고리별 추천 상품 목록">
-          {recommendationSections.map((section) => (
-            <section
-              className="recommendation-category-section"
-              key={section.key}
-              aria-labelledby={`recommendation-section-${section.key}`}
-            >
-              <div className="recommendation-section-header">
-                <div>
-                  <p className="eyebrow">카테고리 추천</p>
-                  <h2 id={`recommendation-section-${section.key}`}>{section.label}</h2>
+          {recommendationSections.map((section) => {
+            const sectionId = getRecommendationSectionId(section.key);
+            const sectionTitleId = `${sectionId}-title`;
+
+            return (
+              <section
+                className="recommendation-category-section"
+                id={sectionId}
+                key={section.key}
+                aria-labelledby={sectionTitleId}
+              >
+                <div className="recommendation-section-header">
+                  <div>
+                    <p className="eyebrow">카테고리 추천</p>
+                    <h2 id={sectionTitleId}>{section.label}</h2>
+                  </div>
+                  <div className="section-stat-row" aria-label={`${section.label} 추천 요약`}>
+                    <span>{section.items.length}개 상품</span>
+                    <span>최고 매칭 {getTopMatchLabel(section.items)}</span>
+                  </div>
                 </div>
-                <div className="section-stat-row" aria-label={`${section.label} 추천 요약`}>
-                  <span>{section.items.length}개 상품</span>
-                  <span>최고 매칭 {getTopMatchLabel(section.items)}</span>
+                <div className="card-grid product-grid" role="list" aria-label={`${section.label} 추천 상품 목록`}>
+                  {section.items.map(renderProductCard)}
                 </div>
-              </div>
-              <div className="card-grid product-grid" role="list" aria-label={`${section.label} 추천 상품 목록`}>
-                {section.items.map(renderProductCard)}
-              </div>
-            </section>
-          ))}
+              </section>
+            );
+          })}
         </div>
       ) : null}
       {!loading && items.length === 0 && !errorMessage ? (
