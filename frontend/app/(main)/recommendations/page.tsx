@@ -134,6 +134,8 @@ export default function RecommendationPage() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState("mock");
   const [searchQuery, setSearchQuery] = useState("");
+  const [customQueryInput, setCustomQueryInput] = useState("");
+  const [appliedCustomQuery, setAppliedCustomQuery] = useState("");
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -182,6 +184,7 @@ export default function RecommendationPage() {
         sort,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        customQuery: appliedCustomQuery || undefined,
       });
       setItems(result.items);
       setTotalCount(result.total_count);
@@ -225,7 +228,7 @@ export default function RecommendationPage() {
     }
 
     void loadRecommendations();
-  }, [category, sort, minPrice, maxPrice, isClientReady, uploadedImageId]);
+  }, [category, sort, minPrice, maxPrice, appliedCustomQuery, isClientReady, uploadedImageId]);
 
   useEffect(() => {
     if (!isClientReady) {
@@ -240,6 +243,15 @@ export default function RecommendationPage() {
     setSort("similarity_desc");
     setMinPrice("");
     setMaxPrice("");
+  }
+
+  function applyCustomQuery() {
+    setAppliedCustomQuery(customQueryInput.trim());
+  }
+
+  function clearCustomQuery() {
+    setCustomQueryInput("");
+    setAppliedCustomQuery("");
   }
 
   async function handleAddWishlist(productId: string, productName: string) {
@@ -368,7 +380,12 @@ export default function RecommendationPage() {
         </div>
       </div>
 
-      {searchQuery ? <p className="hint-text">검색어: {searchQuery}</p> : null}
+      {searchQuery ? (
+        <p className="hint-text">
+          검색어: {searchQuery}
+          {appliedCustomQuery ? " (직접 입력 기준)" : ""}
+        </p>
+      ) : null}
       {fallbackMessage ? (
         <p className="warning-text" role="status">
           {fallbackMessage}
@@ -421,6 +438,38 @@ export default function RecommendationPage() {
             />
           </label>
         </div>
+        <div className="custom-query-row">
+          <label className="control-field" htmlFor="recommendation-custom-query">
+            <span className="field-label">추천 검색어 직접 입력</span>
+            <input
+              id="recommendation-custom-query"
+              type="search"
+              maxLength={80}
+              placeholder="예: 블랙 미니멀 재킷"
+              value={customQueryInput}
+              onChange={(event) => setCustomQueryInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyCustomQuery();
+                }
+              }}
+            />
+          </label>
+          <div className="custom-query-actions">
+            <button type="button" onClick={applyCustomQuery}>
+              검색어 적용
+            </button>
+            <button type="button" className="ghost-button" onClick={clearCustomQuery} disabled={!customQueryInput && !appliedCustomQuery}>
+              검색어 초기화
+            </button>
+          </div>
+        </div>
+        {appliedCustomQuery ? (
+          <p className="hint-text">현재 직접 입력 검색어: {appliedCustomQuery}</p>
+        ) : (
+          <p className="hint-text">비워두면 업로드 이미지 분석값으로 검색어를 자동 생성합니다.</p>
+        )}
         <div className="action-row">
           <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
             새로고침

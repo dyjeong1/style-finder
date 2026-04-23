@@ -75,8 +75,21 @@ def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
     return " ".join(part for part in query_parts if part).strip() or "패션 의류"
 
 
+def build_custom_naver_query(custom_query: str, category: str | None) -> str:
+    normalized_query = " ".join(custom_query.split())
+    category_keyword = CATEGORY_QUERIES.get(category or "")
+    if category_keyword and category_keyword not in normalized_query:
+        return f"{normalized_query} {category_keyword}".strip()
+
+    return normalized_query or "패션 의류"
+
+
 def build_naver_category_queries(analysis: UploadAnalysis) -> list[tuple[str, str]]:
     return [(category, build_naver_query(analysis, category)) for category in CATEGORY_ORDER]
+
+
+def build_custom_naver_category_queries(custom_query: str) -> list[tuple[str, str]]:
+    return [(category, build_custom_naver_query(custom_query, category)) for category in CATEGORY_ORDER]
 
 
 class NaverShoppingClient:

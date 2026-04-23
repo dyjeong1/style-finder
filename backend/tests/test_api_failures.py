@@ -103,3 +103,19 @@ def test_recommendation_changes_by_uploaded_image_features() -> None:
 
     assert [item["similarity_score"] for item in first_items] != [item["similarity_score"] for item in second_items]
     assert first_upload.json()["data"]["analysis"] != second_upload.json()["data"]["analysis"]
+
+
+def test_recommendation_accepts_custom_query() -> None:
+    uploaded_image_id = _upload_image()
+
+    response = client.get(
+        "/recommendations",
+        params={
+            "uploaded_image_id": uploaded_image_id,
+            "custom_query": "블랙 미니멀",
+            "limit": 3,
+        },
+    )
+
+    assert response.status_code == 200
+    assert "블랙 미니멀" in response.json()["data"]["query"]

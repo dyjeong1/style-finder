@@ -9,6 +9,8 @@ from src.services.naver_shopping import (
     CATEGORY_ORDER,
     NaverShoppingClient,
     NaverShoppingConfig,
+    build_custom_naver_category_queries,
+    build_custom_naver_query,
     build_naver_category_queries,
     build_naver_query,
 )
@@ -108,4 +110,23 @@ def test_build_naver_category_queries_covers_all_recommendation_categories() -> 
         ("outer", "뉴트럴 페미닌 아우터"),
         ("shoes", "뉴트럴 페미닌 신발"),
         ("bag", "뉴트럴 페미닌 가방"),
+    ]
+
+
+def test_build_custom_naver_query_appends_category_when_missing() -> None:
+    assert build_custom_naver_query("블랙 미니멀", "outer") == "블랙 미니멀 아우터"
+    assert build_custom_naver_query("블랙 미니멀 아우터", "outer") == "블랙 미니멀 아우터"
+    assert build_custom_naver_query("  블랙   미니멀  ", None) == "블랙 미니멀"
+
+
+def test_build_custom_naver_category_queries_covers_all_recommendation_categories() -> None:
+    queries = build_custom_naver_category_queries("블랙 미니멀")
+
+    assert [category for category, _ in queries] == list(CATEGORY_ORDER)
+    assert queries == [
+        ("top", "블랙 미니멀 상의"),
+        ("bottom", "블랙 미니멀 하의"),
+        ("outer", "블랙 미니멀 아우터"),
+        ("shoes", "블랙 미니멀 신발"),
+        ("bag", "블랙 미니멀 가방"),
     ]

@@ -827,6 +827,23 @@ button:disabled {
   align-items: center;
 }
 
+.custom-query-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.custom-query-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-query-actions button {
+  white-space: nowrap;
+}
+
 .wishlist-toolbar {
   justify-content: space-between;
 }
@@ -1454,6 +1471,7 @@ button:disabled {
 
   .split-grid,
   .filter-row,
+  .custom-query-row,
   .page-summary-grid,
   .card-grid,
   .wishlist-list li,

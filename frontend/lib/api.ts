@@ -289,6 +289,7 @@ export type RecommendationQuery = {
   maxPrice?: number;
   sort?: "similarity_desc" | "price_asc" | "price_desc";
   limit?: number;
+  customQuery?: string;
 };
 
 export async function getRecommendations(query: RecommendationQuery): Promise<RecommendationListResponse> {
@@ -309,6 +310,9 @@ export async function getRecommendations(query: RecommendationQuery): Promise<Re
   }
   if (typeof query.limit === "number") {
     searchParams.set("limit", String(query.limit));
+  }
+  if (query.customQuery) {
+    searchParams.set("custom_query", query.customQuery);
   }
 
   return apiRequest<RecommendationListResponse>(`/recommendations?${searchParams.toString()}`);

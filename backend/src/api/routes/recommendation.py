@@ -11,6 +11,8 @@ from src.services.naver_shopping import (
     NaverShoppingClient,
     NaverShoppingConfig,
     NaverShoppingSearchResult,
+    build_custom_naver_category_queries,
+    build_custom_naver_query,
     build_naver_category_queries,
     build_naver_query,
 )
@@ -25,13 +27,14 @@ def _search_naver_candidates(
     analysis: UploadAnalysis,
     category: str | None,
     limit: int,
+    custom_query: str | None = None,
 ) -> tuple[list[ProductRecord], str, str | None, str | None]:
     if category:
-        query = build_naver_query(analysis, category)
+        query = build_custom_naver_query(custom_query, category) if custom_query else build_naver_query(analysis, category)
         result = client.search(query=query, category=category, limit=limit)
         return result.products, query, result.fallback_reason, result.fallback_message
 
-    category_queries = build_naver_category_queries(analysis)
+    category_queries = build_custom_naver_category_queries(custom_query) if custom_query else build_naver_category_queries(analysis)
     per_category_limit = max(3, (limit + len(category_queries) - 1) // len(category_queries))
     query_label = " / ".join(query for _, query in category_queries)
     fallback_result: NaverShoppingSearchResult | None = None
@@ -58,6 +61,7 @@ def get_recommendations(
     max_price: Optional[int] = Query(default=None, ge=0),
     sort: str = Query(default="similarity_desc"),
     limit: int = Query(default=30, ge=1, le=100),
+    custom_query: Optional[str] = Query(default=None, min_length=1, max_length=80),
     _: AuthUser = Depends(get_current_user),
 ) -> dict:
     if min_price is not None and max_price is not None and min_price > max_price:
@@ -91,6 +95,7 @@ def get_recommendations(
         )
 
     upload = store.get_upload(uploaded_image_id)
+    normalized_custom_query = " ".join(custom_query.split()) if custom_query else None
     settings = get_settings()
     naver_client = NaverShoppingClient(
         NaverShoppingConfig(
@@ -105,6 +110,7 @@ def get_recommendations(
         analysis=upload.analysis,
         category=category,
         limit=limit,
+        custom_query=normalized_custom_query,
     )
 
     if naver_products:
