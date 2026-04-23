@@ -134,18 +134,30 @@ def test_build_custom_naver_category_queries_covers_all_recommendation_categorie
 
 
 def test_infer_custom_query_categories_detects_product_group_keywords() -> None:
+    assert infer_custom_query_categories("크롭 니트") == ["top"]
+    assert infer_custom_query_categories("화이트 셔츠") == ["top"]
+    assert infer_custom_query_categories("와이드 슬랙스") == ["bottom"]
+    assert infer_custom_query_categories("흑청 데님") == ["bottom"]
+    assert infer_custom_query_categories("베이지 트렌치코트") == ["outer"]
+    assert infer_custom_query_categories("오버핏 블레이저") == ["outer"]
     assert infer_custom_query_categories("검은색 신발") == ["shoes"]
     assert infer_custom_query_categories("블랙 메리제인") == ["shoes"]
     assert infer_custom_query_categories("브라운 로퍼") == ["shoes"]
     assert infer_custom_query_categories("여름 슬리퍼") == ["shoes"]
     assert infer_custom_query_categories("미니멀 구두") == ["shoes"]
+    assert infer_custom_query_categories("브라운 호보백") == ["bag"]
+    assert infer_custom_query_categories("캔버스 에코백") == ["bag"]
     assert infer_custom_query_categories("미니멀 재킷과 토트백") == ["outer", "bag"]
     assert infer_custom_query_categories("블랙 미니멀") == []
 
 
 def test_build_custom_naver_category_queries_limits_to_explicit_product_group() -> None:
+    assert build_custom_naver_category_queries("크롭 니트") == [("top", "크롭 니트 상의")]
+    assert build_custom_naver_category_queries("와이드 슬랙스") == [("bottom", "와이드 슬랙스 하의")]
+    assert build_custom_naver_category_queries("베이지 트렌치코트") == [("outer", "베이지 트렌치코트 아우터")]
     assert build_custom_naver_category_queries("검은색 신발") == [("shoes", "검은색 신발")]
     assert build_custom_naver_category_queries("블랙 메리제인") == [("shoes", "블랙 메리제인 신발")]
+    assert build_custom_naver_category_queries("브라운 호보백") == [("bag", "브라운 호보백 가방")]
     assert build_custom_naver_category_queries("미니멀 재킷과 토트백") == [
         ("outer", "미니멀 재킷과 토트백 아우터"),
         ("bag", "미니멀 재킷과 토트백 가방"),
