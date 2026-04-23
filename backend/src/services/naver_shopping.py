@@ -148,6 +148,20 @@ TONE_QUERIES = {
     "neutral": "뉴트럴",
 }
 
+COLOR_QUERIES = {
+    "black": "블랙",
+    "white": "화이트",
+    "gray": "그레이",
+    "beige": "베이지",
+    "brown": "브라운",
+    "navy": "네이비",
+    "blue": "블루",
+    "green": "그린",
+    "red": "레드",
+    "pink": "핑크",
+    "yellow": "옐로우",
+}
+
 TAG_VALUES = {
     "tone": ("warm", "cool", "neutral"),
     "mood": ("minimal", "casual", "street", "feminine"),
@@ -181,6 +195,7 @@ def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
         category_keyword = CATEGORY_QUERIES.get(first_preferred, "패션")
 
     query_parts = [
+        COLOR_QUERIES.get(analysis.dominant_color, ""),
         TONE_QUERIES.get(analysis.dominant_tone, ""),
         MOOD_QUERIES.get(analysis.style_mood, ""),
         category_keyword,

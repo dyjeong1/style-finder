@@ -17,6 +17,20 @@ def test_core_e2e_flow() -> None:
     uploaded_image_id = upload_data["id"]
     assert upload_data["image_url"] == f"/images/{uploaded_image_id}/file"
     assert upload_data["analysis"]["dominant_tone"] in {"warm", "cool", "neutral"}
+    assert upload_data["analysis"]["dominant_color"] in {
+        "black",
+        "white",
+        "gray",
+        "beige",
+        "brown",
+        "navy",
+        "blue",
+        "green",
+        "red",
+        "pink",
+        "yellow",
+        "unknown",
+    }
     assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
     assert len(upload_data["analysis"]["preferred_categories"]) >= 1
 
@@ -33,7 +47,9 @@ def test_core_e2e_flow() -> None:
     rec_items = rec_resp.json()["data"]["items"]
     assert len(rec_items) >= 1
     assert "score_breakdown" in rec_items[0]
+    assert "color_bonus" in rec_items[0]["score_breakdown"]
     assert "matched_signals" in rec_items[0]
+    assert "dominant_color" in rec_items[0]["matched_signals"]
     first_product_id = rec_items[0]["product_id"]
 
     add_wishlist_resp = client.post(

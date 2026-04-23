@@ -319,6 +319,7 @@ export default function RecommendationPage() {
             <summary>매칭 정보 보기</summary>
             <div className="signal-list">
               <span>톤 {item.matched_signals.dominant_tone}</span>
+              {item.matched_signals.dominant_color ? <span>색상 {item.matched_signals.dominant_color}</span> : null}
               <span>무드 {item.matched_signals.style_mood}</span>
               <span>실루엣 {item.matched_signals.silhouette}</span>
             </div>
@@ -339,6 +340,12 @@ export default function RecommendationPage() {
                 <dt>실루엣</dt>
                 <dd>+{item.score_breakdown.silhouette_bonus.toFixed(2)}</dd>
               </div>
+              {typeof item.score_breakdown.color_bonus === "number" ? (
+                <div>
+                  <dt>색상</dt>
+                  <dd>+{item.score_breakdown.color_bonus.toFixed(2)}</dd>
+                </div>
+              ) : null}
             </dl>
           </details>
         </div>
@@ -511,6 +518,7 @@ export default function RecommendationPage() {
           </div>
           <div className="analysis-chip-row">
             <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
+            {uploadedImageAnalysis.dominant_color ? <span className="analysis-chip">색상 {uploadedImageAnalysis.dominant_color}</span> : null}
             <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
             <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
           </div>

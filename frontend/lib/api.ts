@@ -24,6 +24,7 @@ type ApiEnvelope<T> = {
 export type UploadAnalysis = {
   checksum: string;
   dominant_tone: string;
+  dominant_color?: string;
   style_mood: string;
   silhouette: string;
   preferred_categories: string[];
@@ -51,10 +52,12 @@ export type RecommendationScoreBreakdown = {
   mood_bonus: number;
   silhouette_bonus: number;
   category_bonus: number;
+  color_bonus?: number;
 };
 
 export type RecommendationMatchedSignals = {
   dominant_tone: string;
+  dominant_color?: string;
   style_mood: string;
   silhouette: string;
   preferred_categories: string[];

@@ -19,7 +19,10 @@ const RECENT_UPLOAD_THUMBNAIL_SIZE = 360;
 
 function buildRecentFallbackImage(item: UploadHistoryItem): string {
   const label = item.file_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const subtitle = `${item.analysis.dominant_tone} / ${item.analysis.style_mood} / ${item.analysis.silhouette}`;
+  const signals = [item.analysis.dominant_color, item.analysis.dominant_tone, item.analysis.style_mood, item.analysis.silhouette]
+    .filter(Boolean)
+    .join(" / ");
+  const subtitle = signals || "분석 완료";
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
       <defs>
@@ -275,6 +278,7 @@ export default function UploadPage() {
               {analysis ? (
                 <div className="upload-stage-analysis">
                   <span>{analysis.dominant_tone}</span>
+                  {analysis.dominant_color ? <span>{analysis.dominant_color}</span> : null}
                   <span>{analysis.style_mood}</span>
                   <span>{analysis.silhouette}</span>
                 </div>
@@ -302,6 +306,7 @@ export default function UploadPage() {
             </div>
             <div className="analysis-chip-row">
               <span className="analysis-chip">톤 {analysis.dominant_tone}</span>
+              {analysis.dominant_color ? <span className="analysis-chip">색상 {analysis.dominant_color}</span> : null}
               <span className="analysis-chip">무드 {analysis.style_mood}</span>
               <span className="analysis-chip">실루엣 {analysis.silhouette}</span>
             </div>
@@ -355,7 +360,9 @@ export default function UploadPage() {
                     <div className="recent-upload-body">
                       <strong>{item.file_name}</strong>
                       <p className="hint-text">
-                        {item.analysis.dominant_tone} / {item.analysis.style_mood} / {item.analysis.silhouette}
+                        {[item.analysis.dominant_color, item.analysis.dominant_tone, item.analysis.style_mood, item.analysis.silhouette]
+                          .filter(Boolean)
+                          .join(" / ")}
                       </p>
                       <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
                     </div>

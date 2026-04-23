@@ -63,6 +63,7 @@ async def upload_image(
             "analysis": {
                 "checksum": record.analysis.checksum,
                 "dominant_tone": record.analysis.dominant_tone,
+                "dominant_color": record.analysis.dominant_color,
                 "style_mood": record.analysis.style_mood,
                 "silhouette": record.analysis.silhouette,
                 "preferred_categories": list(record.analysis.preferred_categories),

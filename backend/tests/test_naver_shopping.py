@@ -86,10 +86,11 @@ def test_build_naver_query_uses_analysis_and_category() -> None:
         silhouette="relaxed",
         preferred_categories=("outer",),
         feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="black",
     )
 
-    assert build_naver_query(analysis, "bag") == "쿨톤 미니멀 가방"
-    assert build_naver_query(analysis, None) == "쿨톤 미니멀 아우터"
+    assert build_naver_query(analysis, "bag") == "블랙 쿨톤 미니멀 가방"
+    assert build_naver_query(analysis, None) == "블랙 쿨톤 미니멀 아우터"
 
 
 def test_build_naver_category_queries_covers_all_recommendation_categories() -> None:
