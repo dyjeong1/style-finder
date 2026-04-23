@@ -135,12 +135,17 @@ def test_build_custom_naver_category_queries_covers_all_recommendation_categorie
 
 def test_infer_custom_query_categories_detects_product_group_keywords() -> None:
     assert infer_custom_query_categories("검은색 신발") == ["shoes"]
+    assert infer_custom_query_categories("블랙 메리제인") == ["shoes"]
+    assert infer_custom_query_categories("브라운 로퍼") == ["shoes"]
+    assert infer_custom_query_categories("여름 슬리퍼") == ["shoes"]
+    assert infer_custom_query_categories("미니멀 구두") == ["shoes"]
     assert infer_custom_query_categories("미니멀 재킷과 토트백") == ["outer", "bag"]
     assert infer_custom_query_categories("블랙 미니멀") == []
 
 
 def test_build_custom_naver_category_queries_limits_to_explicit_product_group() -> None:
     assert build_custom_naver_category_queries("검은색 신발") == [("shoes", "검은색 신발")]
+    assert build_custom_naver_category_queries("블랙 메리제인") == [("shoes", "블랙 메리제인 신발")]
     assert build_custom_naver_category_queries("미니멀 재킷과 토트백") == [
         ("outer", "미니멀 재킷과 토트백 아우터"),
         ("bag", "미니멀 재킷과 토트백 가방"),
