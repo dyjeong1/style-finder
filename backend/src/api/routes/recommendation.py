@@ -103,6 +103,10 @@ def get_recommendations(
             client_secret=settings.naver_shopping_client_secret,
             display=settings.naver_shopping_display,
             timeout_seconds=settings.naver_shopping_timeout_seconds,
+            analyze_product_images=settings.naver_shopping_analyze_product_images,
+            image_timeout_seconds=settings.naver_shopping_image_timeout_seconds,
+            max_image_bytes=settings.naver_shopping_max_image_bytes,
+            max_product_image_analysis_count=settings.naver_shopping_max_product_image_analysis_count,
         )
     )
     naver_products, query, fallback_reason, fallback_message = _search_naver_candidates(

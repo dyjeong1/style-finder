@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import colorsys
 import hashlib
-from io import BytesIO
 import json
 import math
 from pathlib import Path
 from uuid import uuid4
 
-try:
-    from PIL import Image
-except ImportError:  # pragma: no cover - local fallback when Pillow is unavailable
-    Image = None
+from src.services.image_analysis import (
+    analyze_image_content,
+    classify_rgb_color,
+    fallback_color_from_digest,
+    has_color_keyword,
+)
 
 
 @dataclass
@@ -53,21 +53,7 @@ class ProductRecord:
     style_mood: str
     silhouette: str
     feature_vector: tuple[float, ...]
-
-
-COLOR_TITLE_KEYWORDS = {
-    "black": ("블랙", "검정", "검은", "흑청"),
-    "white": ("화이트", "아이보리", "크림", "오트밀", "흰색", "하얀"),
-    "gray": ("그레이", "차콜", "회색", "실버"),
-    "beige": ("베이지", "샌드", "카멜", "카키베이지"),
-    "brown": ("브라운", "초코", "모카", "탄", "밤색"),
-    "navy": ("네이비", "남색"),
-    "blue": ("블루", "파랑", "소라", "스카이블루", "청"),
-    "green": ("그린", "카키", "올리브", "민트"),
-    "red": ("레드", "버건디", "와인"),
-    "pink": ("핑크", "로즈"),
-    "yellow": ("옐로우", "노랑", "머스타드"),
-}
+    dominant_color: str = "unknown"
 
 
 class InMemoryStore:
@@ -228,13 +214,13 @@ class InMemoryStore:
         silhouettes = ("relaxed", "slim", "layered", "balanced")
         categories = ("top", "bottom", "outer", "shoes", "bag")
 
-        image_color_feature = self._extract_image_color_feature(content)
+        image_color_feature = analyze_image_content(content)
         if image_color_feature is None:
-            dominant_color = self._fallback_color_from_digest(digest)
+            dominant_color = fallback_color_from_digest(digest)
             feature_vector = tuple(round((digest[idx] / 255), 4) for idx in range(4))
         else:
-            dominant_color = str(image_color_feature["dominant_color"])
-            feature_vector = tuple(image_color_feature["feature_vector"])
+            dominant_color = image_color_feature.dominant_color
+            feature_vector = image_color_feature.feature_vector
 
         preferred_categories = tuple(
             dict.fromkeys(
@@ -255,73 +241,8 @@ class InMemoryStore:
             dominant_color=dominant_color,
         )
 
-    def _extract_image_color_feature(self, content: bytes) -> dict[str, object] | None:
-        if Image is None or not content:
-            return None
-
-        try:
-            with Image.open(BytesIO(content)) as image:
-                image = image.convert("RGB")
-                image.thumbnail((96, 96))
-                pixels = list(image.getdata())
-        except Exception:
-            return None
-
-        if not pixels:
-            return None
-
-        sample_step = max(1, len(pixels) // 1800)
-        sampled_pixels = pixels[::sample_step]
-        red = sum(pixel[0] for pixel in sampled_pixels) / len(sampled_pixels)
-        green = sum(pixel[1] for pixel in sampled_pixels) / len(sampled_pixels)
-        blue = sum(pixel[2] for pixel in sampled_pixels) / len(sampled_pixels)
-        brightness = (red + green + blue) / (255 * 3)
-        saturation = colorsys.rgb_to_hsv(red / 255, green / 255, blue / 255)[1]
-
-        return {
-            "dominant_color": self._classify_rgb_color(red, green, blue),
-            "feature_vector": (
-                round(red / 255, 4),
-                round(green / 255, 4),
-                round(blue / 255, 4),
-                round((brightness + saturation) / 2, 4),
-            ),
-        }
-
     def _classify_rgb_color(self, red: float, green: float, blue: float) -> str:
-        hue, saturation, value = colorsys.rgb_to_hsv(red / 255, green / 255, blue / 255)
-        hue_degrees = hue * 360
-
-        if value < 0.22:
-            return "black"
-        if saturation < 0.12 and value > 0.86:
-            return "white"
-        if saturation < 0.16:
-            return "gray"
-        if 25 <= hue_degrees < 55 and saturation < 0.38 and value > 0.45:
-            return "beige"
-        if 15 <= hue_degrees < 45:
-            return "brown"
-        if 200 <= hue_degrees < 245 and value < 0.45:
-            return "navy"
-        if 185 <= hue_degrees < 255:
-            return "blue"
-        if 75 <= hue_degrees < 170:
-            return "green"
-        if 330 <= hue_degrees or hue_degrees < 15:
-            return "red"
-        if 280 <= hue_degrees < 330:
-            return "pink"
-        if 45 <= hue_degrees < 75:
-            return "yellow"
-        return "neutral"
-
-    def _fallback_color_from_digest(self, digest: bytes) -> str:
-        colors = ("black", "white", "gray", "beige", "brown", "navy", "blue", "green", "red", "pink", "yellow")
-        return colors[digest[6] % len(colors)]
-
-    def _has_color_keyword(self, product_name: str, dominant_color: str) -> bool:
-        return any(keyword in product_name for keyword in COLOR_TITLE_KEYWORDS.get(dominant_color, ()))
+        return classify_rgb_color(red, green, blue)
 
     def _cosine_similarity(self, left: tuple[float, ...], right: tuple[float, ...]) -> float:
         numerator = sum(a * b for a, b in zip(left, right))
@@ -363,7 +284,12 @@ class InMemoryStore:
             mood_bonus = 0.06 if upload.analysis.style_mood == item.style_mood else 0.0
             silhouette_bonus = 0.05 if upload.analysis.silhouette == item.silhouette else 0.0
             category_bonus = 0.04 if item.category in upload.analysis.preferred_categories else 0.0
-            color_bonus = 0.08 if self._has_color_keyword(item.product_name, upload.analysis.dominant_color) else 0.0
+            color_bonus = 0.08 if has_color_keyword(item.product_name, upload.analysis.dominant_color) else 0.0
+            product_image_color_bonus = (
+                0.12
+                if item.dominant_color != "unknown" and item.dominant_color == upload.analysis.dominant_color
+                else 0.0
+            )
             similarity = round(
                 min(
                     0.99,
@@ -373,7 +299,8 @@ class InMemoryStore:
                     + mood_bonus
                     + silhouette_bonus
                     + category_bonus
-                    + color_bonus,
+                    + color_bonus
+                    + product_image_color_bonus,
                 ),
                 4,
             )
@@ -394,10 +321,12 @@ class InMemoryStore:
                         "silhouette_bonus": round(silhouette_bonus, 4),
                         "category_bonus": round(category_bonus, 4),
                         "color_bonus": round(color_bonus, 4),
+                        "product_image_color_bonus": round(product_image_color_bonus, 4),
                     },
                     "matched_signals": {
                         "dominant_tone": upload.analysis.dominant_tone,
                         "dominant_color": upload.analysis.dominant_color,
+                        "product_dominant_color": item.dominant_color,
                         "style_mood": upload.analysis.style_mood,
                         "silhouette": upload.analysis.silhouette,
                         "preferred_categories": list(upload.analysis.preferred_categories),

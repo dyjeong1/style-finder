@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from src.services.image_analysis import analyze_image_content, infer_color_from_text
 from src.services.store import ProductRecord, UploadAnalysis
 
 
@@ -175,6 +176,10 @@ class NaverShoppingConfig:
     client_secret: str | None
     display: int = 30
     timeout_seconds: float = 3.0
+    analyze_product_images: bool = False
+    image_timeout_seconds: float = 1.0
+    max_image_bytes: int = 2_000_000
+    max_product_image_analysis_count: int = 12
 
     @property
     def enabled(self) -> bool:
@@ -238,6 +243,7 @@ class NaverShoppingClient:
 
     def __init__(self, config: NaverShoppingConfig) -> None:
         self.config = config
+        self._product_image_analysis_attempts = 0
 
     def search_products(self, query: str, category: str | None, limit: int) -> list[ProductRecord]:
         return self.search(query=query, category=category, limit=limit).products
@@ -325,6 +331,13 @@ class NaverShoppingClient:
         category = category_hint or _infer_category(item=item, title=title)
         fingerprint = f"{title}:{link}".encode("utf-8")
         digest = hashlib.sha256(fingerprint).digest()
+        image_analysis = self._analyze_product_image(image_url)
+        dominant_color = image_analysis.dominant_color if image_analysis else infer_color_from_text(title)
+        feature_vector = (
+            image_analysis.feature_vector
+            if image_analysis
+            else tuple(round(digest[idx] / 255, 4) for idx in range(4))
+        )
 
         return ProductRecord(
             id=f"naver-{source_id}",
@@ -337,8 +350,38 @@ class NaverShoppingClient:
             dominant_tone=_pick_tag("tone", digest[0]),
             style_mood=_pick_tag("mood", digest[1]),
             silhouette=_pick_tag("silhouette", digest[2]),
-            feature_vector=tuple(round(digest[idx] / 255, 4) for idx in range(4)),
+            feature_vector=feature_vector,
+            dominant_color=dominant_color,
         )
+
+    def _analyze_product_image(self, image_url: str):
+        if not self.config.analyze_product_images or not image_url.startswith(("http://", "https://")):
+            return None
+        if self._product_image_analysis_attempts >= self.config.max_product_image_analysis_count:
+            return None
+
+        self._product_image_analysis_attempts += 1
+
+        request = Request(
+            image_url,
+            headers={"User-Agent": "StyleMatchLocal/0.1"},
+            method="GET",
+        )
+
+        try:
+            with urlopen(request, timeout=self.config.image_timeout_seconds) as response:
+                content_length = response.headers.get("Content-Length")
+                if content_length and int(content_length) > self.config.max_image_bytes:
+                    return None
+
+                content = response.read(self.config.max_image_bytes + 1)
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+            return None
+
+        if len(content) > self.config.max_image_bytes:
+            return None
+
+        return analyze_image_content(content)
 
 
 def _strip_html(value: str) -> str:

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     naver_shopping_client_secret: Optional[str] = None
     naver_shopping_display: int = 30
     naver_shopping_timeout_seconds: float = 3.0
+    naver_shopping_analyze_product_images: bool = True
+    naver_shopping_image_timeout_seconds: float = 1.0
+    naver_shopping_max_image_bytes: int = 2_000_000
+    naver_shopping_max_product_image_analysis_count: int = 12
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

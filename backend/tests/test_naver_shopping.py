@@ -4,6 +4,7 @@ from io import BytesIO
 from urllib.error import HTTPError
 
 import pytest
+from PIL import Image
 
 from src.services.naver_shopping import (
     CATEGORY_ORDER,
@@ -76,6 +77,54 @@ def test_naver_shopping_item_parse_strips_html_and_maps_fields() -> None:
     assert product.image_url.startswith("https://shopping-phinf.pstatic.net")
     assert product.price == 29000
     assert product.category == "top"
+
+
+def test_naver_shopping_item_parse_uses_product_image_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(
+        NaverShoppingConfig(
+            client_id="id",
+            client_secret="secret",
+            analyze_product_images=True,
+        )
+    )
+
+    image_bytes = BytesIO()
+    Image.new("RGB", (12, 12), (12, 12, 12)).save(image_bytes, format="PNG")
+
+    class DummyResponse:
+        def __init__(self, payload: bytes) -> None:
+            self.payload = payload
+            self.headers = {}
+
+        def read(self, *_: object) -> bytes:
+            return self.payload
+
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", lambda *_args, **_kwargs: DummyResponse(image_bytes.getvalue()))
+
+    product = client._parse_item(
+        {
+            "title": "메리제인 슈즈",
+            "link": "https://smartstore.naver.com/demo/products/99",
+            "image": "https://shopping-phinf.pstatic.net/main_black.png",
+            "lprice": "49000",
+            "productId": "99",
+            "category1": "패션잡화",
+            "category2": "여성슈즈",
+            "category3": "메리제인",
+        },
+        category_hint="shoes",
+    )
+
+    assert product is not None
+    assert product.dominant_color == "black"
+    assert product.feature_vector[0] < 0.1
+    assert product.category == "shoes"
 
 
 def test_build_naver_query_uses_analysis_and_category() -> None:

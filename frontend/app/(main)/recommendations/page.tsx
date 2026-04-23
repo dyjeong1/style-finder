@@ -320,6 +320,9 @@ export default function RecommendationPage() {
             <div className="signal-list">
               <span>톤 {item.matched_signals.dominant_tone}</span>
               {item.matched_signals.dominant_color ? <span>색상 {item.matched_signals.dominant_color}</span> : null}
+              {item.matched_signals.product_dominant_color && item.matched_signals.product_dominant_color !== "unknown" ? (
+                <span>상품 이미지 {item.matched_signals.product_dominant_color}</span>
+              ) : null}
               <span>무드 {item.matched_signals.style_mood}</span>
               <span>실루엣 {item.matched_signals.silhouette}</span>
             </div>
@@ -342,8 +345,14 @@ export default function RecommendationPage() {
               </div>
               {typeof item.score_breakdown.color_bonus === "number" ? (
                 <div>
-                  <dt>색상</dt>
+                  <dt>상품명 색상</dt>
                   <dd>+{item.score_breakdown.color_bonus.toFixed(2)}</dd>
+                </div>
+              ) : null}
+              {typeof item.score_breakdown.product_image_color_bonus === "number" ? (
+                <div>
+                  <dt>이미지 색상</dt>
+                  <dd>+{item.score_breakdown.product_image_color_bonus.toFixed(2)}</dd>
                 </div>
               ) : null}
             </dl>
