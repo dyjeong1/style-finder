@@ -67,6 +67,7 @@ async def upload_image(
                 "style_mood": record.analysis.style_mood,
                 "silhouette": record.analysis.silhouette,
                 "preferred_categories": list(record.analysis.preferred_categories),
+                "category_query_hints": record.analysis.category_query_hints,
             },
         }
     )

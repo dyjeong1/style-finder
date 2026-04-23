@@ -194,6 +194,9 @@ class NaverShoppingSearchResult:
 
 
 def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
+    if category and analysis.category_query_hints.get(category):
+        return analysis.category_query_hints[category]
+
     category_keyword = CATEGORY_QUERIES.get(category or "")
     if category_keyword is None:
         first_preferred = analysis.preferred_categories[0] if analysis.preferred_categories else "top"

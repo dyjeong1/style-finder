@@ -28,6 +28,7 @@ export type UploadAnalysis = {
   style_mood: string;
   silhouette: string;
   preferred_categories: string[];
+  category_query_hints?: Record<string, string>;
 };
 
 export type UploadedImage = {
@@ -59,6 +60,7 @@ export type RecommendationScoreBreakdown = {
 export type RecommendationMatchedSignals = {
   dominant_tone: string;
   dominant_color?: string;
+  category_target_color?: string;
   product_dominant_color?: string;
   style_mood: string;
   silhouette: string;

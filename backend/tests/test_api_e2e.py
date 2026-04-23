@@ -33,6 +33,7 @@ def test_core_e2e_flow() -> None:
     }
     assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
     assert len(upload_data["analysis"]["preferred_categories"]) >= 1
+    assert isinstance(upload_data["analysis"]["category_query_hints"], dict)
 
     image_resp = client.get(upload_data["image_url"])
     assert image_resp.status_code == 200
@@ -51,6 +52,7 @@ def test_core_e2e_flow() -> None:
     assert "product_image_color_bonus" in rec_items[0]["score_breakdown"]
     assert "matched_signals" in rec_items[0]
     assert "dominant_color" in rec_items[0]["matched_signals"]
+    assert "category_target_color" in rec_items[0]["matched_signals"]
     assert "product_dominant_color" in rec_items[0]["matched_signals"]
     first_product_id = rec_items[0]["product_id"]
 

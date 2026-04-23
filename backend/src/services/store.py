@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -9,10 +9,12 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.services.image_analysis import (
+    analyze_outfit_category_query_hints,
     analyze_image_content,
     classify_rgb_color,
     fallback_color_from_digest,
     has_color_keyword,
+    infer_color_from_text,
 )
 
 
@@ -25,6 +27,7 @@ class UploadAnalysis:
     preferred_categories: tuple[str, ...]
     feature_vector: tuple[float, ...]
     dominant_color: str = "unknown"
+    category_query_hints: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -239,6 +242,7 @@ class InMemoryStore:
             preferred_categories=preferred_categories,
             feature_vector=feature_vector,
             dominant_color=dominant_color,
+            category_query_hints=analyze_outfit_category_query_hints(content),
         )
 
     def _classify_rgb_color(self, red: float, green: float, blue: float) -> str:
@@ -284,10 +288,12 @@ class InMemoryStore:
             mood_bonus = 0.06 if upload.analysis.style_mood == item.style_mood else 0.0
             silhouette_bonus = 0.05 if upload.analysis.silhouette == item.silhouette else 0.0
             category_bonus = 0.04 if item.category in upload.analysis.preferred_categories else 0.0
-            color_bonus = 0.08 if has_color_keyword(item.product_name, upload.analysis.dominant_color) else 0.0
+            category_target_color = infer_color_from_text(upload.analysis.category_query_hints.get(item.category, ""))
+            target_color = category_target_color if category_target_color != "unknown" else upload.analysis.dominant_color
+            color_bonus = 0.08 if has_color_keyword(item.product_name, target_color) else 0.0
             product_image_color_bonus = (
                 0.12
-                if item.dominant_color != "unknown" and item.dominant_color == upload.analysis.dominant_color
+                if item.dominant_color != "unknown" and item.dominant_color == target_color
                 else 0.0
             )
             similarity = round(
@@ -326,6 +332,7 @@ class InMemoryStore:
                     "matched_signals": {
                         "dominant_tone": upload.analysis.dominant_tone,
                         "dominant_color": upload.analysis.dominant_color,
+                        "category_target_color": target_color,
                         "product_dominant_color": item.dominant_color,
                         "style_mood": upload.analysis.style_mood,
                         "silhouette": upload.analysis.silhouette,

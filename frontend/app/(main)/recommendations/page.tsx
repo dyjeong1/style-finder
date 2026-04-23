@@ -320,6 +320,7 @@ export default function RecommendationPage() {
             <div className="signal-list">
               <span>톤 {item.matched_signals.dominant_tone}</span>
               {item.matched_signals.dominant_color ? <span>색상 {item.matched_signals.dominant_color}</span> : null}
+              {item.matched_signals.category_target_color ? <span>검색 색상 {item.matched_signals.category_target_color}</span> : null}
               {item.matched_signals.product_dominant_color && item.matched_signals.product_dominant_color !== "unknown" ? (
                 <span>상품 이미지 {item.matched_signals.product_dominant_color}</span>
               ) : null}

@@ -88,6 +88,64 @@ def test_product_image_color_bonus_promotes_visually_matching_image(tmp_path: Pa
     assert items[1]["score_breakdown"]["product_image_color_bonus"] == 0.0
 
 
+def test_category_query_hint_color_drives_category_specific_color_bonus(tmp_path: Path) -> None:
+    store = InMemoryStore(wishlist_store_path=tmp_path / "wishlist.json")
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.dominant_color = "beige"
+    upload.analysis.category_query_hints = {"outer": "블랙 니트 베스트"}
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="outer",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            ProductRecord(
+                id="black-vest",
+                source="naver",
+                product_name="니트 베스트",
+                category="outer",
+                price=39000,
+                product_url="https://example.com/black-vest",
+                image_url="https://example.com/black-vest.jpg",
+                dominant_tone="neutral",
+                style_mood="minimal",
+                silhouette="balanced",
+                feature_vector=(0.9, 0.9, 0.9, 0.9),
+                dominant_color="black",
+            ),
+            ProductRecord(
+                id="beige-vest",
+                source="naver",
+                product_name="니트 베스트",
+                category="outer",
+                price=39000,
+                product_url="https://example.com/beige-vest",
+                image_url="https://example.com/beige-vest.jpg",
+                dominant_tone="neutral",
+                style_mood="minimal",
+                silhouette="balanced",
+                feature_vector=(0.9, 0.9, 0.9, 0.9),
+                dominant_color="beige",
+            ),
+        ],
+    )
+
+    assert items[0]["product_id"] == "black-vest"
+    assert items[0]["matched_signals"]["category_target_color"] == "black"
+    assert items[0]["score_breakdown"]["product_image_color_bonus"] == 0.12
+    assert items[1]["score_breakdown"]["product_image_color_bonus"] == 0.0
+
+
 def test_rgb_color_classifier_maps_common_outfit_colors(tmp_path: Path) -> None:
     store = InMemoryStore(wishlist_store_path=tmp_path / "wishlist.json")
 
