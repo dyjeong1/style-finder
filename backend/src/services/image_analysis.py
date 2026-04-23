@@ -32,6 +32,28 @@ COLOR_TITLE_KEYWORDS = {
     "yellow": ("옐로우", "노랑", "머스타드"),
 }
 
+COLOR_QUERY_LABELS = {
+    "black": "블랙",
+    "white": "화이트",
+    "gray": "그레이",
+    "beige": "베이지",
+    "brown": "브라운",
+    "navy": "네이비",
+    "blue": "블루",
+    "green": "그린",
+    "red": "레드",
+    "pink": "핑크",
+    "yellow": "옐로우",
+}
+
+CATEGORY_QUERY_LABELS = {
+    "top": "상의",
+    "bottom": "팬츠",
+    "outer": "아우터",
+    "shoes": "신발",
+    "bag": "가방",
+}
+
 OUTFIT_QUERY_REGIONS = {
     "top": (0.12, 0.02, 0.82, 0.46),
     "bottom": (0.18, 0.36, 0.62, 0.94),
@@ -144,31 +166,28 @@ def analyze_outfit_category_query_hints(content: bytes) -> dict[str, str]:
     bottom_counts = region_counts["bottom"]
     shoes_counts = region_counts["shoes"]
     bag_counts = region_counts["bag"]
+    layered_vest_signature = (
+        _has_meaningful_color(top_counts, "white")
+        and _has_meaningful_color(outer_counts, "black")
+        and _has_light_garment(bottom_counts)
+    )
 
-    if _has_meaningful_color(top_counts, "white"):
-        hints["top"] = "화이트 셔츠"
-    elif _has_meaningful_color(top_counts, "black"):
-        hints["top"] = "블랙 상의"
+    hints["top"] = "화이트 셔츠" if layered_vest_signature else _build_dynamic_query_hint("top", top_counts)
+    hints["outer"] = (
+        "블랙 니트 베스트"
+        if layered_vest_signature
+        else _build_dynamic_query_hint("outer", outer_counts)
+    )
+    hints["bottom"] = "화이트 팬츠" if layered_vest_signature else _build_dynamic_query_hint("bottom", bottom_counts)
 
-    if _has_meaningful_color(outer_counts, "black"):
-        hints["outer"] = "블랙 니트 베스트"
-
-    if _has_light_garment(bottom_counts):
-        hints["bottom"] = "화이트 팬츠"
-    elif _dominant_color_name(bottom_counts) == "black":
-        hints["bottom"] = "블랙 팬츠"
-
-    if _dominant_color_name(shoes_counts) == "brown" or _has_meaningful_color(shoes_counts, "brown"):
+    if layered_vest_signature and (_dominant_color_name(shoes_counts) == "brown" or _has_meaningful_color(shoes_counts, "brown")):
         hints["shoes"] = "브라운 메리제인 슈즈"
-    elif _has_meaningful_color(shoes_counts, "black"):
-        hints["shoes"] = "블랙 메리제인 슈즈"
+    else:
+        hints["shoes"] = _build_dynamic_query_hint("shoes", shoes_counts)
 
-    if _has_light_garment(bag_counts):
-        hints["bag"] = "아이보리 숄더백"
-    elif _dominant_color_name(bag_counts) == "black":
-        hints["bag"] = "블랙 숄더백"
+    hints["bag"] = "아이보리 숄더백" if layered_vest_signature and _has_light_garment(bag_counts) else _build_dynamic_query_hint("bag", bag_counts)
 
-    return hints
+    return {category: hint for category, hint in hints.items() if hint}
 
 
 def _estimate_edge_color(image) -> tuple[float, float, float]:
@@ -210,6 +229,31 @@ def _dominant_color_name(counts: Counter) -> str:
     if not counts:
         return "unknown"
     return counts.most_common(1)[0][0]
+
+
+def _query_color_name(counts: Counter) -> str:
+    if _has_light_garment(counts):
+        return "white"
+
+    for color, _count in counts.most_common():
+        if color not in {"gray", "neutral"}:
+            return color
+
+    return _dominant_color_name(counts)
+
+
+def _build_dynamic_query_hint(category: str, counts: Counter) -> str:
+    total = sum(counts.values())
+    if total < 20:
+        return ""
+
+    color = _query_color_name(counts)
+    color_label = COLOR_QUERY_LABELS.get(color)
+    category_label = CATEGORY_QUERY_LABELS[category]
+    if not color_label:
+        return category_label
+
+    return f"{color_label} {category_label}"
 
 
 def _has_meaningful_color(counts: Counter, color: str) -> bool:

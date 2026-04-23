@@ -25,6 +25,21 @@ def build_flatlay_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_colored_flatlay_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 430, 275), fill=(188, 35, 52))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.rectangle((160, 60, 365, 245), fill=(47, 126, 82))
+    draw.ellipse((55, 590, 130, 740), fill=(16, 16, 17))
+    draw.ellipse((138, 590, 213, 740), fill=(16, 16, 17))
+    draw.rectangle((330, 375, 500, 555), fill=(210, 184, 57))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -33,6 +48,21 @@ def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     assert hints["outer"] == "블랙 니트 베스트"
     assert hints["shoes"] == "브라운 메리제인 슈즈"
     assert hints["bag"] == "아이보리 숄더백"
+
+
+def test_outfit_query_hints_are_dynamic_for_different_images() -> None:
+    hints = analyze_outfit_category_query_hints(build_colored_flatlay_fixture())
+
+    assert hints["top"] != "화이트 셔츠"
+    assert hints["bottom"] != "화이트 팬츠"
+    assert hints["outer"] != "블랙 니트 베스트"
+    assert hints["shoes"] != "브라운 메리제인 슈즈"
+    assert hints["bag"] != "아이보리 숄더백"
+    assert hints["top"] == "레드 상의"
+    assert hints["bottom"] == "블루 팬츠"
+    assert hints["outer"] == "그린 아우터"
+    assert hints["shoes"] == "블랙 신발"
+    assert hints["bag"] == "옐로우 가방"
 
 
 def test_naver_category_queries_prefer_outfit_category_hints() -> None:
