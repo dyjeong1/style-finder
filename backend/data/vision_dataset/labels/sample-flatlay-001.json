@@ -1,0 +1,36 @@
+{
+  "sample_id": "sample-flatlay-001",
+  "source": "regression",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "셔츠",
+      "notes": "이너 상의"
+    },
+    {
+      "category": "outer",
+      "color": "black",
+      "item_label": "니트 베스트",
+      "notes": "레이어드 베스트"
+    },
+    {
+      "category": "bottom",
+      "color": "white",
+      "item_label": "팬츠",
+      "notes": "밝은 컬러 하의"
+    },
+    {
+      "category": "shoes",
+      "color": "brown",
+      "item_label": "메리제인 슈즈",
+      "notes": "플랫 슈즈"
+    },
+    {
+      "category": "bag",
+      "color": "white",
+      "item_label": "숄더백",
+      "notes": "아이보리 톤 가방"
+    }
+  ]
+}

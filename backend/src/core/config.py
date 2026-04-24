@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     vision_reranker_timeout_seconds: float = 1.5
     vision_reranker_max_image_bytes: int = 2_000_000
     vision_reranker_max_candidates: int = 10
+    vision_outfit_analyzer_enabled: bool = False
+    vision_outfit_analyzer_provider: str = "disabled"
+    vision_outfit_analyzer_model_name: str = ""
+    vision_outfit_analyzer_max_image_bytes: int = 2_000_000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

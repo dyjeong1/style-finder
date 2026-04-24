@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 from uuid import uuid4
 
+from src.core.config import get_settings
 from src.services.image_analysis import (
     DetectedOutfitItem,
     analyze_outfit_category_query_hints,
@@ -17,6 +18,11 @@ from src.services.image_analysis import (
     fallback_color_from_digest,
     has_color_keyword,
     infer_color_from_text,
+)
+from src.services.vision_outfit_analyzer import (
+    VisionOutfitAnalyzer,
+    VisionOutfitAnalyzerConfig,
+    merge_detected_items,
 )
 
 
@@ -67,11 +73,16 @@ class ProductRecord:
 
 
 class InMemoryStore:
-    def __init__(self, wishlist_store_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        wishlist_store_path: Path | None = None,
+        vision_outfit_analyzer: VisionOutfitAnalyzer | None = None,
+    ) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
         self.products: dict[str, ProductRecord] = self._seed_products()
         self.wishlist_store_path = wishlist_store_path or Path(__file__).resolve().parents[2] / "data" / "wishlist.json"
         self.wishlist_by_user: dict[str, dict[str, str]] = self._load_wishlist()
+        self.vision_outfit_analyzer = vision_outfit_analyzer or VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig())
 
     def _load_wishlist(self) -> dict[str, dict[str, str]]:
         if not self.wishlist_store_path.exists():
@@ -227,7 +238,9 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        detected_items = tuple(analyze_outfit_items(content))
+        rule_detected_items = analyze_outfit_items(content)
+        vision_detected_items = self.vision_outfit_analyzer.analyze(content)
+        detected_items = tuple(merge_detected_items(vision_detected_items, rule_detected_items))
         category_query_hints = {item.category: item.query for item in detected_items} or analyze_outfit_category_query_hints(content)
         preferred_categories = tuple(category_query_hints) or self._fallback_preferred_categories(digest)
 
@@ -448,5 +461,14 @@ class InMemoryStore:
         items.sort(key=lambda x: x["created_at"], reverse=True)
         return items
 
-
-store = InMemoryStore()
+settings = get_settings()
+store = InMemoryStore(
+    vision_outfit_analyzer=VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=settings.vision_outfit_analyzer_enabled,
+            provider=settings.vision_outfit_analyzer_provider,
+            model_name=settings.vision_outfit_analyzer_model_name,
+            max_image_bytes=settings.vision_outfit_analyzer_max_image_bytes,
+        )
+    )
+)

@@ -65,6 +65,22 @@ pip install -e ".[vision]"
 - `VISION_RERANKER_MAX_IMAGE_BYTES=2000000`
 - `VISION_RERANKER_MAX_CANDIDATES=10`
 
+## AI 비전 기반 착장 분석기 (초기 구조)
+- 현재 업로드 분석은 기본적으로 규칙 기반으로 동작합니다.
+- 여기에 AI 비전 모델을 붙일 수 있도록 `vision_outfit_analyzer` 인터페이스가 추가되었습니다.
+- 지금 단계에서는 `disabled`와 `mock` provider만 지원하며, 실제 모델 연결은 다음 PLAN/TASK에서 이어집니다.
+- 비전 결과가 일부만 있으면 해당 카테고리만 우선 적용하고, 나머지는 규칙 기반 결과로 fallback 합니다.
+
+주요 설정:
+- `VISION_OUTFIT_ANALYZER_ENABLED`
+- `VISION_OUTFIT_ANALYZER_PROVIDER`
+- `VISION_OUTFIT_ANALYZER_MODEL_NAME`
+- `VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES`
+
+데이터셋 경로:
+- `backend/data/vision_dataset/images/`
+- `backend/data/vision_dataset/labels/`
+
 ## 업로드 이미지 파일 응답
 - 업로드 응답의 `image_url`은 `/images/{uploaded_image_id}/file`입니다.
 - 해당 URL은 업로드 원본 bytes를 `content_type`과 함께 반환합니다.
