@@ -87,9 +87,9 @@ def test_outfit_query_hints_are_dynamic_for_different_images() -> None:
     assert hints["bag"] != "아이보리 숄더백"
     assert hints["top"] == "레드 상의"
     assert hints["bottom"] == "블루 데님 팬츠"
-    assert hints["outer"] == "그린 아우터"
+    assert hints["outer"] == "그린 자켓"
     assert hints["shoes"] == "블랙 로퍼"
-    assert hints["bag"] == "옐로우 가방"
+    assert hints["bag"] == "옐로우 토트백"
 
 
 def test_naver_category_queries_prefer_outfit_category_hints() -> None:
