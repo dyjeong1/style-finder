@@ -25,3 +25,15 @@
 ## 현재 포함 샘플
 - `sample-flatlay-001`: 내부 회귀용 샘플
 - `codytest_1` ~ `codytest_10`: 사용자 제공 실제 코디 이미지 초안 라벨 세트
+
+## 평가 실행
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/evaluate_vision_dataset.py
+```
+
+JSON 형식으로 보려면:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/evaluate_vision_dataset.py --format json
+```

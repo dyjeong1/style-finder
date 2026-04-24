@@ -81,6 +81,26 @@ pip install -e ".[vision]"
 - `backend/data/vision_dataset/images/`
 - `backend/data/vision_dataset/labels/`
 
+## 비전 데이터셋 평가
+- 현재 분석기 성능은 로컬 데이터셋 기준으로 바로 평가할 수 있습니다.
+- 정답 라벨이 있는 이미지셋을 `backend/data/vision_dataset/`에 넣은 뒤 아래 명령으로 실행합니다.
+
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/evaluate_vision_dataset.py
+```
+
+JSON 출력:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/evaluate_vision_dataset.py --format json
+```
+
+현재 로컬 데이터셋(11샘플) 기준 첫 측정값:
+- 아이템 정밀도: `0.2500`
+- 아이템 재현율: `0.2281`
+- 샘플 완전일치율: `0.0000`
+
 ## 업로드 이미지 파일 응답
 - 업로드 응답의 `image_url`은 `/images/{uploaded_image_id}/file`입니다.
 - 해당 URL은 업로드 원본 bytes를 `content_type`과 함께 반환합니다.
