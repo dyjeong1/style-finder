@@ -135,6 +135,30 @@ def build_sneakers_selfie_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_wide_denim_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (214, 210, 202))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((92, 70, 422, 250), fill=(242, 242, 239))
+    draw.rectangle((66, 280, 458, 742), fill=(56, 88, 162))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_skirt_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (214, 210, 202))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((120, 70, 400, 250), fill=(246, 246, 244))
+    draw.rectangle((150, 282, 372, 462), fill=(28, 29, 34))
+    draw.ellipse((158, 566, 228, 726), fill=(18, 18, 18))
+    draw.ellipse((296, 566, 366, 726), fill=(18, 18, 18))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -250,3 +274,15 @@ def test_outfit_query_hints_keep_sneakers_and_skip_bag_when_absent() -> None:
     assert hints["bottom"] in {"블루 데님 팬츠", "블루 와이드 팬츠"}
     assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
     assert "bag" not in hints
+
+
+def test_outfit_query_hints_detect_wide_denim_bottom() -> None:
+    hints = analyze_outfit_category_query_hints(build_wide_denim_fixture())
+
+    assert hints["bottom"] in {"블루 와이드 데님 팬츠", "블루 데님 팬츠"}
+
+
+def test_outfit_query_hints_detect_skirt_bottom() -> None:
+    hints = analyze_outfit_category_query_hints(build_skirt_fixture())
+
+    assert hints["bottom"] == "블랙 스커트"

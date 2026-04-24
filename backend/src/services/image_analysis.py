@@ -457,7 +457,8 @@ def _build_detected_item(
     if not item_label:
         return None
     if category == "bottom" and color == "black" and (_has_meaningful_color(counts, "navy") or _has_meaningful_color(counts, "blue")):
-        item_label = "데님 팬츠"
+        if item_label == "슬랙스":
+            item_label = "데님 팬츠"
     color_label = COLOR_QUERY_LABELS.get(color)
     query_value = f"{color_label} {item_label}".strip() if color_label else item_label
     return DetectedOutfitItem(
@@ -502,8 +503,23 @@ def _infer_item_label(
             return "가디건"
         return "자켓"
 
-    if category == "bottom" and color in {"blue", "navy"}:
-        return "데님 팬츠"
+    if category == "bottom" and component is not None:
+        denim_signature = color in {"blue", "navy"} or (
+            color == "black" and any(
+                peer_category == "bottom" and peer_component.color in {"blue", "navy"}
+                for peer_category, peer_component in peer_components
+            )
+        )
+        if component.height_ratio <= 0.24 and component.width_ratio >= 0.18:
+            return "스커트"
+        if denim_signature and component.width_ratio >= 0.5 and component.height_ratio >= 0.34:
+            return "와이드 데님 팬츠"
+        if denim_signature:
+            return "데님 팬츠"
+        if color in {"black", "gray", "beige", "white"} and component.width_ratio >= 0.42 and component.height_ratio >= 0.34:
+            return "와이드 팬츠"
+        if color in {"black", "gray", "beige"}:
+            return "슬랙스"
 
     if category == "shoes":
         shoe_count = sum(1 for cat, _component in peer_components if cat == "shoes")
