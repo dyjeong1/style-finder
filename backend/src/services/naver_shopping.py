@@ -331,7 +331,7 @@ class NaverShoppingClient:
             if not isinstance(item, dict):
                 continue
 
-            product = self._parse_item(item=item, category_hint=category)
+            product = self._parse_item(item=item, category_hint=category, query=query)
             if product is not None:
                 products.append(product)
 
@@ -344,7 +344,7 @@ class NaverShoppingClient:
 
         return NaverShoppingSearchResult(products=products)
 
-    def _parse_item(self, item: dict, category_hint: str | None) -> ProductRecord | None:
+    def _parse_item(self, item: dict, category_hint: str | None, query: str | None = None) -> ProductRecord | None:
         title = _strip_html(str(item.get("title") or "")).strip()
         link = str(item.get("link") or "").strip()
         image_url = str(item.get("image") or "").strip()
@@ -356,7 +356,10 @@ class NaverShoppingClient:
             return None
 
         source_id = str(item.get("productId") or _stable_digest(link)[:16])
-        category = category_hint or _infer_category(item=item, title=title)
+        inferred_category = _infer_category(item=item, title=title)
+        if category_hint and not _matches_category_query(item=item, title=title, category_hint=category_hint, query=query):
+            return None
+        category = category_hint or inferred_category
         fingerprint = f"{title}:{link}".encode("utf-8")
         digest = hashlib.sha256(fingerprint).digest()
         image_analysis = self._analyze_product_image(image_url)
@@ -449,6 +452,54 @@ def _infer_category(item: dict, title: str) -> str:
     if any(keyword in haystack for keyword in ("팬츠", "바지", "스커트", "데님", "슬랙스")):
         return "bottom"
     return "top"
+
+
+def _matches_category_query(item: dict, title: str, category_hint: str, query: str | None) -> bool:
+    haystack = " ".join(
+        str(item.get(key) or "")
+        for key in ("category1", "category2", "category3", "category4")
+    ) + f" {title}"
+
+    if not any(keyword in haystack for keyword in CATEGORY_KEYWORDS.get(category_hint, ())):
+        return False
+
+    specific_keywords = _extract_specific_query_keywords(query or "", category_hint)
+    if not specific_keywords:
+        return True
+
+    return any(keyword in haystack for keyword in specific_keywords)
+
+
+def _extract_specific_query_keywords(query: str, category_hint: str) -> list[str]:
+    normalized_query = " ".join(query.split())
+    if not normalized_query:
+        return []
+
+    generic_keywords = {
+        CATEGORY_QUERIES.get(category_hint, ""),
+        "패션",
+        "의류",
+        "신발",
+        "가방",
+        "악세서리",
+        "악세서리",
+        "상의",
+        "하의",
+        "아우터",
+    }
+    color_keywords = {label for label in COLOR_QUERIES.values()}
+    tone_keywords = {label for label in TONE_QUERIES.values()}
+    mood_keywords = {label for label in MOOD_QUERIES.values()}
+
+    return [
+        keyword
+        for keyword in CATEGORY_KEYWORDS.get(category_hint, ())
+        if keyword in normalized_query
+        and keyword not in generic_keywords
+        and keyword not in color_keywords
+        and keyword not in tone_keywords
+        and keyword not in mood_keywords
+    ]
 
 
 def _fallback_image_url(title: str) -> str:

@@ -421,13 +421,13 @@ def _build_detected_item(
     if component is None and category in {"outer", "bag", "accessory", "shoes"}:
         return None
 
-    query = _build_distinct_query_hint(category, counts, reference_colors)
-    if not query:
-        return None
-
     color = component.color if component is not None else (
         _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
     )
+    comparable_references = {reference for reference in reference_colors if reference not in {"unknown", "neutral"}}
+    if color in {"unknown", "neutral"} or color in comparable_references:
+        return None
+
     item_label = _infer_item_label(category, color, component, peer_components)
     if not item_label:
         return None
@@ -465,8 +465,12 @@ def _infer_item_label(
     peer_components: list[tuple[str, ForegroundComponent]],
 ) -> str:
     if category == "outer" and component is not None:
+        if component.height_ratio >= 0.24 and component.width_ratio <= 0.4 and color in {"black", "gray", "brown", "beige", "white"}:
+            return "가디건"
         if component.height_ratio < 0.22 and component.width_ratio > 0.22:
             return "베스트"
+        if component.width_ratio >= 0.42 and component.height_ratio <= 0.28 and color in {"black", "navy", "green"}:
+            return "점퍼"
         if color in {"gray", "brown"}:
             return "가디건"
         return "자켓"
@@ -581,9 +585,11 @@ def _extract_foreground_components(image, background_color: tuple[float, float, 
 def _select_category_components(components: list[ForegroundComponent]) -> list[tuple[str, ForegroundComponent]]:
     selections: list[tuple[str, ForegroundComponent]] = []
 
-    top_component = _pick_best_component(components, "top")
-    bottom_component = _pick_best_component(components, "bottom")
     outer_component = _pick_best_component(components, "outer")
+    top_component = _pick_best_component(components, "top", exclude=(outer_component,) if outer_component is not None else ())
+    if top_component is None:
+        top_component = _pick_best_component(components, "top")
+    bottom_component = _pick_best_component(components, "bottom")
     bag_component = _pick_best_component(components, "bag")
     accessory_components = _pick_top_components(components, "accessory", limit=2)
     shoe_components = _pick_top_components(components, "shoes", limit=2)
@@ -601,16 +607,28 @@ def _select_category_components(components: list[ForegroundComponent]) -> list[t
     return selections
 
 
-def _pick_best_component(components: list[ForegroundComponent], category: str) -> ForegroundComponent | None:
+def _pick_best_component(
+    components: list[ForegroundComponent],
+    category: str,
+    exclude: tuple[ForegroundComponent, ...] = (),
+) -> ForegroundComponent | None:
     ranked = sorted(
         (
             (component, _category_component_score(component, category))
             for component in components
+            if component not in exclude
         ),
         key=lambda item: item[1],
         reverse=True,
     )
-    if not ranked or ranked[0][1] < 0.55:
+    min_score = {
+        "top": 0.55,
+        "bottom": 0.55,
+        "outer": 0.62,
+        "bag": 0.72,
+        "accessory": 0.62,
+    }.get(category, 0.55)
+    if not ranked or ranked[0][1] < min_score:
         return None
     return ranked[0][0]
 
@@ -620,7 +638,8 @@ def _pick_top_components(components: list[ForegroundComponent], category: str, l
         (component, _category_component_score(component, category))
         for component in components
     ]
-    ranked = [item for item in ranked if item[1] >= 0.58]
+    min_score = {"shoes": 0.74, "accessory": 0.62}.get(category, 0.58)
+    ranked = [item for item in ranked if item[1] >= min_score]
     ranked.sort(key=lambda item: item[1], reverse=True)
     return [component for component, _score in ranked[:limit]]
 
@@ -629,6 +648,10 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
     score = 0.0
 
     if category == "top":
+        if component.area_ratio < 0.025 or component.height_ratio < 0.09:
+            return 0.0
+        if component.center_x > 0.75 and component.area_ratio < 0.04:
+            return 0.0
         if 0.10 <= component.center_y <= 0.38:
             score += 0.45
         if component.area_ratio >= 0.05:
@@ -663,23 +686,27 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
 
     elif category == "shoes":
-        if component.center_y >= 0.72:
+        if component.center_y >= 0.78:
             score += 0.4
-        if component.area_ratio <= 0.08:
+        if 0.004 <= component.area_ratio <= 0.06:
             score += 0.15
-        if 0.06 <= component.height_ratio <= 0.22:
+        if 0.05 <= component.height_ratio <= 0.2:
             score += 0.15
+        if component.width_ratio <= 0.24:
+            score += 0.1
         if component.color in {"black", "brown", "white", "gray"}:
             score += 0.1
 
     elif category == "bag":
-        if component.center_x >= 0.58:
+        if component.center_x >= 0.68:
             score += 0.35
         if 0.35 <= component.center_y <= 0.76:
             score += 0.2
-        if component.area_ratio >= 0.02:
+        if 0.015 <= component.area_ratio <= 0.14:
             score += 0.1
-        if component.height_ratio >= 0.14:
+        if 0.12 <= component.height_ratio <= 0.48:
+            score += 0.1
+        if component.width_ratio <= 0.38:
             score += 0.1
         if component.color in {"white", "beige", "black", "brown", "gray", "yellow"}:
             score += 0.1
@@ -695,23 +722,6 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
 
     return round(score, 4)
-
-
-def _build_distinct_query_hint(category: str, counts: Counter, reference_colors: tuple[str, ...]) -> str:
-    hint = _build_dynamic_query_hint(category, counts)
-    if not hint:
-        return ""
-
-    color = _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
-    if color in {"unknown", "neutral"}:
-        return ""
-
-    comparable_references = {reference for reference in reference_colors if reference not in {"unknown", "neutral"}}
-    if color in comparable_references:
-        return ""
-
-    return hint
-
 
 def _query_accessory_color_name(counts: Counter) -> str:
     total = sum(counts.values())

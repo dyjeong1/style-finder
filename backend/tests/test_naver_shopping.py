@@ -119,12 +119,55 @@ def test_naver_shopping_item_parse_uses_product_image_analysis(monkeypatch: pyte
             "category3": "메리제인",
         },
         category_hint="shoes",
+        query="브라운 메리제인 슈즈",
     )
 
     assert product is not None
     assert product.dominant_color == "black"
     assert product.feature_vector[0] < 0.1
     assert product.category == "shoes"
+
+
+def test_naver_shopping_item_parse_drops_irrelevant_category_hint_result() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "와이드 데님 팬츠",
+            "link": "https://smartstore.naver.com/demo/products/101",
+            "image": "https://shopping-phinf.pstatic.net/pants.png",
+            "lprice": "49000",
+            "productId": "101",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "바지",
+        },
+        category_hint="shoes",
+        query="브라운 로퍼",
+    )
+
+    assert product is None
+
+
+def test_naver_shopping_item_parse_drops_outer_result_when_specific_item_label_mismatches() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "그레이 집업 점퍼",
+            "link": "https://smartstore.naver.com/demo/products/202",
+            "image": "https://shopping-phinf.pstatic.net/jumper.png",
+            "lprice": "59000",
+            "productId": "202",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "점퍼",
+        },
+        category_hint="outer",
+        query="그레이 가디건",
+    )
+
+    assert product is None
 
 
 def test_build_naver_query_uses_analysis_and_category() -> None:

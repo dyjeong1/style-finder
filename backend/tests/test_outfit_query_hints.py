@@ -67,6 +67,21 @@ def build_accessory_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_cardigan_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((150, 70, 280, 330), fill=(96, 96, 96))
+    draw.rectangle((240, 95, 375, 300), fill=(245, 245, 245))
+    draw.rectangle((145, 310, 355, 725), fill=(48, 58, 125))
+    draw.ellipse((388, 75, 446, 118), fill=(20, 20, 20))
+    draw.ellipse((452, 75, 510, 118), fill=(20, 20, 20))
+    draw.rectangle((442, 91, 455, 101), fill=(20, 20, 20))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -141,3 +156,12 @@ def test_outfit_query_hints_detect_accessory_separately() -> None:
 
 def test_dark_warm_shoes_are_brown_not_black() -> None:
     assert classify_rgb_color(42, 30, 26) == "brown"
+
+
+def test_outfit_query_hints_keep_cardigan_and_skip_missing_bag_and_shoes() -> None:
+    hints = analyze_outfit_category_query_hints(build_cardigan_fixture())
+
+    assert hints["outer"] == "그레이 가디건"
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "shoes" not in hints
