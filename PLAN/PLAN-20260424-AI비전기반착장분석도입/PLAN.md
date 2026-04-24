@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-24
 related:
-  tasks: [TSK-0001-비전분석초기구조도입]
+  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성]
 tags: [vision, ai, outfit-analysis, dataset]
 ---
 
@@ -47,3 +47,4 @@ tags: [vision, ai, outfit-analysis, dataset]
 
 ## 7. 변경 이력
 - 2026-04-24: PLAN 생성 및 비전 분석 초기 구조 도입 착수.
+- 2026-04-24: 사용자 제공 이미지 10장을 데이터셋에 편입하고 이미지별 라벨 초안을 작성함.

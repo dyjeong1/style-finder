@@ -1,0 +1,42 @@
+{
+  "sample_id": "codytest_1",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "셔츠",
+      "notes": "화이트 긴팔 셔츠 이너"
+    },
+    {
+      "category": "outer",
+      "color": "black",
+      "item_label": "니트 베스트",
+      "notes": "블랙 브이넥 니트 베스트"
+    },
+    {
+      "category": "bottom",
+      "color": "white",
+      "item_label": "팬츠",
+      "notes": "화이트 스트레이트 팬츠"
+    },
+    {
+      "category": "shoes",
+      "color": "brown",
+      "item_label": "메리제인 슈즈",
+      "notes": "브라운 플랫 메리제인"
+    },
+    {
+      "category": "bag",
+      "color": "white",
+      "item_label": "숄더백",
+      "notes": "아이보리 숄더백"
+    },
+    {
+      "category": "accessory",
+      "color": "black",
+      "item_label": "헤어 액세서리",
+      "notes": "블랙 앤 화이트 스크런치"
+    }
+  ]
+}

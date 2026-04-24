@@ -1,0 +1,42 @@
+{
+  "sample_id": "codytest_9",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "gray",
+      "item_label": "스트라이프 니트 탑",
+      "notes": "그레이 스트라이프 상의"
+    },
+    {
+      "category": "outer",
+      "color": "red",
+      "item_label": "니트 베스트",
+      "notes": "버건디 니트 베스트 숄더 레이어드"
+    },
+    {
+      "category": "bottom",
+      "color": "blue",
+      "item_label": "데님 팬츠",
+      "notes": "블루 데님 팬츠"
+    },
+    {
+      "category": "shoes",
+      "color": "brown",
+      "item_label": "부츠",
+      "notes": "브라운 롱부츠"
+    },
+    {
+      "category": "bag",
+      "color": "black",
+      "item_label": "숄더백",
+      "notes": "블랙 가죽 숄더백"
+    },
+    {
+      "category": "accessory",
+      "color": "black",
+      "item_label": "안경",
+      "notes": "목에 걸친 블랙 안경"
+    }
+  ]
+}

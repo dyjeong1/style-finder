@@ -1,0 +1,36 @@
+{
+  "sample_id": "codytest_10",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "탑",
+      "notes": "화이트 이너 탑"
+    },
+    {
+      "category": "outer",
+      "color": "gray",
+      "item_label": "가디건",
+      "notes": "그레이 니트 가디건"
+    },
+    {
+      "category": "bottom",
+      "color": "black",
+      "item_label": "미니 스커트",
+      "notes": "블랙 도트 미니 스커트"
+    },
+    {
+      "category": "shoes",
+      "color": "white",
+      "item_label": "스니커즈",
+      "notes": "화이트 스니커즈"
+    },
+    {
+      "category": "bag",
+      "color": "blue",
+      "item_label": "토트백",
+      "notes": "라이트 블루 토트백"
+    }
+  ]
+}

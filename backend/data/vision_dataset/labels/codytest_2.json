@@ -1,0 +1,30 @@
+{
+  "sample_id": "codytest_2",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "슬리브리스 탑",
+      "notes": "화이트 이너 탑"
+    },
+    {
+      "category": "outer",
+      "color": "blue",
+      "item_label": "가디건",
+      "notes": "라이트 블루 가디건"
+    },
+    {
+      "category": "bottom",
+      "color": "navy",
+      "item_label": "와이드 데님 팬츠",
+      "notes": "진청 와이드 데님"
+    },
+    {
+      "category": "accessory",
+      "color": "black",
+      "item_label": "안경",
+      "notes": "목 부분에 걸친 블랙 안경"
+    }
+  ]
+}

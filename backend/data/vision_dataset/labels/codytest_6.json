@@ -1,0 +1,30 @@
+{
+  "sample_id": "codytest_6",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "블라우스",
+      "notes": "화이트 퍼프 블라우스"
+    },
+    {
+      "category": "outer",
+      "color": "black",
+      "item_label": "원피스",
+      "notes": "블랙 민소매 레이어드 원피스"
+    },
+    {
+      "category": "shoes",
+      "color": "black",
+      "item_label": "로퍼",
+      "notes": "블랙 로퍼"
+    },
+    {
+      "category": "bag",
+      "color": "brown",
+      "item_label": "크로스백",
+      "notes": "브라운 크로스백"
+    }
+  ]
+}
