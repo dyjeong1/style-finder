@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-24
 related:
-  tasks: [TSK-0001-오탐필터링및가디건정교화, TSK-0002-실사이미지일반화분석개선]
+  tasks: [TSK-0001-오탐필터링및가디건정교화, TSK-0002-실사이미지일반화분석개선, TSK-0003-실사회귀세트확장, TSK-0004-하의품목세분화, TSK-0005-악세서리품목세분화]
 tags: [recommendation, naver, image-analysis, precision]
 ---
 
@@ -48,3 +48,5 @@ tags: [recommendation, naver, image-analysis, precision]
 - 2026-04-24: 신발/가방 감지 기준 강화, 상의/아우터 분리 보정, 네이버 relevance 필터 추가, 테스트 통과 후 완료 처리.
 - 2026-04-24: 실사 거울셀카 일반화 분석 개선 TASK 추가.
 - 2026-04-24: 사람 중심 foreground 범위, 실사 셀카형 회귀 테스트, 이너/가디건/안경 분리 보정을 반영.
+- 2026-04-24: 실사 회귀 세트 확장, 하의 품목 세분화, 악세서리 품목 세분화 TASK 추가.
+- 2026-04-24: 실사 셀카형 회귀 픽스처 2건을 추가해 가방/신발 존재 여부와 카테고리 부재 조건을 고정.

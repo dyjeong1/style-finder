@@ -101,6 +101,40 @@ def build_mirror_selfie_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_bag_and_shoes_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (179, 154, 125))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 48, 780), fill=(130, 104, 74))
+    draw.rectangle((380, 0, 430, 780), fill=(203, 184, 154))
+    draw.rectangle((128, 120, 302, 380), fill=(228, 214, 194))
+    draw.rectangle((152, 170, 278, 348), fill=(248, 248, 242))
+    draw.rectangle((142, 360, 290, 540), fill=(38, 39, 42))
+    draw.rectangle((136, 540, 308, 680), fill=(34, 34, 37))
+    draw.rectangle((284, 332, 360, 520), fill=(112, 80, 58))
+    draw.ellipse((126, 706, 188, 768), fill=(246, 246, 244))
+    draw.ellipse((242, 706, 304, 768), fill=(246, 246, 244))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_sneakers_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (174, 148, 121))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.rectangle((136, 110, 296, 300), fill=(94, 97, 108))
+    draw.rectangle((156, 308, 280, 510), fill=(222, 224, 230))
+    draw.rectangle((132, 512, 300, 742), fill=(88, 116, 171))
+    draw.ellipse((136, 708, 202, 770), fill=(246, 246, 244))
+    draw.ellipse((228, 708, 294, 770), fill=(246, 246, 244))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -195,3 +229,24 @@ def test_outfit_query_hints_generalize_for_mirror_selfie_without_missing_categor
     assert hints["accessory"] == "블랙 안경"
     assert "bag" not in hints
     assert "shoes" not in hints
+
+
+def test_outfit_query_hints_detect_present_bag_and_shoes_in_selfie() -> None:
+    hints = analyze_outfit_category_query_hints(build_bag_and_shoes_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의"}
+    assert hints["outer"] in {"그레이 가디건", "베이지 자켓", "베이지 가디건"}
+    assert hints["bottom"] in {"블랙 슬랙스", "블랙 스커트"}
+    assert hints["bag"] in {"브라운 숄더백", "브라운 토트백"}
+    assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
+    assert "accessory" not in hints
+
+
+def test_outfit_query_hints_keep_sneakers_and_skip_bag_when_absent() -> None:
+    hints = analyze_outfit_category_query_hints(build_sneakers_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의", "그레이 니트 탑", "그레이 상의"}
+    assert hints["outer"] in {"그레이 가디건", "그레이 자켓"}
+    assert hints["bottom"] in {"블루 데님 팬츠", "블루 와이드 팬츠"}
+    assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
+    assert "bag" not in hints
