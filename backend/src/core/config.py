@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     naver_shopping_image_timeout_seconds: float = 1.0
     naver_shopping_max_image_bytes: int = 2_000_000
     naver_shopping_max_product_image_analysis_count: int = 12
+    vision_reranker_enabled: bool = False
+    vision_reranker_provider: str = "clip"
+    vision_reranker_model_name: str = "openai/clip-vit-base-patch32"
+    vision_reranker_timeout_seconds: float = 1.5
+    vision_reranker_max_image_bytes: int = 2_000_000
+    vision_reranker_max_candidates: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -302,6 +302,7 @@ class InMemoryStore:
         sort: str,
         limit: int,
         candidate_products: list[ProductRecord] | None = None,
+        vision_similarity_by_product: dict[str, float] | None = None,
     ) -> list[dict]:
         upload = self.uploads.get(uploaded_image_id)
         if upload is None:
@@ -330,6 +331,8 @@ class InMemoryStore:
                 if item.dominant_color != "unknown" and item.dominant_color == target_color
                 else 0.0
             )
+            vision_similarity = (vision_similarity_by_product or {}).get(item.id, 0.0)
+            vision_bonus = max(0.0, vision_similarity) * 0.18
             similarity = round(
                 min(
                     0.99,
@@ -340,7 +343,8 @@ class InMemoryStore:
                     + silhouette_bonus
                     + category_bonus
                     + color_bonus
-                    + product_image_color_bonus,
+                    + product_image_color_bonus
+                    + vision_bonus
                 ),
                 4,
             )
@@ -362,6 +366,8 @@ class InMemoryStore:
                         "category_bonus": round(category_bonus, 4),
                         "color_bonus": round(color_bonus, 4),
                         "product_image_color_bonus": round(product_image_color_bonus, 4),
+                        "vision_similarity": round(vision_similarity, 4),
+                        "vision_bonus": round(vision_bonus, 4),
                     },
                     "matched_signals": {
                         "dominant_tone": upload.analysis.dominant_tone,
@@ -371,6 +377,7 @@ class InMemoryStore:
                         "style_mood": upload.analysis.style_mood,
                         "silhouette": upload.analysis.silhouette,
                         "preferred_categories": list(upload.analysis.preferred_categories),
+                        "vision_reranked": bool(vision_similarity_by_product and item.id in vision_similarity_by_product),
                     },
                 }
             )

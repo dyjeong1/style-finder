@@ -46,6 +46,25 @@ cp .env.example .env
 - `NAVER_SHOPPING_DISPLAY`
 - `NAVER_SHOPPING_TIMEOUT_SECONDS`
 
+## 선택적 CLIP 비전 재정렬
+- 기본 추천은 휴리스틱/색상/텍스트 점수로 동작합니다.
+- 추가로 CLIP 기반 이미지 임베딩 재정렬을 켜면 업로드 이미지와 상품 이미지의 시각 유사도를 더 반영할 수 있습니다.
+- 패키지가 없거나 비활성화되어 있으면 자동으로 기존 점수 체계로 fallback 합니다.
+
+설치 예시:
+```bash
+cd backend
+pip install -e ".[vision]"
+```
+
+주요 설정:
+- `VISION_RERANKER_ENABLED=true`
+- `VISION_RERANKER_PROVIDER=clip`
+- `VISION_RERANKER_MODEL_NAME=openai/clip-vit-base-patch32`
+- `VISION_RERANKER_TIMEOUT_SECONDS=1.5`
+- `VISION_RERANKER_MAX_IMAGE_BYTES=2000000`
+- `VISION_RERANKER_MAX_CANDIDATES=10`
+
 ## 업로드 이미지 파일 응답
 - 업로드 응답의 `image_url`은 `/images/{uploaded_image_id}/file`입니다.
 - 해당 URL은 업로드 원본 bytes를 `content_type`과 함께 반환합니다.

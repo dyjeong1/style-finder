@@ -61,6 +61,8 @@ export type RecommendationScoreBreakdown = {
   category_bonus: number;
   color_bonus?: number;
   product_image_color_bonus?: number;
+  vision_similarity?: number;
+  vision_bonus?: number;
 };
 
 export type RecommendationMatchedSignals = {
@@ -71,6 +73,7 @@ export type RecommendationMatchedSignals = {
   style_mood: string;
   silhouette: string;
   preferred_categories: string[];
+  vision_reranked?: boolean;
 };
 
 export type RecommendationItem = {

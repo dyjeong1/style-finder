@@ -1,7 +1,7 @@
 ---
 id: SPEC-PLAN-20260424-품목세분화및비전재정렬
 title: 품목 세분화 및 비전 재정렬 스펙
-status: doing
+status: done
 priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-24

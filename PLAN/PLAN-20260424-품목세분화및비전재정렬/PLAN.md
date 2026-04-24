@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260424-품목세분화및비전재정렬
 title: 품목 세분화 및 비전 재정렬
-status: doing
+status: done
 priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-24
@@ -40,11 +40,12 @@ tags: [image-analysis, recommendation, vision, backend, frontend]
 - heuristic와 비전 임베딩을 혼합하므로 초기 가중치 튜닝이 필요할 수 있다.
 
 ## 6. 검증/수용 기준(DoD)
-- [ ] 카테고리별 검색 힌트가 더 구체적인 품목명으로 생성된다.
-- [ ] 없는 카테고리와 악세서리 분리가 기존보다 안정적이다.
-- [ ] CLIP 비전 재정렬이 설정 기반으로 연결되고 fallback이 안전하다.
-- [ ] 백엔드 테스트와 프론트 빌드가 통과한다.
-- [ ] README/TODO/PLAN/TASK 문서가 갱신된다.
+- [x] 카테고리별 검색 힌트가 더 구체적인 품목명으로 생성된다.
+- [x] 없는 카테고리와 악세서리 분리가 기존보다 안정적이다.
+- [x] CLIP 비전 재정렬이 설정 기반으로 연결되고 fallback이 안전하다.
+- [x] 백엔드 테스트와 프론트 빌드가 통과한다.
+- [x] README/TODO/PLAN/TASK 문서가 갱신된다.
 
 ## 7. 변경 이력
 - 2026-04-24: PLAN 생성.
+- 2026-04-24: 품목 세분화, 다중 아이템 분리, 선택적 CLIP 비전 재정렬 연결 완료.

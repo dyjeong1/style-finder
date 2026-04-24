@@ -18,6 +18,7 @@ from src.services.naver_shopping import (
 )
 from src.services.store import ProductRecord, UploadAnalysis
 from src.services.store import store
+from src.services.vision_reranker import VisionReranker, VisionRerankerConfig
 
 router = APIRouter()
 
@@ -120,6 +121,21 @@ def get_recommendations(
     if naver_products:
         store.register_products(naver_products)
 
+    vision_reranker = VisionReranker(
+        VisionRerankerConfig(
+            enabled=settings.vision_reranker_enabled,
+            provider=settings.vision_reranker_provider,
+            model_name=settings.vision_reranker_model_name,
+            timeout_seconds=settings.vision_reranker_timeout_seconds,
+            max_image_bytes=settings.vision_reranker_max_image_bytes,
+            max_candidates=settings.vision_reranker_max_candidates,
+        )
+    )
+    vision_similarity_by_product = vision_reranker.score_products(
+        upload_content=upload.content,
+        products=naver_products or list(store.products.values()),
+    )
+
     items = store.list_recommendations(
         uploaded_image_id=uploaded_image_id,
         category=category,
@@ -128,6 +144,7 @@ def get_recommendations(
         sort=sort,
         limit=limit,
         candidate_products=naver_products or None,
+        vision_similarity_by_product=vision_similarity_by_product,
     )
     return ok_response(
         {
