@@ -13,6 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   outer: "아우터",
   shoes: "신발",
   bag: "가방",
+  accessory: "악세서리",
 };
 
 const SORT_LABELS: Record<WishlistSortOption, string> = {
@@ -157,6 +158,7 @@ export default function WishlistPage() {
             <option value="outer">아우터</option>
             <option value="shoes">신발</option>
             <option value="bag">가방</option>
+            <option value="accessory">악세서리</option>
           </select>
         </label>
         <label className="control-field" htmlFor="wishlist-sort">

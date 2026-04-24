@@ -52,6 +52,7 @@ CATEGORY_QUERY_LABELS = {
     "outer": "아우터",
     "shoes": "신발",
     "bag": "가방",
+    "accessory": "악세서리",
 }
 
 OUTFIT_QUERY_REGIONS = {
@@ -60,6 +61,7 @@ OUTFIT_QUERY_REGIONS = {
     "outer": (0.22, 0.02, 0.70, 0.38),
     "shoes": (0.00, 0.66, 0.30, 0.98),
     "bag": (0.50, 0.38, 0.98, 0.82),
+    "accessory": (0.62, 0.00, 1.00, 0.36),
 }
 
 
@@ -78,8 +80,11 @@ def analyze_image_content(content: bytes) -> ImageColorFeature | None:
     if not pixels:
         return None
 
-    sample_step = max(1, len(pixels) // 1800)
-    sampled_pixels = pixels[::sample_step]
+    background_color = _estimate_edge_color(image)
+    foreground_pixels = _foreground_pixels(image, background_color)
+    analysis_pixels = foreground_pixels if len(foreground_pixels) >= max(40, len(pixels) // 25) else pixels
+    sample_step = max(1, len(analysis_pixels) // 1800)
+    sampled_pixels = analysis_pixels[::sample_step]
     red = sum(pixel[0] for pixel in sampled_pixels) / len(sampled_pixels)
     green = sum(pixel[1] for pixel in sampled_pixels) / len(sampled_pixels)
     blue = sum(pixel[2] for pixel in sampled_pixels) / len(sampled_pixels)
@@ -166,26 +171,39 @@ def analyze_outfit_category_query_hints(content: bytes) -> dict[str, str]:
     bottom_counts = region_counts["bottom"]
     shoes_counts = region_counts["shoes"]
     bag_counts = region_counts["bag"]
+    accessory_counts = region_counts["accessory"]
     layered_vest_signature = (
         _has_meaningful_color(top_counts, "white")
         and _has_meaningful_color(outer_counts, "black")
         and _has_light_garment(bottom_counts)
     )
 
+    top_color = _query_color_name(top_counts)
+    bottom_color = _query_color_name(bottom_counts)
+
     hints["top"] = "화이트 셔츠" if layered_vest_signature else _build_dynamic_query_hint("top", top_counts)
     hints["outer"] = (
         "블랙 니트 베스트"
         if layered_vest_signature
-        else _build_dynamic_query_hint("outer", outer_counts)
+        else _build_distinct_query_hint("outer", outer_counts, reference_colors=(top_color,))
     )
     hints["bottom"] = "화이트 팬츠" if layered_vest_signature else _build_dynamic_query_hint("bottom", bottom_counts)
 
     if layered_vest_signature and (_dominant_color_name(shoes_counts) == "brown" or _has_meaningful_color(shoes_counts, "brown")):
         hints["shoes"] = "브라운 메리제인 슈즈"
     else:
-        hints["shoes"] = _build_dynamic_query_hint("shoes", shoes_counts)
+        hints["shoes"] = _build_distinct_query_hint("shoes", shoes_counts, reference_colors=(bottom_color,))
 
-    hints["bag"] = "아이보리 숄더백" if layered_vest_signature and _has_light_garment(bag_counts) else _build_dynamic_query_hint("bag", bag_counts)
+    hints["bag"] = (
+        "아이보리 숄더백"
+        if layered_vest_signature and _has_light_garment(bag_counts)
+        else _build_distinct_query_hint("bag", bag_counts, reference_colors=(bottom_color,))
+    )
+    hints["accessory"] = _build_distinct_query_hint(
+        "accessory",
+        accessory_counts,
+        reference_colors=(top_color, bottom_color, _query_color_name(outer_counts), _query_color_name(bag_counts)),
+    )
 
     return {category: hint for category, hint in hints.items() if hint}
 
@@ -221,6 +239,18 @@ def _count_foreground_colors(image, background_color: tuple[float, float, float]
     return counts
 
 
+def _foreground_pixels(image, background_color: tuple[float, float, float]) -> list[tuple[int, int, int]]:
+    width, height = image.size
+    pixels = []
+    step = max(1, min(width, height) // 180)
+    for y in range(0, height, step):
+        for x in range(0, width, step):
+            pixel = image.getpixel((x, y))
+            if _color_distance(pixel, background_color) >= 38:
+                pixels.append(pixel)
+    return pixels
+
+
 def _color_distance(left: tuple[int, int, int], right: tuple[float, float, float]) -> float:
     return math.sqrt(sum((left[idx] - right[idx]) ** 2 for idx in range(3)))
 
@@ -231,8 +261,8 @@ def _dominant_color_name(counts: Counter) -> str:
     return counts.most_common(1)[0][0]
 
 
-def _query_color_name(counts: Counter) -> str:
-    if _has_light_garment(counts):
+def _query_color_name(counts: Counter, *, prefer_light_garment: bool = True) -> str:
+    if prefer_light_garment and _has_light_garment(counts):
         return "white"
 
     for color, _count in counts.most_common():
@@ -244,16 +274,61 @@ def _query_color_name(counts: Counter) -> str:
 
 def _build_dynamic_query_hint(category: str, counts: Counter) -> str:
     total = sum(counts.values())
-    if total < 20:
+    min_total_by_category = {
+        "top": 60,
+        "bottom": 80,
+        "outer": 80,
+        "shoes": 35,
+        "bag": 70,
+        "accessory": 28,
+    }
+    if total < min_total_by_category.get(category, 40):
         return ""
 
-    color = _query_color_name(counts)
+    color = _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
     color_label = COLOR_QUERY_LABELS.get(color)
     category_label = CATEGORY_QUERY_LABELS[category]
     if not color_label:
         return category_label
 
+    if category == "accessory":
+        accessory_label = "안경" if color in {"black", "brown", "gray"} else "머플러"
+        return f"{color_label} {accessory_label}"
+
     return f"{color_label} {category_label}"
+
+
+def _build_distinct_query_hint(category: str, counts: Counter, reference_colors: tuple[str, ...]) -> str:
+    hint = _build_dynamic_query_hint(category, counts)
+    if not hint:
+        return ""
+
+    color = _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
+    if color in {"unknown", "neutral"}:
+        return ""
+
+    comparable_references = {reference for reference in reference_colors if reference not in {"unknown", "neutral"}}
+    if color in comparable_references:
+        return ""
+
+    return hint
+
+
+def _query_accessory_color_name(counts: Counter) -> str:
+    total = sum(counts.values())
+    if total == 0:
+        return "unknown"
+
+    dark_candidates = (
+        ("black", counts["black"]),
+        ("brown", counts["brown"]),
+        ("gray", counts["gray"]),
+    )
+    strongest_dark, strongest_dark_count = max(dark_candidates, key=lambda item: item[1])
+    if strongest_dark_count / total >= 0.18:
+        return strongest_dark
+
+    return _query_color_name(counts, prefer_light_garment=False)
 
 
 def _has_meaningful_color(counts: Counter, color: str) -> bool:

@@ -22,9 +22,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   outer: "아우터",
   shoes: "신발",
   bag: "가방",
+  accessory: "악세서리",
 };
 
-const CATEGORY_ORDER = ["top", "bottom", "outer", "shoes", "bag"] as const;
+const CATEGORY_ORDER = ["top", "bottom", "outer", "shoes", "bag", "accessory"] as const;
 const CATEGORY_ORDER_SET = new Set<string>(CATEGORY_ORDER);
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -420,6 +421,7 @@ export default function RecommendationPage() {
               <option value="outer">아우터</option>
               <option value="shoes">신발</option>
               <option value="bag">가방</option>
+              <option value="accessory">악세서리</option>
             </select>
           </label>
           <label className="control-field" htmlFor="recommendation-sort">
@@ -532,7 +534,10 @@ export default function RecommendationPage() {
             <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
             <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
           </div>
-          <p className="hint-text">선호 카테고리: {uploadedImageAnalysis.preferred_categories.join(", ")}</p>
+          <p className="hint-text">감지 카테고리: {uploadedImageAnalysis.preferred_categories.map(getCategoryLabel).join(", ")}</p>
+          {uploadedImageAnalysis.category_query_hints ? (
+            <p className="hint-text">검색 힌트: {Object.values(uploadedImageAnalysis.category_query_hints).join(" / ")}</p>
+          ) : null}
         </section>
       ) : null}
 

@@ -19,9 +19,10 @@ CATEGORY_QUERIES = {
     "outer": "아우터",
     "shoes": "신발",
     "bag": "가방",
+    "accessory": "악세서리",
 }
 
-CATEGORY_ORDER = ("top", "bottom", "outer", "shoes", "bag")
+CATEGORY_ORDER = ("top", "bottom", "outer", "shoes", "bag", "accessory")
 
 CATEGORY_KEYWORDS = {
     "top": (
@@ -134,6 +135,25 @@ CATEGORY_KEYWORDS = {
         "힙색",
         "벨트백",
     ),
+    "accessory": (
+        "악세서리",
+        "액세서리",
+        "안경",
+        "선글라스",
+        "머플러",
+        "스카프",
+        "목도리",
+        "모자",
+        "캡",
+        "비니",
+        "벨트",
+        "양말",
+        "목걸이",
+        "귀걸이",
+        "반지",
+        "헤어핀",
+        "스크런치",
+    ),
 }
 
 MOOD_QUERIES = {
@@ -231,7 +251,12 @@ def infer_custom_query_categories(custom_query: str) -> list[str]:
 
 
 def build_naver_category_queries(analysis: UploadAnalysis) -> list[tuple[str, str]]:
-    return [(category, build_naver_query(analysis, category)) for category in CATEGORY_ORDER]
+    categories = [
+        category
+        for category in CATEGORY_ORDER
+        if not analysis.category_query_hints or category in analysis.category_query_hints
+    ]
+    return [(category, build_naver_query(analysis, category)) for category in categories]
 
 
 def build_custom_naver_category_queries(custom_query: str) -> list[tuple[str, str]]:
@@ -417,6 +442,8 @@ def _infer_category(item: dict, title: str) -> str:
         return "shoes"
     if any(keyword in haystack for keyword in ("가방", "백", "토트", "숄더", "크로스")):
         return "bag"
+    if any(keyword in haystack for keyword in ("안경", "선글라스", "머플러", "스카프", "목도리", "모자", "벨트", "양말", "악세서리", "액세서리")):
+        return "accessory"
     if any(keyword in haystack for keyword in ("자켓", "재킷", "코트", "점퍼", "가디건", "아우터")):
         return "outer"
     if any(keyword in haystack for keyword in ("팬츠", "바지", "스커트", "데님", "슬랙스")):

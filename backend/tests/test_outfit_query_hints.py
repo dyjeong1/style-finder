@@ -40,6 +40,33 @@ def build_colored_flatlay_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_simple_outfit_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 430, 275), fill=(188, 35, 52))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.ellipse((55, 590, 130, 740), fill=(16, 16, 17))
+    draw.ellipse((138, 590, 213, 740), fill=(16, 16, 17))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_accessory_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 350, 250), fill=(246, 247, 245))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.ellipse((390, 55, 450, 105), fill=(15, 15, 15))
+    draw.ellipse((455, 55, 515, 105), fill=(15, 15, 15))
+    draw.rectangle((445, 75, 460, 85), fill=(15, 15, 15))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -90,6 +117,26 @@ def test_naver_category_queries_prefer_outfit_category_hints() -> None:
         ("shoes", "브라운 메리제인 슈즈"),
         ("bag", "아이보리 숄더백"),
     ]
+
+
+def test_outfit_query_hints_skip_absent_categories() -> None:
+    hints = analyze_outfit_category_query_hints(build_simple_outfit_fixture())
+
+    assert hints == {
+        "top": "레드 상의",
+        "bottom": "블루 팬츠",
+        "shoes": "블랙 신발",
+    }
+
+
+def test_outfit_query_hints_detect_accessory_separately() -> None:
+    hints = analyze_outfit_category_query_hints(build_accessory_fixture())
+
+    assert hints["top"] == "화이트 상의"
+    assert hints["bottom"] == "블루 팬츠"
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "outer" not in hints
 
 
 def test_dark_warm_shoes_are_brown_not_black() -> None:

@@ -69,7 +69,7 @@ def test_core_e2e_flow() -> None:
     assert matched_item is not None
     assert matched_item["product_name"]
     assert matched_item["source"] in {"zigzag", "29cm", "naver"}
-    assert matched_item["category"] in {"top", "bottom", "outer", "shoes", "bag"}
+    assert matched_item["category"] in {"top", "bottom", "outer", "shoes", "bag", "accessory"}
     assert matched_item["price"] > 0
     assert matched_item["product_url"].startswith("https://")
 

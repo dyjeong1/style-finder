@@ -18,6 +18,10 @@ from src.services.image_analysis import (
 )
 
 
+WARM_COLORS = {"beige", "brown", "red", "pink", "yellow"}
+COOL_COLORS = {"blue", "navy", "green"}
+
+
 @dataclass
 class UploadAnalysis:
     checksum: str
@@ -212,11 +216,6 @@ class InMemoryStore:
         source = content or f"{filename}:{content_type}".encode()
         digest = hashlib.sha256(source).digest()
 
-        tones = ("warm", "cool", "neutral")
-        moods = ("minimal", "casual", "street", "feminine")
-        silhouettes = ("relaxed", "slim", "layered", "balanced")
-        categories = ("top", "bottom", "outer", "shoes", "bag")
-
         image_color_feature = analyze_image_content(content)
         if image_color_feature is None:
             dominant_color = fallback_color_from_digest(digest)
@@ -225,7 +224,23 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        preferred_categories = tuple(
+        category_query_hints = analyze_outfit_category_query_hints(content)
+        preferred_categories = tuple(category_query_hints) or self._fallback_preferred_categories(digest)
+
+        return UploadAnalysis(
+            checksum=digest.hex()[:16],
+            dominant_tone=self._derive_tone(dominant_color),
+            style_mood=self._derive_mood(dominant_color, preferred_categories),
+            silhouette=self._derive_silhouette(preferred_categories),
+            preferred_categories=preferred_categories,
+            feature_vector=feature_vector,
+            dominant_color=dominant_color,
+            category_query_hints=category_query_hints,
+        )
+
+    def _fallback_preferred_categories(self, digest: bytes) -> tuple[str, ...]:
+        categories = ("top", "bottom", "outer", "shoes", "bag", "accessory")
+        return tuple(
             dict.fromkeys(
                 (
                     categories[digest[4] % len(categories)],
@@ -234,16 +249,30 @@ class InMemoryStore:
             )
         )
 
-        return UploadAnalysis(
-            checksum=digest.hex()[:16],
-            dominant_tone=tones[digest[0] % len(tones)],
-            style_mood=moods[digest[1] % len(moods)],
-            silhouette=silhouettes[digest[2] % len(silhouettes)],
-            preferred_categories=preferred_categories,
-            feature_vector=feature_vector,
-            dominant_color=dominant_color,
-            category_query_hints=analyze_outfit_category_query_hints(content),
-        )
+    def _derive_tone(self, dominant_color: str) -> str:
+        if dominant_color in WARM_COLORS:
+            return "warm"
+        if dominant_color in COOL_COLORS:
+            return "cool"
+        return "neutral"
+
+    def _derive_mood(self, dominant_color: str, preferred_categories: tuple[str, ...]) -> str:
+        if dominant_color in {"pink", "white", "beige"} and any(category in preferred_categories for category in {"bag", "accessory"}):
+            return "feminine"
+        if dominant_color in {"black", "gray", "navy"} and any(category in preferred_categories for category in {"outer", "shoes"}):
+            return "street"
+        if any(category in preferred_categories for category in {"bottom", "shoes"}):
+            return "casual"
+        return "minimal"
+
+    def _derive_silhouette(self, preferred_categories: tuple[str, ...]) -> str:
+        if "outer" in preferred_categories and "top" in preferred_categories:
+            return "layered"
+        if "bottom" in preferred_categories and "shoes" in preferred_categories:
+            return "balanced"
+        if "top" in preferred_categories:
+            return "slim"
+        return "relaxed"
 
     def _classify_rgb_color(self, red: float, green: float, blue: float) -> str:
         return classify_rgb_color(red, green, blue)

@@ -16,6 +16,18 @@ import {
 } from "@/lib/api";
 
 const RECENT_UPLOAD_THUMBNAIL_SIZE = 360;
+const CATEGORY_LABELS: Record<string, string> = {
+  top: "상의",
+  bottom: "하의",
+  outer: "아우터",
+  shoes: "신발",
+  bag: "가방",
+  accessory: "악세서리",
+};
+
+function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
 
 function buildRecentFallbackImage(item: UploadHistoryItem): string {
   const label = item.file_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -104,6 +116,7 @@ export default function UploadPage() {
   const [isDragActive, setIsDragActive] = useState(false);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
+  const analysisQueryHints = analysis?.category_query_hints ?? {};
 
   useEffect(() => {
     document.title = "스타일매치 | 업로드";
@@ -310,7 +323,10 @@ export default function UploadPage() {
               <span className="analysis-chip">무드 {analysis.style_mood}</span>
               <span className="analysis-chip">실루엣 {analysis.silhouette}</span>
             </div>
-            <p className="hint-text">선호 카테고리: {analysis.preferred_categories.join(", ")}</p>
+            <p className="hint-text">감지 카테고리: {analysis.preferred_categories.map(getCategoryLabel).join(", ")}</p>
+            {Object.keys(analysisQueryHints).length > 0 ? (
+              <p className="hint-text">검색 힌트: {Object.values(analysisQueryHints).join(" / ")}</p>
+            ) : null}
             <p className="hint-text">분석 코드: {analysis.checksum}</p>
           </div>
         ) : null}

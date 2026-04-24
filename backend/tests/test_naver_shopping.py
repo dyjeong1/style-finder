@@ -161,6 +161,7 @@ def test_build_naver_category_queries_covers_all_recommendation_categories() -> 
         ("outer", "뉴트럴 페미닌 아우터"),
         ("shoes", "뉴트럴 페미닌 신발"),
         ("bag", "뉴트럴 페미닌 가방"),
+        ("accessory", "뉴트럴 페미닌 악세서리"),
     ]
 
 
@@ -180,6 +181,7 @@ def test_build_custom_naver_category_queries_covers_all_recommendation_categorie
         ("outer", "블랙 미니멀 아우터"),
         ("shoes", "블랙 미니멀 신발"),
         ("bag", "블랙 미니멀 가방"),
+        ("accessory", "블랙 미니멀 악세서리"),
     ]
 
 
@@ -197,6 +199,8 @@ def test_infer_custom_query_categories_detects_product_group_keywords() -> None:
     assert infer_custom_query_categories("미니멀 구두") == ["shoes"]
     assert infer_custom_query_categories("브라운 호보백") == ["bag"]
     assert infer_custom_query_categories("캔버스 에코백") == ["bag"]
+    assert infer_custom_query_categories("블랙 안경") == ["accessory"]
+    assert infer_custom_query_categories("베이지 머플러") == ["accessory"]
     assert infer_custom_query_categories("미니멀 재킷과 토트백") == ["outer", "bag"]
     assert infer_custom_query_categories("블랙 미니멀") == []
 
@@ -208,6 +212,7 @@ def test_build_custom_naver_category_queries_limits_to_explicit_product_group() 
     assert build_custom_naver_category_queries("검은색 신발") == [("shoes", "검은색 신발")]
     assert build_custom_naver_category_queries("블랙 메리제인") == [("shoes", "블랙 메리제인 신발")]
     assert build_custom_naver_category_queries("브라운 호보백") == [("bag", "브라운 호보백 가방")]
+    assert build_custom_naver_category_queries("블랙 안경") == [("accessory", "블랙 안경 악세서리")]
     assert build_custom_naver_category_queries("미니멀 재킷과 토트백") == [
         ("outer", "미니멀 재킷과 토트백 아우터"),
         ("bag", "미니멀 재킷과 토트백 가방"),
