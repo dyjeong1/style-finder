@@ -34,6 +34,7 @@ def test_core_e2e_flow() -> None:
     assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
     assert len(upload_data["analysis"]["preferred_categories"]) >= 1
     assert isinstance(upload_data["analysis"]["category_query_hints"], dict)
+    assert isinstance(upload_data["analysis"]["detected_items"], list)
 
     image_resp = client.get(upload_data["image_url"])
     assert image_resp.status_code == 200

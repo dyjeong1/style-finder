@@ -68,6 +68,15 @@ async def upload_image(
                 "silhouette": record.analysis.silhouette,
                 "preferred_categories": list(record.analysis.preferred_categories),
                 "category_query_hints": record.analysis.category_query_hints,
+                "detected_items": [
+                    {
+                        "category": item.category,
+                        "color": item.color,
+                        "item_label": item.item_label,
+                        "query": item.query,
+                    }
+                    for item in record.analysis.detected_items
+                ],
             },
         }
     )

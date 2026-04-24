@@ -9,7 +9,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.services.image_analysis import (
+    DetectedOutfitItem,
     analyze_outfit_category_query_hints,
+    analyze_outfit_items,
     analyze_image_content,
     classify_rgb_color,
     fallback_color_from_digest,
@@ -32,6 +34,7 @@ class UploadAnalysis:
     feature_vector: tuple[float, ...]
     dominant_color: str = "unknown"
     category_query_hints: dict[str, str] = field(default_factory=dict)
+    detected_items: tuple[DetectedOutfitItem, ...] = ()
 
 
 @dataclass
@@ -224,7 +227,8 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        category_query_hints = analyze_outfit_category_query_hints(content)
+        detected_items = tuple(analyze_outfit_items(content))
+        category_query_hints = {item.category: item.query for item in detected_items} or analyze_outfit_category_query_hints(content)
         preferred_categories = tuple(category_query_hints) or self._fallback_preferred_categories(digest)
 
         return UploadAnalysis(
@@ -236,6 +240,7 @@ class InMemoryStore:
             feature_vector=feature_vector,
             dominant_color=dominant_color,
             category_query_hints=category_query_hints,
+            detected_items=detected_items,
         )
 
     def _fallback_preferred_categories(self, digest: bytes) -> tuple[str, ...]:

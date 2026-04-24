@@ -324,6 +324,9 @@ export default function UploadPage() {
               <span className="analysis-chip">실루엣 {analysis.silhouette}</span>
             </div>
             <p className="hint-text">감지 카테고리: {analysis.preferred_categories.map(getCategoryLabel).join(", ")}</p>
+            {analysis.detected_items && analysis.detected_items.length > 0 ? (
+              <p className="hint-text">감지 품목: {analysis.detected_items.map((item) => item.query).join(" / ")}</p>
+            ) : null}
             {Object.keys(analysisQueryHints).length > 0 ? (
               <p className="hint-text">검색 힌트: {Object.values(analysisQueryHints).join(" / ")}</p>
             ) : null}

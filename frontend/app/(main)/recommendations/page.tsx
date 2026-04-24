@@ -535,6 +535,9 @@ export default function RecommendationPage() {
             <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
           </div>
           <p className="hint-text">감지 카테고리: {uploadedImageAnalysis.preferred_categories.map(getCategoryLabel).join(", ")}</p>
+          {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
+            <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>
+          ) : null}
           {uploadedImageAnalysis.category_query_hints ? (
             <p className="hint-text">검색 힌트: {Object.values(uploadedImageAnalysis.category_query_hints).join(" / ")}</p>
           ) : null}

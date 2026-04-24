@@ -29,6 +29,12 @@ export type UploadAnalysis = {
   silhouette: string;
   preferred_categories: string[];
   category_query_hints?: Record<string, string>;
+  detected_items?: Array<{
+    category: string;
+    color: string;
+    item_label: string;
+    query: string;
+  }>;
 };
 
 export type UploadedImage = {

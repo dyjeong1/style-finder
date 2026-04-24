@@ -18,6 +18,14 @@ class ImageColorFeature:
     feature_vector: tuple[float, ...]
 
 
+@dataclass(frozen=True)
+class DetectedOutfitItem:
+    category: str
+    color: str
+    item_label: str
+    query: str
+
+
 COLOR_TITLE_KEYWORDS = {
     "black": ("블랙", "검정", "검은", "흑청"),
     "white": ("화이트", "아이보리", "크림", "오트밀", "흰색", "하얀"),
@@ -53,6 +61,49 @@ CATEGORY_QUERY_LABELS = {
     "shoes": "신발",
     "bag": "가방",
     "accessory": "악세서리",
+}
+
+DEFAULT_ITEM_LABELS = {
+    "top": {
+        "white": "셔츠",
+        "beige": "블라우스",
+        "pink": "블라우스",
+        "black": "니트 탑",
+        "gray": "니트 탑",
+    },
+    "bottom": {
+        "blue": "데님 팬츠",
+        "navy": "데님 팬츠",
+        "white": "팬츠",
+        "beige": "팬츠",
+        "black": "슬랙스",
+        "gray": "슬랙스",
+    },
+    "outer": {
+        "black": "자켓",
+        "gray": "가디건",
+        "brown": "가디건",
+        "beige": "자켓",
+    },
+    "shoes": {
+        "black": "로퍼",
+        "brown": "로퍼",
+        "white": "스니커즈",
+        "gray": "스니커즈",
+    },
+    "bag": {
+        "white": "숄더백",
+        "beige": "숄더백",
+        "black": "숄더백",
+        "brown": "숄더백",
+    },
+    "accessory": {
+        "black": "안경",
+        "gray": "안경",
+        "brown": "안경",
+        "white": "머플러",
+        "beige": "머플러",
+    },
 }
 
 OUTFIT_QUERY_REGIONS = {
@@ -150,8 +201,12 @@ def has_color_keyword(value: str, dominant_color: str) -> bool:
 
 
 def analyze_outfit_category_query_hints(content: bytes) -> dict[str, str]:
+    return {item.category: item.query for item in analyze_outfit_items(content)}
+
+
+def analyze_outfit_items(content: bytes) -> list[DetectedOutfitItem]:
     if Image is None or not content:
-        return {}
+        return []
 
     try:
         with Image.open(BytesIO(content)) as image:
@@ -163,9 +218,8 @@ def analyze_outfit_category_query_hints(content: bytes) -> dict[str, str]:
                 for category, region in OUTFIT_QUERY_REGIONS.items()
             }
     except Exception:
-        return {}
+        return []
 
-    hints: dict[str, str] = {}
     top_counts = region_counts["top"]
     outer_counts = region_counts["outer"]
     bottom_counts = region_counts["bottom"]
@@ -180,32 +234,58 @@ def analyze_outfit_category_query_hints(content: bytes) -> dict[str, str]:
 
     top_color = _query_color_name(top_counts)
     bottom_color = _query_color_name(bottom_counts)
+    items: list[DetectedOutfitItem] = []
 
-    hints["top"] = "화이트 셔츠" if layered_vest_signature else _build_dynamic_query_hint("top", top_counts)
-    hints["outer"] = (
-        "블랙 니트 베스트"
-        if layered_vest_signature
-        else _build_distinct_query_hint("outer", outer_counts, reference_colors=(top_color,))
+    items.append(
+        _build_detected_item(
+            category="top",
+            counts=top_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(),
+        )
     )
-    hints["bottom"] = "화이트 팬츠" if layered_vest_signature else _build_dynamic_query_hint("bottom", bottom_counts)
-
-    if layered_vest_signature and (_dominant_color_name(shoes_counts) == "brown" or _has_meaningful_color(shoes_counts, "brown")):
-        hints["shoes"] = "브라운 메리제인 슈즈"
-    else:
-        hints["shoes"] = _build_distinct_query_hint("shoes", shoes_counts, reference_colors=(bottom_color,))
-
-    hints["bag"] = (
-        "아이보리 숄더백"
-        if layered_vest_signature and _has_light_garment(bag_counts)
-        else _build_distinct_query_hint("bag", bag_counts, reference_colors=(bottom_color,))
+    items.append(
+        _build_detected_item(
+            category="outer",
+            counts=outer_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(top_color,),
+        )
     )
-    hints["accessory"] = _build_distinct_query_hint(
-        "accessory",
-        accessory_counts,
-        reference_colors=(top_color, bottom_color, _query_color_name(outer_counts), _query_color_name(bag_counts)),
+    items.append(
+        _build_detected_item(
+            category="bottom",
+            counts=bottom_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(),
+        )
+    )
+    items.append(
+        _build_detected_item(
+            category="shoes",
+            counts=shoes_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(bottom_color,),
+        )
+    )
+    items.append(
+        _build_detected_item(
+            category="bag",
+            counts=bag_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(bottom_color,),
+        )
+    )
+    items.append(
+        _build_detected_item(
+            category="accessory",
+            counts=accessory_counts,
+            layered_vest_signature=layered_vest_signature,
+            reference_colors=(top_color, bottom_color, _query_color_name(outer_counts), _query_color_name(bag_counts)),
+        )
     )
 
-    return {category: hint for category, hint in hints.items() if hint}
+    return [item for item in items if item is not None]
 
 
 def _estimate_edge_color(image) -> tuple[float, float, float]:
@@ -296,6 +376,53 @@ def _build_dynamic_query_hint(category: str, counts: Counter) -> str:
         return f"{color_label} {accessory_label}"
 
     return f"{color_label} {category_label}"
+
+
+def _build_detected_item(
+    category: str,
+    counts: Counter,
+    layered_vest_signature: bool,
+    reference_colors: tuple[str, ...],
+) -> DetectedOutfitItem | None:
+    special_item = _special_detected_item(category, counts, layered_vest_signature)
+    if special_item is not None:
+        return special_item
+
+    query = _build_distinct_query_hint(category, counts, reference_colors)
+    if not query:
+        return None
+
+    color = _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
+    item_label = _infer_item_label(category, color)
+    color_label = COLOR_QUERY_LABELS.get(color)
+    query_value = f"{color_label} {item_label}".strip() if color_label else item_label
+    return DetectedOutfitItem(
+        category=category,
+        color=color,
+        item_label=item_label,
+        query=query_value,
+    )
+
+
+def _special_detected_item(category: str, counts: Counter, layered_vest_signature: bool) -> DetectedOutfitItem | None:
+    if not layered_vest_signature:
+        return None
+
+    if category == "top":
+        return DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")
+    if category == "outer":
+        return DetectedOutfitItem(category="outer", color="black", item_label="니트 베스트", query="블랙 니트 베스트")
+    if category == "bottom":
+        return DetectedOutfitItem(category="bottom", color="white", item_label="팬츠", query="화이트 팬츠")
+    if category == "shoes" and (_dominant_color_name(counts) == "brown" or _has_meaningful_color(counts, "brown")):
+        return DetectedOutfitItem(category="shoes", color="brown", item_label="메리제인 슈즈", query="브라운 메리제인 슈즈")
+    if category == "bag" and _has_light_garment(counts):
+        return DetectedOutfitItem(category="bag", color="white", item_label="숄더백", query="아이보리 숄더백")
+    return None
+
+
+def _infer_item_label(category: str, color: str) -> str:
+    return DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS[category])
 
 
 def _build_distinct_query_hint(category: str, counts: Counter, reference_colors: tuple[str, ...]) -> str:

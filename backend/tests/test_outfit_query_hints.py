@@ -86,9 +86,9 @@ def test_outfit_query_hints_are_dynamic_for_different_images() -> None:
     assert hints["shoes"] != "브라운 메리제인 슈즈"
     assert hints["bag"] != "아이보리 숄더백"
     assert hints["top"] == "레드 상의"
-    assert hints["bottom"] == "블루 팬츠"
+    assert hints["bottom"] == "블루 데님 팬츠"
     assert hints["outer"] == "그린 아우터"
-    assert hints["shoes"] == "블랙 신발"
+    assert hints["shoes"] == "블랙 로퍼"
     assert hints["bag"] == "옐로우 가방"
 
 
@@ -124,16 +124,16 @@ def test_outfit_query_hints_skip_absent_categories() -> None:
 
     assert hints == {
         "top": "레드 상의",
-        "bottom": "블루 팬츠",
-        "shoes": "블랙 신발",
+        "bottom": "블루 데님 팬츠",
+        "shoes": "블랙 로퍼",
     }
 
 
 def test_outfit_query_hints_detect_accessory_separately() -> None:
     hints = analyze_outfit_category_query_hints(build_accessory_fixture())
 
-    assert hints["top"] == "화이트 상의"
-    assert hints["bottom"] == "블루 팬츠"
+    assert hints["top"] == "화이트 셔츠"
+    assert hints["bottom"] == "블루 데님 팬츠"
     assert hints["accessory"] == "블랙 안경"
     assert "bag" not in hints
     assert "outer" not in hints
