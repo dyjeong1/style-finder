@@ -82,6 +82,25 @@ def build_cardigan_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_mirror_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (420, 760), (173, 145, 112))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 54, 760), fill=(123, 98, 72))
+    draw.rectangle((366, 0, 420, 760), fill=(194, 174, 140))
+    draw.rectangle((112, 90, 304, 415), fill=(204, 220, 252))
+    draw.rectangle((160, 190, 260, 410), fill=(248, 247, 243))
+    draw.rectangle((118, 400, 302, 748), fill=(32, 38, 57))
+    draw.ellipse((188, 258, 214, 308), fill=(18, 18, 18))
+    draw.ellipse((230, 258, 256, 308), fill=(18, 18, 18))
+    draw.rectangle((212, 280, 232, 286), fill=(18, 18, 18))
+    draw.rectangle((180, 80, 240, 168), fill=(24, 23, 22))
+    draw.rectangle((176, 82, 244, 152), fill=(32, 30, 29))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -162,6 +181,17 @@ def test_outfit_query_hints_keep_cardigan_and_skip_missing_bag_and_shoes() -> No
     hints = analyze_outfit_category_query_hints(build_cardigan_fixture())
 
     assert hints["outer"] == "그레이 가디건"
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "shoes" not in hints
+
+
+def test_outfit_query_hints_generalize_for_mirror_selfie_without_missing_categories() -> None:
+    hints = analyze_outfit_category_query_hints(build_mirror_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의"}
+    assert hints["outer"] in {"블루 가디건", "그레이 가디건"}
+    assert hints["bottom"] in {"블랙 슬랙스", "네이비 데님 팬츠", "블루 데님 팬츠"}
     assert hints["accessory"] == "블랙 안경"
     assert "bag" not in hints
     assert "shoes" not in hints

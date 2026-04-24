@@ -29,6 +29,10 @@ class DetectedOutfitItem:
 @dataclass(frozen=True)
 class ForegroundComponent:
     color: str
+    left_ratio: float
+    top_ratio: float
+    right_ratio: float
+    bottom_ratio: float
     center_x: float
     center_y: float
     width_ratio: float
@@ -225,8 +229,9 @@ def analyze_outfit_items(content: bytes) -> list[DetectedOutfitItem]:
             image.thumbnail((240, 240))
             background_color = _estimate_edge_color(image)
             components = _extract_foreground_components(image, background_color)
+            subject_bounds = _infer_subject_bounds(components)
             region_counts = {
-                category: _count_foreground_colors(image, background_color, region)
+                category: _count_foreground_colors(image, background_color, region, focus_bounds=subject_bounds)
                 for category, region in OUTFIT_QUERY_REGIONS.items()
             }
     except Exception:
@@ -244,12 +249,16 @@ def analyze_outfit_items(content: bytes) -> list[DetectedOutfitItem]:
         and _has_light_garment(bottom_counts)
     )
 
-    top_color = _query_color_name(top_counts)
-    bottom_color = _query_color_name(bottom_counts)
     selected_components = _select_category_components(components)
     component_map: dict[str, ForegroundComponent] = {}
     for selected_category, selected_component in selected_components:
         component_map.setdefault(selected_category, selected_component)
+    top_color = component_map["top"].color if "top" in component_map else _query_color_name(top_counts)
+    if "outer" in component_map and _has_meaningful_color(top_counts, "white"):
+        top_color = "white"
+    bottom_color = component_map["bottom"].color if "bottom" in component_map else _query_color_name(bottom_counts)
+    outer_color = component_map["outer"].color if "outer" in component_map else _query_color_name(outer_counts)
+    bag_color = component_map["bag"].color if "bag" in component_map else _query_color_name(bag_counts)
     items: list[DetectedOutfitItem] = []
 
     items.append(
@@ -307,7 +316,7 @@ def analyze_outfit_items(content: bytes) -> list[DetectedOutfitItem]:
             category="accessory",
             counts=accessory_counts,
             layered_vest_signature=layered_vest_signature,
-            reference_colors=(top_color, bottom_color, _query_color_name(outer_counts), _query_color_name(bag_counts)),
+            reference_colors=(top_color, outer_color, bag_color),
             component=component_map.get("accessory"),
             peer_components=selected_components,
         )
@@ -329,9 +338,22 @@ def _estimate_edge_color(image) -> tuple[float, float, float]:
     return tuple(sum(pixel[idx] for pixel in pixels) / len(pixels) for idx in range(3))
 
 
-def _count_foreground_colors(image, background_color: tuple[float, float, float], region: tuple[float, float, float, float]) -> Counter:
+def _count_foreground_colors(
+    image,
+    background_color: tuple[float, float, float],
+    region: tuple[float, float, float, float],
+    focus_bounds: tuple[float, float, float, float] | None = None,
+) -> Counter:
     width, height = image.size
     x1, y1, x2, y2 = region
+    if focus_bounds is not None:
+        focus_left, focus_top, focus_right, focus_bottom = focus_bounds
+        x1 = max(x1, focus_left)
+        y1 = max(y1, focus_top)
+        x2 = min(x2, focus_right)
+        y2 = min(y2, focus_bottom)
+    if x2 <= x1 or y2 <= y1:
+        return Counter()
     x_start, x_end = int(x1 * width), int(x2 * width)
     y_start, y_end = int(y1 * height), int(y2 * height)
     step = max(1, min(width, height) // 180)
@@ -424,6 +446,9 @@ def _build_detected_item(
     color = component.color if component is not None else (
         _query_accessory_color_name(counts) if category == "accessory" else _query_color_name(counts)
     )
+    if category == "top" and any(peer_category == "outer" for peer_category, _peer_component in peer_components):
+        if _has_meaningful_color(counts, "white"):
+            color = "white"
     comparable_references = {reference for reference in reference_colors if reference not in {"unknown", "neutral"}}
     if color in {"unknown", "neutral"} or color in comparable_references:
         return None
@@ -431,6 +456,8 @@ def _build_detected_item(
     item_label = _infer_item_label(category, color, component, peer_components)
     if not item_label:
         return None
+    if category == "bottom" and color == "black" and (_has_meaningful_color(counts, "navy") or _has_meaningful_color(counts, "blue")):
+        item_label = "데님 팬츠"
     color_label = COLOR_QUERY_LABELS.get(color)
     query_value = f"{color_label} {item_label}".strip() if color_label else item_label
     return DetectedOutfitItem(
@@ -465,7 +492,7 @@ def _infer_item_label(
     peer_components: list[tuple[str, ForegroundComponent]],
 ) -> str:
     if category == "outer" and component is not None:
-        if component.height_ratio >= 0.24 and component.width_ratio <= 0.4 and color in {"black", "gray", "brown", "beige", "white"}:
+        if component.height_ratio >= 0.24 and component.width_ratio <= 0.46 and color in {"black", "gray", "brown", "beige", "white", "blue"}:
             return "가디건"
         if component.height_ratio < 0.22 and component.width_ratio > 0.22:
             return "베스트"
@@ -497,7 +524,7 @@ def _infer_item_label(
         accessory_count = sum(1 for cat, _component in peer_components if cat == "accessory")
         if accessory_count >= 2 and color in {"black", "gray", "brown"}:
             return "안경"
-        if color in {"black", "gray", "brown"} and component.width_ratio >= 0.16 and component.height_ratio <= 0.12:
+        if color in {"black", "gray", "brown"} and component.width_ratio >= 0.14 and component.height_ratio <= 0.12:
             return "안경"
         if component.width_ratio > component.height_ratio * 1.8 or component.height_ratio > component.width_ratio * 1.8:
             return "머플러"
@@ -570,6 +597,10 @@ def _extract_foreground_components(image, background_color: tuple[float, float, 
             components.append(
                 ForegroundComponent(
                     color=color,
+                    left_ratio=round(min_x / width, 4),
+                    top_ratio=round(min_y / height, 4),
+                    right_ratio=round((max_x + 1) / width, 4),
+                    bottom_ratio=round((max_y + 1) / height, 4),
                     center_x=round(center_x, 4),
                     center_y=round(center_y, 4),
                     width_ratio=round(width_ratio, 4),
@@ -584,15 +615,21 @@ def _extract_foreground_components(image, background_color: tuple[float, float, 
 
 def _select_category_components(components: list[ForegroundComponent]) -> list[tuple[str, ForegroundComponent]]:
     selections: list[tuple[str, ForegroundComponent]] = []
+    subject_bounds = _infer_subject_bounds(components)
 
-    outer_component = _pick_best_component(components, "outer")
-    top_component = _pick_best_component(components, "top", exclude=(outer_component,) if outer_component is not None else ())
-    if top_component is None:
-        top_component = _pick_best_component(components, "top")
-    bottom_component = _pick_best_component(components, "bottom")
-    bag_component = _pick_best_component(components, "bag")
-    accessory_components = _pick_top_components(components, "accessory", limit=2)
-    shoe_components = _pick_top_components(components, "shoes", limit=2)
+    outer_component = _pick_best_component(components, "outer", subject_bounds=subject_bounds)
+    top_component = _pick_best_component(
+        components,
+        "top",
+        exclude=(outer_component,) if outer_component is not None else (),
+        subject_bounds=subject_bounds,
+    )
+    if top_component is None and outer_component is None:
+        top_component = _pick_best_component(components, "top", subject_bounds=subject_bounds)
+    bottom_component = _pick_best_component(components, "bottom", subject_bounds=subject_bounds)
+    bag_component = _pick_best_component(components, "bag", subject_bounds=subject_bounds)
+    accessory_components = _pick_top_components(components, "accessory", limit=2, subject_bounds=subject_bounds)
+    shoe_components = _pick_top_components(components, "shoes", limit=2, subject_bounds=subject_bounds)
 
     if top_component is not None:
         selections.append(("top", top_component))
@@ -611,12 +648,14 @@ def _pick_best_component(
     components: list[ForegroundComponent],
     category: str,
     exclude: tuple[ForegroundComponent, ...] = (),
+    subject_bounds: tuple[float, float, float, float] | None = None,
 ) -> ForegroundComponent | None:
     ranked = sorted(
         (
             (component, _category_component_score(component, category))
             for component in components
             if component not in exclude
+            and _component_matches_subject_bounds(component, category, subject_bounds)
         ),
         key=lambda item: item[1],
         reverse=True,
@@ -630,13 +669,29 @@ def _pick_best_component(
     }.get(category, 0.55)
     if not ranked or ranked[0][1] < min_score:
         return None
-    return ranked[0][0]
+    best_component = ranked[0][0]
+    if category == "top" and subject_bounds is not None and best_component.color in {"black", "brown", "beige"}:
+        fallback_component = _pick_best_component(
+            components,
+            category,
+            exclude=exclude + (best_component,),
+            subject_bounds=subject_bounds,
+        )
+        if fallback_component is not None and fallback_component.color in {"white", "gray", "blue", "pink", "red"}:
+            return fallback_component
+    return best_component
 
 
-def _pick_top_components(components: list[ForegroundComponent], category: str, limit: int) -> list[ForegroundComponent]:
+def _pick_top_components(
+    components: list[ForegroundComponent],
+    category: str,
+    limit: int,
+    subject_bounds: tuple[float, float, float, float] | None = None,
+) -> list[ForegroundComponent]:
     ranked = [
         (component, _category_component_score(component, category))
         for component in components
+        if _component_matches_subject_bounds(component, category, subject_bounds)
     ]
     min_score = {"shoes": 0.74, "accessory": 0.62}.get(category, 0.58)
     ranked = [item for item in ranked if item[1] >= min_score]
@@ -650,6 +705,8 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
     if category == "top":
         if component.area_ratio < 0.025 or component.height_ratio < 0.09:
             return 0.0
+        if (component.left_ratio <= 0.03 or component.right_ratio >= 0.97) and component.height_ratio >= 0.45:
+            return 0.0
         if component.center_x > 0.75 and component.area_ratio < 0.04:
             return 0.0
         if 0.10 <= component.center_y <= 0.38:
@@ -660,8 +717,12 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.15
         if component.height_ratio >= 0.10:
             score += 0.1
+        if component.color in {"white", "gray", "blue", "pink", "red"}:
+            score += 0.08
 
     elif category == "bottom":
+        if component.left_ratio <= 0.03 or component.right_ratio >= 0.97:
+            return 0.0
         if 0.46 <= component.center_y <= 0.84:
             score += 0.45
         if component.height_ratio >= 0.28:
@@ -674,11 +735,15 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
     elif category == "outer":
         if component.center_x > 0.78:
             return 0.0
-        if 0.10 <= component.center_y <= 0.34:
+        if component.left_ratio <= 0.03 or component.right_ratio >= 0.97:
+            return 0.0
+        if component.area_ratio < 0.025 or component.height_ratio < 0.16 or component.width_ratio < 0.16:
+            return 0.0
+        if 0.10 <= component.center_y <= 0.58:
             score += 0.35
-        if component.color in {"black", "gray", "brown", "green", "navy"}:
+        if component.color in {"black", "gray", "brown", "green", "navy", "blue"}:
             score += 0.2
-        if 0.12 <= component.height_ratio <= 0.35:
+        if 0.12 <= component.height_ratio <= 0.5:
             score += 0.15
         if 0.15 <= component.width_ratio <= 0.65:
             score += 0.15
@@ -686,6 +751,8 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
 
     elif category == "shoes":
+        if component.left_ratio <= 0.03 or component.right_ratio >= 0.97:
+            return 0.0
         if component.center_y >= 0.78:
             score += 0.4
         if 0.004 <= component.area_ratio <= 0.06:
@@ -698,6 +765,14 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
 
     elif category == "bag":
+        if component.left_ratio <= 0.03 or component.right_ratio >= 0.97:
+            return 0.0
+        if component.width_ratio < 0.08 or component.area_ratio < 0.01:
+            return 0.0
+        if component.top_ratio < 0.3:
+            return 0.0
+        if component.bottom_ratio >= 0.98 and component.top_ratio >= 0.7:
+            return 0.0
         if component.center_x >= 0.68:
             score += 0.35
         if 0.35 <= component.center_y <= 0.76:
@@ -706,7 +781,7 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
         if 0.12 <= component.height_ratio <= 0.48:
             score += 0.1
-        if component.width_ratio <= 0.38:
+        if component.width_ratio <= 0.3:
             score += 0.1
         if component.color in {"white", "beige", "black", "brown", "gray", "yellow"}:
             score += 0.1
@@ -718,10 +793,73 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.2
         if component.center_x >= 0.45:
             score += 0.1
-        if component.color in {"black", "gray", "brown", "white", "beige"}:
+        if component.color in {"black", "gray"}:
+            score += 0.2
+        elif component.color in {"brown", "white", "beige"}:
             score += 0.1
 
     return round(score, 4)
+
+
+def _infer_subject_bounds(components: list[ForegroundComponent]) -> tuple[float, float, float, float] | None:
+    subject_candidates = [
+        component
+        for component in components
+        if component.area_ratio >= 0.01
+        and component.height_ratio >= 0.08
+        and 0.16 <= component.center_x <= 0.68
+        and 0.08 <= component.center_y <= 0.9
+        and component.right_ratio < 0.9
+        and component.left_ratio > 0.04
+    ]
+    if not subject_candidates:
+        return None
+
+    left = max(0.0, min(component.left_ratio for component in subject_candidates) - 0.03)
+    top = max(0.0, min(component.top_ratio for component in subject_candidates) - 0.03)
+    right = min(1.0, max(component.right_ratio for component in subject_candidates) + 0.03)
+    bottom = min(1.0, max(component.bottom_ratio for component in subject_candidates) + 0.03)
+    return (left, top, right, bottom)
+
+
+def _component_matches_subject_bounds(
+    component: ForegroundComponent,
+    category: str,
+    subject_bounds: tuple[float, float, float, float] | None,
+) -> bool:
+    if subject_bounds is None:
+        return True
+
+    left, top, right, bottom = subject_bounds
+    horizontal_overlap = component.right_ratio >= left and component.left_ratio <= right
+    vertical_overlap = component.bottom_ratio >= top and component.top_ratio <= bottom
+
+    if category in {"top", "outer", "bottom", "accessory"}:
+        if category == "accessory":
+            return (
+                component.right_ratio >= left - 0.04
+                and component.left_ratio <= right + 0.2
+                and component.bottom_ratio >= top
+                and component.top_ratio <= min(1.0, top + 0.38)
+            )
+        return horizontal_overlap and vertical_overlap
+
+    if category == "shoes":
+        return (
+            component.right_ratio >= left - 0.02
+            and component.left_ratio <= right + 0.02
+            and component.center_y >= bottom - 0.22
+        )
+
+    if category == "bag":
+        return (
+            component.bottom_ratio >= top + 0.12
+            and component.top_ratio <= bottom
+            and component.left_ratio <= right + 0.1
+            and component.center_x >= right - 0.1
+        )
+
+    return True
 
 def _query_accessory_color_name(counts: Counter) -> str:
     total = sum(counts.values())

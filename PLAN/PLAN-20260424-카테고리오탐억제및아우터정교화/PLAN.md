@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-24
 related:
-  tasks: [TSK-0001-오탐필터링및가디건정교화]
+  tasks: [TSK-0001-오탐필터링및가디건정교화, TSK-0002-실사이미지일반화분석개선]
 tags: [recommendation, naver, image-analysis, precision]
 ---
 
@@ -46,3 +46,5 @@ tags: [recommendation, naver, image-analysis, precision]
 ## 7. 변경 이력
 - 2026-04-24: PLAN 생성.
 - 2026-04-24: 신발/가방 감지 기준 강화, 상의/아우터 분리 보정, 네이버 relevance 필터 추가, 테스트 통과 후 완료 처리.
+- 2026-04-24: 실사 거울셀카 일반화 분석 개선 TASK 추가.
+- 2026-04-24: 사람 중심 foreground 범위, 실사 셀카형 회귀 테스트, 이너/가디건/안경 분리 보정을 반영.
