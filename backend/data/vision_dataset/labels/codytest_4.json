@@ -4,9 +4,15 @@
   "items": [
     {
       "category": "top",
-      "color": "black",
-      "item_label": "니트 탑",
-      "notes": "블랙 긴팔 니트"
+      "color": "white",
+      "item_label": "스트라이프 티셔츠",
+      "notes": "블랙 앤 화이트 스트라이프 티셔츠"
+    },
+    {
+      "category": "outer",
+      "color": "navy",
+      "item_label": "브이넥 니트",
+      "notes": "네이비 브이넥 니트"
     },
     {
       "category": "bottom",

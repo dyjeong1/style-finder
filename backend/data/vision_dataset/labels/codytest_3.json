@@ -35,8 +35,14 @@
     {
       "category": "accessory",
       "color": "gray",
+      "item_label": "목걸이",
+      "notes": "실버 목걸이"
+    },
+    {
+      "category": "accessory",
+      "color": "gray",
       "item_label": "팔찌",
-      "notes": "실버 브레이슬릿과 목걸이"
+      "notes": "실버 팔찌"
     }
   ]
 }

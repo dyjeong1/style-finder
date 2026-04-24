@@ -25,6 +25,12 @@
       "color": "brown",
       "item_label": "크로스백",
       "notes": "브라운 크로스백"
+    },
+    {
+      "category": "accessory",
+      "color": "white",
+      "item_label": "양말",
+      "notes": "화이트 양말"
     }
   ]
 }

@@ -31,6 +31,12 @@
       "color": "black",
       "item_label": "토트백",
       "notes": "블랙 미니 토트백"
+    },
+    {
+      "category": "accessory",
+      "color": "white",
+      "item_label": "양말",
+      "notes": "화이트 양말"
     }
   ]
 }
