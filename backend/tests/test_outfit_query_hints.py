@@ -159,6 +159,39 @@ def build_skirt_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_hat_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (174, 148, 121))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.ellipse((152, 82, 278, 172), fill=(24, 24, 26))
+    draw.rectangle((164, 60, 266, 118), fill=(24, 24, 26))
+    draw.ellipse((176, 118, 254, 206), fill=(224, 194, 169))
+    draw.rectangle((136, 204, 296, 382), fill=(98, 100, 110))
+    draw.rectangle((158, 260, 274, 420), fill=(238, 238, 234))
+    draw.rectangle((136, 418, 302, 742), fill=(78, 112, 171))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_earring_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (179, 154, 125))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.ellipse((174, 98, 256, 196), fill=(222, 193, 168))
+    draw.rectangle((156, 198, 274, 368), fill=(246, 246, 242))
+    draw.rectangle((138, 368, 298, 742), fill=(56, 88, 162))
+    draw.ellipse((148, 156, 176, 188), fill=(178, 180, 186))
+    draw.ellipse((254, 156, 282, 188), fill=(178, 180, 186))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -286,3 +319,15 @@ def test_outfit_query_hints_detect_skirt_bottom() -> None:
     hints = analyze_outfit_category_query_hints(build_skirt_fixture())
 
     assert hints["bottom"] == "블랙 스커트"
+
+
+def test_outfit_query_hints_detect_hat_accessory() -> None:
+    hints = analyze_outfit_category_query_hints(build_hat_selfie_fixture())
+
+    assert hints["accessory"] == "블랙 모자"
+
+
+def test_outfit_query_hints_detect_earring_accessory() -> None:
+    hints = analyze_outfit_category_query_hints(build_earring_selfie_fixture())
+
+    assert hints["accessory"] == "그레이 귀걸이"

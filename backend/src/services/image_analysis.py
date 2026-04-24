@@ -450,11 +450,15 @@ def _build_detected_item(
         if _has_meaningful_color(counts, "white"):
             color = "white"
     comparable_references = {reference for reference in reference_colors if reference not in {"unknown", "neutral"}}
-    if color in {"unknown", "neutral"} or color in comparable_references:
+    if color in {"unknown", "neutral"}:
         return None
 
     item_label = _infer_item_label(category, color, component, peer_components)
     if not item_label:
+        return None
+    if category != "accessory" and color in comparable_references:
+        return None
+    if category == "accessory" and item_label == "머플러" and color in comparable_references:
         return None
     if category == "bottom" and color == "black" and (_has_meaningful_color(counts, "navy") or _has_meaningful_color(counts, "blue")):
         if item_label == "슬랙스":
@@ -538,6 +542,10 @@ def _infer_item_label(
 
     if category == "accessory" and component is not None:
         accessory_count = sum(1 for cat, _component in peer_components if cat == "accessory")
+        if component.center_y <= 0.18 and component.width_ratio >= 0.18 and component.height_ratio >= 0.08:
+            return "모자"
+        if accessory_count >= 2 and component.width_ratio <= 0.08 and component.height_ratio <= 0.08:
+            return "귀걸이"
         if accessory_count >= 2 and color in {"black", "gray", "brown"}:
             return "안경"
         if color in {"black", "gray", "brown"} and component.width_ratio >= 0.14 and component.height_ratio <= 0.12:
@@ -723,6 +731,8 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             return 0.0
         if (component.left_ratio <= 0.03 or component.right_ratio >= 0.97) and component.height_ratio >= 0.45:
             return 0.0
+        if component.center_y <= 0.2 and component.height_ratio <= 0.12:
+            return 0.0
         if component.center_x > 0.75 and component.area_ratio < 0.04:
             return 0.0
         if 0.10 <= component.center_y <= 0.38:
@@ -803,12 +813,18 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             score += 0.1
 
     elif category == "accessory":
+        if component.area_ratio < 0.0015:
+            return 0.0
         if component.center_y <= 0.28:
             score += 0.35
         if component.area_ratio <= 0.05:
             score += 0.2
+        if component.width_ratio <= 0.1 and component.height_ratio <= 0.1:
+            score += 0.15
         if component.center_x >= 0.45:
             score += 0.1
+        if component.center_x <= 0.35 or component.center_x >= 0.65:
+            score += 0.08
         if component.color in {"black", "gray"}:
             score += 0.2
         elif component.color in {"brown", "white", "beige"}:
