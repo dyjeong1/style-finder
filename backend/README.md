@@ -68,9 +68,10 @@ pip install -e ".[vision]"
 ## AI 비전 기반 착장 분석기
 - 현재 업로드 분석은 기본적으로 규칙 기반으로 동작합니다.
 - 여기에 AI 비전 모델을 붙일 수 있도록 `vision_outfit_analyzer` 인터페이스가 추가되었습니다.
-- 현재는 `disabled`, `mock`, `openai` provider를 지원합니다.
+- 현재는 `disabled`, `mock`, `openai`, `gemini` provider를 지원합니다.
 - 비전 결과가 일부만 있으면 해당 카테고리만 우선 적용하고, 나머지는 규칙 기반 결과로 fallback 합니다.
 - OpenAI 호출이 실패하거나 응답이 비어 있으면 업로드 분석은 자동으로 기존 규칙 기반으로 fallback 합니다.
+- Gemini 호출이 실패하거나 응답이 비어 있어도 동일하게 규칙 기반으로 fallback 합니다.
 
 주요 설정:
 - `VISION_OUTFIT_ANALYZER_ENABLED`
@@ -87,6 +88,14 @@ OpenAI 호환 별칭 설정:
 - `OPENAI_VISION_MAX_IMAGE_BYTES`
 - `OPENAI_VISION_TIMEOUT_SECONDS`
 
+Gemini 호환 별칭 설정:
+- `GEMINI_API_KEY`
+- `GEMINI_VISION_ENABLED`
+- `GEMINI_VISION_PROVIDER`
+- `GEMINI_VISION_MODEL`
+- `GEMINI_VISION_MAX_IMAGE_BYTES`
+- `GEMINI_VISION_TIMEOUT_SECONDS`
+
 OpenAI Vision 예시:
 ```bash
 cd backend
@@ -97,6 +106,21 @@ cp .env.example .env
 # OPENAI_VISION_PROVIDER=openai
 # OPENAI_VISION_MODEL=gpt-4o
 ```
+
+Gemini Vision 예시:
+```bash
+cd backend
+cp .env.example .env
+# .env에 아래 값을 입력
+# GEMINI_API_KEY=...
+# GEMINI_VISION_ENABLED=true
+# GEMINI_VISION_PROVIDER=gemini
+# GEMINI_VISION_MODEL=gemini-2.5-flash
+```
+
+개인 비상업 프로젝트 메모:
+- 비용이 민감하면 OpenAI보다 Gemini 무료 티어를 우선 추천합니다.
+- 단, 무료 티어도 호출량 한도와 정책 제한은 있으니 실제 운영 전에는 Google AI Studio의 quota/billing 상태를 확인해야 합니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`

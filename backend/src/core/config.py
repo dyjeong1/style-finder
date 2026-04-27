@@ -30,36 +30,49 @@ class Settings(BaseSettings):
     vision_reranker_timeout_seconds: float = 1.5
     vision_reranker_max_image_bytes: int = 2_000_000
     vision_reranker_max_candidates: int = 10
+    gemini_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("GEMINI_API_KEY"),
+    )
     openai_api_key: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("OPENAI_API_KEY"),
     )
     vision_outfit_analyzer_enabled: bool = Field(
         default=False,
-        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_ENABLED", "OPENAI_VISION_ENABLED"),
+        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_ENABLED", "OPENAI_VISION_ENABLED", "GEMINI_VISION_ENABLED"),
     )
     vision_outfit_analyzer_provider: str = Field(
         default="disabled",
-        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_PROVIDER", "OPENAI_VISION_PROVIDER"),
+        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_PROVIDER", "OPENAI_VISION_PROVIDER", "GEMINI_VISION_PROVIDER"),
     )
     vision_outfit_analyzer_model_name: str = Field(
         default="",
-        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_MODEL_NAME", "OPENAI_VISION_MODEL"),
+        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_MODEL_NAME", "OPENAI_VISION_MODEL", "GEMINI_VISION_MODEL"),
     )
     vision_outfit_analyzer_max_image_bytes: int = Field(
         default=2_000_000,
-        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES", "OPENAI_VISION_MAX_IMAGE_BYTES"),
+        validation_alias=AliasChoices(
+            "VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES",
+            "OPENAI_VISION_MAX_IMAGE_BYTES",
+            "GEMINI_VISION_MAX_IMAGE_BYTES",
+        ),
     )
     vision_outfit_analyzer_timeout_seconds: float = Field(
         default=20.0,
-        validation_alias=AliasChoices("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", "OPENAI_VISION_TIMEOUT_SECONDS"),
+        validation_alias=AliasChoices(
+            "VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS",
+            "OPENAI_VISION_TIMEOUT_SECONDS",
+            "GEMINI_VISION_TIMEOUT_SECONDS",
+        ),
     )
     vision_outfit_analyzer_api_base_url: str = Field(
-        default="https://api.openai.com/v1/responses",
+        default="",
         validation_alias=AliasChoices(
             "VISION_OUTFIT_ANALYZER_API_BASE_URL",
             "OPENAI_VISION_API_BASE_URL",
             "OPENAI_API_BASE_URL",
+            "GEMINI_VISION_API_BASE_URL",
         ),
     )
 

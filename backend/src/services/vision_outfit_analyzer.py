@@ -13,6 +13,7 @@ from src.services.image_analysis import CATEGORY_QUERY_LABELS, COLOR_QUERY_LABEL
 
 OPENAI_ALLOWED_CATEGORIES = ("top", "outer", "bottom", "shoes", "bag", "accessory")
 OPENAI_ALLOWED_COLORS = tuple(COLOR_QUERY_LABELS) + ("neutral", "unknown")
+GEMINI_GENERATE_CONTENT_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 logger = logging.getLogger(__name__)
 OPENAI_RESPONSE_SCHEMA = {
     "name": "outfit_analysis",
@@ -56,6 +57,7 @@ OPENAI_SYSTEM_PROMPT = """당신은 패션 코디 이미지를 분석하는 한�
 - item_label은 한국어 세부 품목명으로 작성한다.
 - query는 가능하면 '색상 + 품목명' 형태로 작성한다.
 """
+GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,7 @@ class VisionOutfitAnalyzerConfig:
     model_name: str = ""
     max_image_bytes: int = 2_000_000
     timeout_seconds: float = 20.0
-    api_base_url: str = "https://api.openai.com/v1/responses"
+    api_base_url: str = ""
     api_key: str | None = None
 
 
@@ -88,6 +90,12 @@ class VisionOutfitAnalyzer:
                 return self._analyze_with_openai(content)
             except Exception as exc:
                 logger.warning("OpenAI Vision provider fallback: %s", summarize_provider_error(exc))
+                return []
+        if provider == "gemini":
+            try:
+                return self._analyze_with_gemini(content)
+            except Exception as exc:
+                logger.warning("Gemini Vision provider fallback: %s", summarize_provider_error(exc))
                 return []
 
         # 실제 비전 provider 연동은 다음 TASK에서 연결한다.
@@ -132,18 +140,57 @@ class VisionOutfitAnalyzer:
                 }
             },
         }
-        response_payload = self._post_json(payload)
-        parsed_payload = self._extract_response_payload(response_payload)
-        return self._coerce_detected_items(parsed_payload)
-
-    def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
-        request = Request(
-            self.config.api_base_url,
-            data=json.dumps(payload).encode("utf-8"),
+        response_payload = self._post_json(
+            url=self.config.api_base_url or "https://api.openai.com/v1/responses",
+            payload=payload,
             headers={
                 "Authorization": f"Bearer {self.config.api_key}",
                 "Content-Type": "application/json",
             },
+        )
+        parsed_payload = self._extract_response_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
+    def _analyze_with_gemini(self, content: bytes) -> list[DetectedOutfitItem]:
+        if not self.config.api_key:
+            return []
+
+        model_name = self.config.model_name or "gemini-2.5-flash"
+        url = self.config.api_base_url or GEMINI_GENERATE_CONTENT_URL.format(model=model_name)
+        payload = {
+            "system_instruction": {"parts": [{"text": GEMINI_SYSTEM_PROMPT}]},
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": "이미지를 분석해 지정된 JSON schema에 맞는 착장 품목만 반환해줘."},
+                        {
+                            "inline_data": {
+                                "mime_type": guess_mime_type(content),
+                                "data": base64.b64encode(content).decode("ascii"),
+                            }
+                        },
+                    ],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": OPENAI_RESPONSE_SCHEMA["schema"],
+            },
+        }
+        response_payload = self._post_json(
+            url=f"{url}?key={self.config.api_key}",
+            payload=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        parsed_payload = self._extract_gemini_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
+    def _post_json(self, url: str, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
+        request = Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
             method="POST",
         )
 
@@ -170,6 +217,16 @@ class VisionOutfitAnalyzer:
                     return json.loads(text_value)
 
         raise ValueError("OpenAI response did not contain structured JSON output")
+
+    def _extract_gemini_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
+        for candidate in response_payload.get("candidates", []):
+            content = candidate.get("content", {})
+            for part in content.get("parts", []):
+                text_value = part.get("text")
+                if isinstance(text_value, str) and text_value.strip():
+                    return json.loads(text_value)
+
+        raise ValueError("Gemini response did not contain structured JSON output")
 
     def _coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
         raw_items = parsed_payload.get("items", [])

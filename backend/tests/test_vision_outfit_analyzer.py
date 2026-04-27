@@ -135,7 +135,9 @@ def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypat
     )
     captured_payload: dict[str, object] = {}
 
-    def fake_post_json(payload: dict[str, object]) -> dict[str, object]:
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        captured_payload["url"] = url
+        captured_payload["headers"] = headers
         captured_payload.update(payload)
         return {
             "output": [
@@ -161,6 +163,47 @@ def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypat
     assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
 
 
+def test_gemini_provider_uses_generate_content_payload(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="gemini",
+            model_name="gemini-2.5-flash",
+            api_key="gemini-key",
+        )
+    )
+    captured: dict[str, object] = {}
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["headers"] = headers
+        return {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": '{"items":[{"category":"outer","color":"blue","item_label":"가디건","query":"블루 가디건"},{"category":"accessory","color":"gray","item_label":"목걸이","query":"그레이 목걸이"}]}'
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert "generativelanguage.googleapis.com" in captured["url"]
+    assert "gemini-2.5-flash:generateContent" in captured["url"]
+    assert captured["headers"]["Content-Type"] == "application/json"
+    parts = captured["payload"]["contents"][0]["parts"]
+    assert parts[1]["inline_data"]["mime_type"] == "image/png"
+    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+
+
 def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)
@@ -182,6 +225,34 @@ def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:
     assert settings.vision_outfit_analyzer_model_name == "gpt-4o"
     assert settings.vision_outfit_analyzer_max_image_bytes == 1234
     assert settings.vision_outfit_analyzer_timeout_seconds == 9.5
+
+
+def test_settings_support_gemini_alias_names(monkeypatch) -> None:
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MODEL_NAME", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_ENABLED", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_PROVIDER", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setenv("GEMINI_VISION_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_VISION_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_VISION_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("GEMINI_VISION_MAX_IMAGE_BYTES", "4567")
+    monkeypatch.setenv("GEMINI_VISION_TIMEOUT_SECONDS", "8.0")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.gemini_api_key == "gemini-key"
+    assert settings.vision_outfit_analyzer_enabled is True
+    assert settings.vision_outfit_analyzer_provider == "gemini"
+    assert settings.vision_outfit_analyzer_model_name == "gemini-2.5-flash"
+    assert settings.vision_outfit_analyzer_max_image_bytes == 4567
+    assert settings.vision_outfit_analyzer_timeout_seconds == 8.0
 
 
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:

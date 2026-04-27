@@ -9,10 +9,11 @@ updated_at: 2026-04-27
 ## 기술 스펙
 - 입력: 업로드 이미지 bytes
 - 출력: `DetectedOutfitItem[]` 형식의 표준 착장 분석 결과
-- 현재 provider: `disabled`, `mock`, `openai`
+- 현재 provider: `disabled`, `mock`, `openai`, `gemini`
 - 확장 예정 provider: `clip`, `custom_detector`
 - OpenAI provider는 `Responses API`의 이미지 입력과 `json_schema` 형식 응답을 사용한다.
-- 기존 `VISION_OUTFIT_ANALYZER_*` 설정과 함께 `OPENAI_VISION_*`, `OPENAI_API_KEY` 이름도 동일하게 인식한다.
+- Gemini provider는 `generateContent`의 이미지 입력과 `application/json` 응답 스키마를 사용한다.
+- 기존 `VISION_OUTFIT_ANALYZER_*` 설정과 함께 `OPENAI_VISION_*`, `OPENAI_API_KEY`, `GEMINI_VISION_*`, `GEMINI_API_KEY` 이름도 동일하게 인식한다.
 
 ## 공통 분석 결과 포맷
 - category: `top|bottom|outer|shoes|bag|accessory`
@@ -24,6 +25,7 @@ updated_at: 2026-04-27
 - 비전 분석기가 비활성화이거나 결과가 비어 있으면 기존 `analyze_outfit_items` 규칙 기반 결과를 사용한다.
 - 비전 분석 결과가 일부 카테고리만 제공되면 해당 결과만 우선 사용하고, 비어 있는 카테고리는 규칙 기반 결과로 보완할 수 있도록 설계한다.
 - OpenAI 호출 실패, 인증 실패, 타임아웃 발생 시에도 예외를 전파하지 않고 규칙 기반 분석으로 자동 fallback 한다.
+- Gemini 호출 실패, quota 초과, 인증 실패, 타임아웃 발생 시에도 예외를 전파하지 않고 규칙 기반 분석으로 자동 fallback 한다.
 
 ## 데이터셋 포맷
 - 이미지: `backend/data/vision_dataset/images/<sample_id>.<ext>`

@@ -1,6 +1,7 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [TSK-0007-제미나이무료티어프로바이더연결] Gemini 무료 티어 provider와 `GEMINI_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0006-오픈에이아이비전프로바이더연결] OpenAI Vision provider와 `OPENAI_VISION_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0005-데이터셋평가스크립트추가] 데이터셋 기준 예측/정답 비교 평가 스크립트를 추가한다.
 - [x] [TSK-0004-codytest9라벨재보정] codytest_9 outer 라벨을 버건디 가디건으로 재보정한다.
@@ -125,6 +126,7 @@
 ## Next
 - [ ] [PLAN-20260424-AI비전기반착장분석도입] 실제 비전 provider를 연결해 이미지별 착장 분석을 수행한다.
 - [ ] [다음 TASK] OpenAI Vision 예측 결과와 정답 라벨 비교 리포트를 자동 생성한다.
+- [ ] [다음 TASK] Gemini Vision 예측 결과와 정답 라벨 비교 리포트를 자동 생성한다.
 - [ ] [다음 TASK] 사용자 이미지 라벨 데이터셋을 20~50장까지 확장하고 평가 루프를 만든다.
 - [x] [TSK-0002-PlaywrightE2E구현] 로그인→업로드→추천→찜 흐름 브라우저 테스트 추가
 - [ ] [다음 PLAN] 실제 사용자 이미지 세트 기준 품목 분리 임계값을 튜닝한다.

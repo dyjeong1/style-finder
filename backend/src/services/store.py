@@ -476,7 +476,11 @@ store = InMemoryStore(
             max_image_bytes=settings.vision_outfit_analyzer_max_image_bytes,
             timeout_seconds=settings.vision_outfit_analyzer_timeout_seconds,
             api_base_url=settings.vision_outfit_analyzer_api_base_url,
-            api_key=settings.openai_api_key,
+            api_key=(
+                settings.gemini_api_key
+                if settings.vision_outfit_analyzer_provider.lower() == "gemini"
+                else settings.openai_api_key
+            ),
         )
     )
 )
