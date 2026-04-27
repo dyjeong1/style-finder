@@ -241,7 +241,12 @@ class InMemoryStore:
         rule_detected_items = analyze_outfit_items(content)
         vision_detected_items = self.vision_outfit_analyzer.analyze(content)
         detected_items = tuple(merge_detected_items(vision_detected_items, rule_detected_items))
-        category_query_hints = {item.category: item.query for item in detected_items} or analyze_outfit_category_query_hints(content)
+        category_query_hints: dict[str, str] = {}
+        for item in detected_items:
+            category_query_hints.setdefault(item.category, item.query)
+
+        if not category_query_hints:
+            category_query_hints = analyze_outfit_category_query_hints(content)
         preferred_categories = tuple(category_query_hints) or self._fallback_preferred_categories(digest)
 
         return UploadAnalysis(
@@ -469,6 +474,9 @@ store = InMemoryStore(
             provider=settings.vision_outfit_analyzer_provider,
             model_name=settings.vision_outfit_analyzer_model_name,
             max_image_bytes=settings.vision_outfit_analyzer_max_image_bytes,
+            timeout_seconds=settings.vision_outfit_analyzer_timeout_seconds,
+            api_base_url=settings.vision_outfit_analyzer_api_base_url,
+            api_key=settings.openai_api_key,
         )
     )
 )

@@ -65,17 +65,38 @@ pip install -e ".[vision]"
 - `VISION_RERANKER_MAX_IMAGE_BYTES=2000000`
 - `VISION_RERANKER_MAX_CANDIDATES=10`
 
-## AI 비전 기반 착장 분석기 (초기 구조)
+## AI 비전 기반 착장 분석기
 - 현재 업로드 분석은 기본적으로 규칙 기반으로 동작합니다.
 - 여기에 AI 비전 모델을 붙일 수 있도록 `vision_outfit_analyzer` 인터페이스가 추가되었습니다.
-- 지금 단계에서는 `disabled`와 `mock` provider만 지원하며, 실제 모델 연결은 다음 PLAN/TASK에서 이어집니다.
+- 현재는 `disabled`, `mock`, `openai` provider를 지원합니다.
 - 비전 결과가 일부만 있으면 해당 카테고리만 우선 적용하고, 나머지는 규칙 기반 결과로 fallback 합니다.
+- OpenAI 호출이 실패하거나 응답이 비어 있으면 업로드 분석은 자동으로 기존 규칙 기반으로 fallback 합니다.
 
 주요 설정:
 - `VISION_OUTFIT_ANALYZER_ENABLED`
 - `VISION_OUTFIT_ANALYZER_PROVIDER`
 - `VISION_OUTFIT_ANALYZER_MODEL_NAME`
 - `VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES`
+- `VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS`
+- `OPENAI_API_KEY`
+
+OpenAI 호환 별칭 설정:
+- `OPENAI_VISION_ENABLED`
+- `OPENAI_VISION_PROVIDER`
+- `OPENAI_VISION_MODEL`
+- `OPENAI_VISION_MAX_IMAGE_BYTES`
+- `OPENAI_VISION_TIMEOUT_SECONDS`
+
+OpenAI Vision 예시:
+```bash
+cd backend
+cp .env.example .env
+# .env에 아래 값을 입력
+# OPENAI_API_KEY=sk-...
+# OPENAI_VISION_ENABLED=true
+# OPENAI_VISION_PROVIDER=openai
+# OPENAI_VISION_MODEL=gpt-4o
+```
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`

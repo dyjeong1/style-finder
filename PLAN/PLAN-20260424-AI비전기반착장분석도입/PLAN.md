@@ -4,9 +4,9 @@ title: AI 비전 기반 착장 분석 도입
 status: doing
 priority: P0
 created_at: 2026-04-24
-updated_at: 2026-04-24
+updated_at: 2026-04-27
 related:
-  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가]
+  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가, TSK-0006-오픈에이아이비전프로바이더연결]
 tags: [vision, ai, outfit-analysis, dataset]
 ---
 
@@ -25,9 +25,9 @@ tags: [vision, ai, outfit-analysis, dataset]
   - AI 비전 착장 분석 PLAN/TASK 문서화
   - 데이터셋 폴더 구조와 라벨 포맷 정의
   - 비전 분석 인터페이스 초안 및 optional fallback 경로 추가
+  - OpenAI Vision provider 실제 연동과 환경변수 호환성 추가
   - 테스트/문서 갱신
 - 제외 범위:
-  - 외부 상용 비전 API 실제 호출 연동
   - 대규모 학습 파이프라인 구축
 
 ## 4. 일정/마일스톤
@@ -42,6 +42,7 @@ tags: [vision, ai, outfit-analysis, dataset]
 ## 6. 검증/수용 기준(DoD)
 - [ ] 데이터셋 구조와 라벨 예시가 문서화된다.
 - [ ] 비전 분석 인터페이스가 코드에 추가된다.
+- [ ] OpenAI Vision provider가 실제 호출 가능한 형태로 연결된다.
 - [ ] 비활성화 시 기존 규칙 기반 흐름이 유지된다.
 - [ ] 테스트/README/TODO가 갱신된다.
 
@@ -51,3 +52,4 @@ tags: [vision, ai, outfit-analysis, dataset]
 - 2026-04-24: 사용자 검수 내용을 반영해 이미지 10장의 라벨 초안을 보정함.
 - 2026-04-24: 추가 검수에 따라 codytest_9의 outer를 버건디 가디건으로 재보정함.
 - 2026-04-24: 데이터셋 기반 예측/정답 비교 평가 스크립트 작업을 추가함.
+- 2026-04-27: OpenAI Vision provider와 `OPENAI_VISION_*`/`OPENAI_API_KEY` 환경변수 호환을 추가함.

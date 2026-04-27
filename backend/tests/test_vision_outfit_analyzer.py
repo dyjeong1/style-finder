@@ -4,11 +4,14 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw
 
+from src.core.config import Settings
 from src.services.image_analysis import DetectedOutfitItem
 from src.services.store import InMemoryStore
 from src.services.vision_outfit_analyzer import (
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
+    build_item_query,
+    guess_mime_type,
     merge_detected_items,
 )
 
@@ -31,6 +34,7 @@ def test_merge_detected_items_prefers_vision_category_and_keeps_fallback_rest() 
     vision_items = [
         DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
         DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="목걸이", query="그레이 목걸이"),
     ]
     fallback_items = [
         DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
@@ -40,11 +44,12 @@ def test_merge_detected_items_prefers_vision_category_and_keeps_fallback_rest() 
 
     merged = merge_detected_items(vision_items, fallback_items)
 
-    assert [item.category for item in merged] == ["top", "bottom", "bag", "accessory"]
+    assert [item.category for item in merged] == ["top", "bottom", "bag", "accessory", "accessory"]
     assert merged[0].query == "블루 가디건"
     assert merged[1].query == "화이트 팬츠"
     assert merged[2].query == "아이보리 숄더백"
     assert merged[3].query == "블랙 안경"
+    assert merged[4].query == "그레이 목걸이"
 
 
 def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path) -> None:
@@ -89,3 +94,96 @@ def test_store_merges_mock_vision_items_with_rule_based_analysis(tmp_path) -> No
     assert record.analysis.category_query_hints["top"] == "블루 가디건"
     assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
     assert record.analysis.category_query_hints["bottom"] == "화이트 팬츠"
+
+
+def test_store_keeps_all_detected_items_but_uses_first_query_hint_per_category(tmp_path) -> None:
+    mock_items = (
+        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="목걸이", query="그레이 목걸이"),
+    )
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=mock_items,
+        ),
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert [item.query for item in record.analysis.detected_items if item.category == "accessory"] == [
+        "블랙 안경",
+        "그레이 목걸이",
+    ]
+    assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
+
+
+def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="openai",
+            model_name="gpt-4o",
+            api_key="test-key",
+        )
+    )
+    captured_payload: dict[str, object] = {}
+
+    def fake_post_json(payload: dict[str, object]) -> dict[str, object]:
+        captured_payload.update(payload)
+        return {
+            "output": [
+                {
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": '{"items":[{"category":"outer","color":"blue","item_label":"가디건","query":"블루 가디건"},{"category":"accessory","color":"gray","item_label":"목걸이","query":""}]}',
+                        }
+                    ]
+                }
+            ]
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert captured_payload["model"] == "gpt-4o"
+    user_content = captured_payload["input"][1]["content"]
+    assert user_content[1]["type"] == "input_image"
+    assert user_content[1]["image_url"].startswith("data:image/png;base64,")
+    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+
+
+def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MODEL_NAME", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_VISION_ENABLED", "true")
+    monkeypatch.setenv("OPENAI_VISION_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_VISION_MODEL", "gpt-4o")
+    monkeypatch.setenv("OPENAI_VISION_MAX_IMAGE_BYTES", "1234")
+    monkeypatch.setenv("OPENAI_VISION_TIMEOUT_SECONDS", "9.5")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.openai_api_key == "test-key"
+    assert settings.vision_outfit_analyzer_enabled is True
+    assert settings.vision_outfit_analyzer_provider == "openai"
+    assert settings.vision_outfit_analyzer_model_name == "gpt-4o"
+    assert settings.vision_outfit_analyzer_max_image_bytes == 1234
+    assert settings.vision_outfit_analyzer_timeout_seconds == 9.5
+
+
+def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
+    assert guess_mime_type(build_flatlay_fixture()) == "image/png"
+    assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
