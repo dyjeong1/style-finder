@@ -6,7 +6,12 @@ from pathlib import Path
 from PIL import Image
 
 from src.services.image_analysis import DetectedOutfitItem
-from src.services.vision_dataset_evaluator import evaluate_dataset, format_evaluation_text
+from src.services.vision_dataset_evaluator import (
+    compare_summaries,
+    evaluate_dataset,
+    format_comparison_text,
+    format_evaluation_text,
+)
 
 
 def _make_dataset(root: Path) -> Path:
@@ -74,3 +79,28 @@ def test_format_evaluation_text_contains_summary_and_sample_lines(tmp_path: Path
     assert "- 샘플 수: 1" in text
     assert "sample-001" in text
     assert "missing: bottom:blue:데님 팬츠" in text
+
+
+def test_compare_summaries_reports_improvement(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def baseline_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")]
+
+    def candidate_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+        ]
+
+    baseline = evaluate_dataset(dataset_root, predictor=baseline_predictor)
+    candidate = evaluate_dataset(dataset_root, predictor=candidate_predictor)
+    comparison = compare_summaries("rule", baseline, "gemini", candidate)
+    text = format_comparison_text(comparison)
+
+    assert comparison.precision_delta == 0.0
+    assert comparison.recall_delta == 0.5
+    assert comparison.improved_samples == ("sample-001",)
+    assert "비전 분석기 비교 결과" in text
+    assert "기준 분석기: rule" in text
+    assert "비교 분석기: gemini" in text

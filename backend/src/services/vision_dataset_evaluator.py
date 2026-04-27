@@ -55,6 +55,20 @@ class DatasetEvaluationSummary:
     samples: tuple[SampleEvaluation, ...]
 
 
+@dataclass(frozen=True)
+class DatasetComparisonSummary:
+    baseline_name: str
+    candidate_name: str
+    baseline: DatasetEvaluationSummary
+    candidate: DatasetEvaluationSummary
+    precision_delta: float
+    recall_delta: float
+    exact_match_delta: float
+    improved_samples: tuple[str, ...]
+    worsened_samples: tuple[str, ...]
+    unchanged_samples: tuple[str, ...]
+
+
 def load_dataset_samples(dataset_root: Path) -> list[DatasetSample]:
     labels_dir = dataset_root / "labels"
     images_dir = dataset_root / "images"
@@ -186,6 +200,69 @@ def format_evaluation_text(summary: DatasetEvaluationSummary) -> str:
             lines.append(f"    missing: {', '.join(sample.missing_items)}")
         if sample.unexpected_items:
             lines.append(f"    unexpected: {', '.join(sample.unexpected_items)}")
+    return "\n".join(lines)
+
+
+def compare_summaries(
+    baseline_name: str,
+    baseline: DatasetEvaluationSummary,
+    candidate_name: str,
+    candidate: DatasetEvaluationSummary,
+) -> DatasetComparisonSummary:
+    baseline_by_id = {sample.sample_id: sample for sample in baseline.samples}
+    candidate_by_id = {sample.sample_id: sample for sample in candidate.samples}
+    improved: list[str] = []
+    worsened: list[str] = []
+    unchanged: list[str] = []
+
+    for sample_id in sorted(baseline_by_id):
+        baseline_sample = baseline_by_id[sample_id]
+        candidate_sample = candidate_by_id.get(sample_id)
+        if candidate_sample is None:
+            unchanged.append(sample_id)
+            continue
+
+        baseline_score = (baseline_sample.matched_count, -len(baseline_sample.unexpected_items))
+        candidate_score = (candidate_sample.matched_count, -len(candidate_sample.unexpected_items))
+        if candidate_score > baseline_score:
+            improved.append(sample_id)
+        elif candidate_score < baseline_score:
+            worsened.append(sample_id)
+        else:
+            unchanged.append(sample_id)
+
+    return DatasetComparisonSummary(
+        baseline_name=baseline_name,
+        candidate_name=candidate_name,
+        baseline=baseline,
+        candidate=candidate,
+        precision_delta=round(candidate.item_precision - baseline.item_precision, 4),
+        recall_delta=round(candidate.item_recall - baseline.item_recall, 4),
+        exact_match_delta=round(candidate.exact_match_accuracy - baseline.exact_match_accuracy, 4),
+        improved_samples=tuple(improved),
+        worsened_samples=tuple(worsened),
+        unchanged_samples=tuple(unchanged),
+    )
+
+
+def format_comparison_text(summary: DatasetComparisonSummary) -> str:
+    lines = [
+        "비전 분석기 비교 결과",
+        f"- 기준 분석기: {summary.baseline_name}",
+        f"- 비교 분석기: {summary.candidate_name}",
+        f"- 정밀도 변화: {summary.baseline.item_precision:.4f} -> {summary.candidate.item_precision:.4f} ({summary.precision_delta:+.4f})",
+        f"- 재현율 변화: {summary.baseline.item_recall:.4f} -> {summary.candidate.item_recall:.4f} ({summary.recall_delta:+.4f})",
+        f"- 완전일치율 변화: {summary.baseline.exact_match_accuracy:.4f} -> {summary.candidate.exact_match_accuracy:.4f} ({summary.exact_match_delta:+.4f})",
+        f"- 개선 샘플 수: {len(summary.improved_samples)}",
+        f"- 악화 샘플 수: {len(summary.worsened_samples)}",
+        f"- 동일 샘플 수: {len(summary.unchanged_samples)}",
+    ]
+    if summary.improved_samples:
+        lines.append(f"- 개선 샘플: {', '.join(summary.improved_samples)}")
+    if summary.worsened_samples:
+        lines.append(f"- 악화 샘플: {', '.join(summary.worsened_samples)}")
+    if summary.unchanged_samples:
+        lines.append(f"- 동일 샘플: {', '.join(summary.unchanged_samples)}")
     return "\n".join(lines)
 
 

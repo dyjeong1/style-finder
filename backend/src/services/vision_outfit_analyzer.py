@@ -77,6 +77,19 @@ class VisionOutfitAnalyzer:
     mock_items: tuple[DetectedOutfitItem, ...] = field(default_factory=tuple)
 
     def analyze(self, content: bytes) -> list[DetectedOutfitItem]:
+        try:
+            return self.analyze_or_raise(content)
+        except Exception as exc:
+            provider = (self.config.provider or "disabled").lower()
+            provider_label = "Vision"
+            if provider == "openai":
+                provider_label = "OpenAI Vision"
+            elif provider == "gemini":
+                provider_label = "Gemini Vision"
+            logger.warning("%s provider fallback: %s", provider_label, summarize_provider_error(exc))
+            return []
+
+    def analyze_or_raise(self, content: bytes) -> list[DetectedOutfitItem]:
         if not self.config.enabled or not content:
             return []
         if len(content) > self.config.max_image_bytes:
@@ -86,17 +99,9 @@ class VisionOutfitAnalyzer:
         if provider == "mock":
             return list(self.mock_items)
         if provider == "openai":
-            try:
-                return self._analyze_with_openai(content)
-            except Exception as exc:
-                logger.warning("OpenAI Vision provider fallback: %s", summarize_provider_error(exc))
-                return []
+            return self._analyze_with_openai(content)
         if provider == "gemini":
-            try:
-                return self._analyze_with_gemini(content)
-            except Exception as exc:
-                logger.warning("Gemini Vision provider fallback: %s", summarize_provider_error(exc))
-                return []
+            return self._analyze_with_gemini(content)
 
         # 실제 비전 provider 연동은 다음 TASK에서 연결한다.
         return []

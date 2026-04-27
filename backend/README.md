@@ -145,6 +145,17 @@ cd backend
 PYTHONPATH=. python3 scripts/evaluate_vision_dataset.py --format json
 ```
 
+규칙 기반 vs AI 비교:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate gemini --format text
+```
+
+비교 스크립트 메모:
+- Gemini 비교는 `backend/data/vision_dataset/cache/gemini.json`에 샘플별 응답 캐시를 남긴다.
+- 기본적으로 Gemini 무료 티어 제한을 고려해 요청 간 대기와 재시도를 적용한다.
+- 2026-04-27 기준 무료 티어 일일 한도로 인해 3샘플 캐시까지만 확보되었다.
+
 현재 로컬 데이터셋(11샘플) 기준 첫 측정값:
 - 아이템 정밀도: `0.2500`
 - 아이템 재현율: `0.2281`

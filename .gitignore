@@ -4,6 +4,7 @@ frontend/.next
 frontend/playwright-report
 frontend/test-results
 backend/data/wishlist.json
+backend/data/vision_dataset/cache/
 
 .env
 backend/.env
