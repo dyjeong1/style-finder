@@ -68,10 +68,11 @@ pip install -e ".[vision]"
 ## AI 비전 기반 착장 분석기
 - 현재 업로드 분석은 기본적으로 규칙 기반으로 동작합니다.
 - 여기에 AI 비전 모델을 붙일 수 있도록 `vision_outfit_analyzer` 인터페이스가 추가되었습니다.
-- 현재는 `disabled`, `mock`, `openai`, `gemini` provider를 지원합니다.
+- 현재는 `disabled`, `mock`, `openai`, `gemini`, `ollama` provider를 지원합니다.
 - 비전 결과가 일부만 있으면 해당 카테고리만 우선 적용하고, 나머지는 규칙 기반 결과로 fallback 합니다.
 - OpenAI 호출이 실패하거나 응답이 비어 있으면 업로드 분석은 자동으로 기존 규칙 기반으로 fallback 합니다.
 - Gemini 호출이 실패하거나 응답이 비어 있어도 동일하게 규칙 기반으로 fallback 합니다.
+- Ollama 로컬 호출이 실패하거나 서버가 꺼져 있어도 동일하게 규칙 기반으로 fallback 합니다.
 
 주요 설정:
 - `VISION_OUTFIT_ANALYZER_ENABLED`
@@ -96,6 +97,15 @@ Gemini 호환 별칭 설정:
 - `GEMINI_VISION_MAX_IMAGE_BYTES`
 - `GEMINI_VISION_TIMEOUT_SECONDS`
 
+Ollama 호환 별칭 설정:
+- `OLLAMA_API_KEY`
+- `OLLAMA_VISION_ENABLED`
+- `OLLAMA_VISION_PROVIDER`
+- `OLLAMA_VISION_MODEL`
+- `OLLAMA_VISION_MAX_IMAGE_BYTES`
+- `OLLAMA_VISION_TIMEOUT_SECONDS`
+- `OLLAMA_API_BASE_URL`
+
 OpenAI Vision 예시:
 ```bash
 cd backend
@@ -118,6 +128,22 @@ cp .env.example .env
 # GEMINI_VISION_MODEL=gemini-2.5-flash
 ```
 
+Ollama Vision 예시:
+```bash
+cd backend
+cp .env.example .env
+# .env에 아래 값을 입력
+# OLLAMA_VISION_ENABLED=true
+# OLLAMA_VISION_PROVIDER=ollama
+# OLLAMA_VISION_MODEL=qwen2.5vl:7b
+# OLLAMA_API_BASE_URL=http://127.0.0.1:11434/api/chat
+```
+
+Ollama 실행 메모:
+- 먼저 로컬에 Ollama를 설치한 뒤 `ollama pull qwen2.5vl:7b`를 실행합니다.
+- 그 다음 `ollama serve` 또는 데스크톱 앱으로 로컬 서버를 켭니다.
+- 이 저장소 기준 기본 권장 로컬 무료 경로는 `Ollama + qwen2.5vl:7b`입니다.
+
 실호출 메모:
 - Gemini `generateContent`는 구조화 출력 시 `responseJsonSchema` 형식을 사용한다.
 - 2026-04-27 로컬 검증에서 `codytest_2.jpg`는 `하늘색 라운드넥 가디건`, `화이트 나시탑`, `블랙 스티치 와이드 팬츠`, `블랙 안경테`, `블랙 링 귀걸이`로 분석되었다.
@@ -125,6 +151,7 @@ cp .env.example .env
 개인 비상업 프로젝트 메모:
 - 비용이 민감하면 OpenAI보다 Gemini 무료 티어를 우선 추천합니다.
 - 단, 무료 티어도 호출량 한도와 정책 제한은 있으니 실제 운영 전에는 Google AI Studio의 quota/billing 상태를 확인해야 합니다.
+- 반복 실험량이 많으면 Gemini보다 `Ollama + qwen2.5vl:7b` 조합을 우선 추천합니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`
@@ -151,9 +178,17 @@ cd backend
 PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate gemini --format text
 ```
 
+Ollama 비교 예시:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate ollama --format text
+```
+
 비교 스크립트 메모:
 - Gemini 비교는 `backend/data/vision_dataset/cache/gemini.json`에 샘플별 응답 캐시를 남긴다.
+- Ollama 비교는 `backend/data/vision_dataset/cache/ollama.json`에 샘플별 응답 캐시를 남긴다.
 - 기본적으로 Gemini 무료 티어 제한을 고려해 요청 간 대기와 재시도를 적용한다.
+- Ollama는 로컬 서버라 기본적으로 추가 대기 없이 실행한다.
 - 2026-04-27 기준 무료 티어 일일 한도로 인해 3샘플 캐시까지만 확보되었다.
 
 현재 로컬 데이터셋(11샘플) 기준 첫 측정값:

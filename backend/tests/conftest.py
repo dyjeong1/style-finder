@@ -10,5 +10,7 @@ os.environ.setdefault("OPENAI_VISION_ENABLED", "false")
 os.environ.setdefault("OPENAI_VISION_PROVIDER", "disabled")
 os.environ.setdefault("GEMINI_VISION_ENABLED", "false")
 os.environ.setdefault("GEMINI_VISION_PROVIDER", "disabled")
+os.environ.setdefault("OLLAMA_VISION_ENABLED", "false")
+os.environ.setdefault("OLLAMA_VISION_PROVIDER", "disabled")
 os.environ["NAVER_SHOPPING_CLIENT_ID"] = ""
 os.environ["NAVER_SHOPPING_CLIENT_SECRET"] = ""

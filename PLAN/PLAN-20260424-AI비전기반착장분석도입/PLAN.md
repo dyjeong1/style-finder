@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-27
 related:
-  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가, TSK-0006-오픈에이아이비전프로바이더연결, TSK-0007-제미나이무료티어프로바이더연결, TSK-0008-제미나이실호출검증및스키마보정, TSK-0009-규칙기반대제미나이비교리포트]
+  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가, TSK-0006-오픈에이아이비전프로바이더연결, TSK-0007-제미나이무료티어프로바이더연결, TSK-0008-제미나이실호출검증및스키마보정, TSK-0009-규칙기반대제미나이비교리포트, TSK-0010-올라마로컬비전프로바이더연결]
 tags: [vision, ai, outfit-analysis, dataset]
 ---
 
@@ -27,6 +27,7 @@ tags: [vision, ai, outfit-analysis, dataset]
   - 비전 분석 인터페이스 초안 및 optional fallback 경로 추가
   - OpenAI Vision provider 실제 연동과 환경변수 호환성 추가
   - Gemini 무료 티어 provider 실제 연동과 환경변수 호환성 추가
+  - Ollama 로컬 비전 provider 실제 연동과 환경변수 호환성 추가
   - 테스트/문서 갱신
 - 제외 범위:
   - 대규모 학습 파이프라인 구축
@@ -45,6 +46,7 @@ tags: [vision, ai, outfit-analysis, dataset]
 - [ ] 비전 분석 인터페이스가 코드에 추가된다.
 - [ ] OpenAI Vision provider가 실제 호출 가능한 형태로 연결된다.
 - [ ] Gemini Vision provider가 실제 호출 가능한 형태로 연결된다.
+- [ ] Ollama Vision provider가 실제 호출 가능한 형태로 연결된다.
 - [ ] 비활성화 시 기존 규칙 기반 흐름이 유지된다.
 - [ ] 테스트/README/TODO가 갱신된다.
 
@@ -58,3 +60,5 @@ tags: [vision, ai, outfit-analysis, dataset]
 - 2026-04-27: 개인 비상업 프로젝트용 무료 경로로 Gemini Vision provider와 `GEMINI_*` 환경변수 호환을 추가함.
 - 2026-04-27: Gemini 실호출 검증 중 `responseJsonSchema` 형식 차이를 수정했고, `codytest_2`에서 실제 품목 추출을 확인함.
 - 2026-04-27: 규칙 기반과 Gemini 비교용 캐시/재시도 스크립트를 추가했고, 무료 티어 일일 한도로 일부 샘플 캐시까지 확보함.
+- 2026-04-27: 로컬 무료 반복 실험 경로로 Ollama provider와 `qwen2.5vl:7b` 연결 작업을 추가함.
+- 2026-04-27: 현재 작업 머신에 Ollama가 없어 실모델 응답 대신 연결 거부 fallback과 비교 스크립트 경로를 검증함.

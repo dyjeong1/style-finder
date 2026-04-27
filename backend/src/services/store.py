@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 from uuid import uuid4
 
-from src.core.config import get_settings
+from src.core.config import get_settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import (
     DetectedOutfitItem,
     analyze_outfit_category_query_hints,
@@ -467,19 +467,20 @@ class InMemoryStore:
         return items
 
 settings = get_settings()
+vision_runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings)
 store = InMemoryStore(
     vision_outfit_analyzer=VisionOutfitAnalyzer(
         VisionOutfitAnalyzerConfig(
-            enabled=settings.vision_outfit_analyzer_enabled,
-            provider=settings.vision_outfit_analyzer_provider,
-            model_name=settings.vision_outfit_analyzer_model_name,
-            max_image_bytes=settings.vision_outfit_analyzer_max_image_bytes,
-            timeout_seconds=settings.vision_outfit_analyzer_timeout_seconds,
-            api_base_url=settings.vision_outfit_analyzer_api_base_url,
+            enabled=bool(vision_runtime_config["enabled"]),
+            provider=str(vision_runtime_config["provider"]),
+            model_name=str(vision_runtime_config["model_name"]),
+            max_image_bytes=int(vision_runtime_config["max_image_bytes"]),
+            timeout_seconds=float(vision_runtime_config["timeout_seconds"]),
+            api_base_url=str(vision_runtime_config["api_base_url"]),
             api_key=(
-                settings.gemini_api_key
-                if settings.vision_outfit_analyzer_provider.lower() == "gemini"
-                else settings.openai_api_key
+                str(vision_runtime_config["api_key"])
+                if vision_runtime_config["api_key"] is not None
+                else None
             ),
         )
     )

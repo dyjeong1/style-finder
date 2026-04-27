@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.core.config import Settings
+from src.core.config import Settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import DetectedOutfitItem, analyze_outfit_items
 from src.services.vision_dataset_evaluator import (
     compare_summaries,
@@ -39,25 +39,21 @@ def build_predictor(
 
     settings = Settings()
     provider = normalized
-    model_name = settings.vision_outfit_analyzer_model_name
-    api_key = settings.openai_api_key
-    api_base_url = settings.vision_outfit_analyzer_api_base_url
-
-    if provider == "gemini":
-        model_name = settings.vision_outfit_analyzer_model_name or "gemini-2.5-flash"
-        api_key = settings.gemini_api_key
-    elif provider == "openai":
-        model_name = settings.vision_outfit_analyzer_model_name or "gpt-4o"
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override=provider)
 
     analyzer = VisionOutfitAnalyzer(
         VisionOutfitAnalyzerConfig(
             enabled=True,
             provider=provider,
-            model_name=model_name,
-            max_image_bytes=settings.vision_outfit_analyzer_max_image_bytes,
-            timeout_seconds=settings.vision_outfit_analyzer_timeout_seconds,
-            api_base_url=api_base_url,
-            api_key=api_key,
+            model_name=str(runtime_config["model_name"]),
+            max_image_bytes=int(runtime_config["max_image_bytes"]),
+            timeout_seconds=float(runtime_config["timeout_seconds"]),
+            api_base_url=str(runtime_config["api_base_url"]),
+            api_key=(
+                str(runtime_config["api_key"])
+                if runtime_config["api_key"] is not None
+                else None
+            ),
         )
     )
     cache = load_cache(cache_path) if cache_path else {}
@@ -104,13 +100,13 @@ def main() -> int:
     parser.add_argument(
         "--baseline",
         default="rule",
-        choices=("rule", "openai", "gemini"),
+        choices=("rule", "openai", "gemini", "ollama"),
         help="기준 분석기",
     )
     parser.add_argument(
         "--candidate",
         default="gemini",
-        choices=("rule", "openai", "gemini"),
+        choices=("rule", "openai", "gemini", "ollama"),
         help="비교 분석기",
     )
     parser.add_argument(
@@ -237,6 +233,8 @@ def parse_retry_delay_seconds(exc: Exception) -> float:
                     return max(float(retry_delay[:-1]), 1.0)
                 except ValueError:
                     return 12.5
+    if isinstance(exc, URLError):
+        return 1.0
     return 12.5
 
 

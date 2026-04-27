@@ -4,7 +4,7 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw
 
-from src.core.config import Settings
+from src.core.config import Settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import DetectedOutfitItem
 from src.services.store import InMemoryStore
 from src.services.vision_outfit_analyzer import (
@@ -204,6 +204,40 @@ def test_gemini_provider_uses_generate_content_payload(monkeypatch) -> None:
     assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
 
 
+def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="ollama",
+            model_name="qwen2.5vl:7b",
+            api_base_url="http://127.0.0.1:11434/api/chat",
+        )
+    )
+    captured: dict[str, object] = {}
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["headers"] = headers
+        return {
+            "message": {
+                "content": '{"items":[{"category":"outer","color":"blue","item_label":"가디건","query":"블루 가디건"},{"category":"accessory","color":"gray","item_label":"목걸이","query":"그레이 목걸이"}]}'
+            }
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert captured["url"] == "http://127.0.0.1:11434/api/chat"
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert captured["payload"]["model"] == "qwen2.5vl:7b"
+    assert captured["payload"]["stream"] is False
+    assert captured["payload"]["messages"][1]["images"][0]
+    assert captured["payload"]["format"]["type"] == "object"
+    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+
+
 def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)
@@ -253,6 +287,58 @@ def test_settings_support_gemini_alias_names(monkeypatch) -> None:
     assert settings.vision_outfit_analyzer_model_name == "gemini-2.5-flash"
     assert settings.vision_outfit_analyzer_max_image_bytes == 4567
     assert settings.vision_outfit_analyzer_timeout_seconds == 8.0
+
+
+def test_settings_support_ollama_alias_names(monkeypatch) -> None:
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MODEL_NAME", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_API_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_ENABLED", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_PROVIDER", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("OPENAI_VISION_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("GEMINI_VISION_ENABLED", raising=False)
+    monkeypatch.delenv("GEMINI_VISION_PROVIDER", raising=False)
+    monkeypatch.delenv("GEMINI_VISION_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_VISION_MAX_IMAGE_BYTES", raising=False)
+    monkeypatch.delenv("GEMINI_VISION_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("OLLAMA_API_KEY", "ollama-key")
+    monkeypatch.setenv("OLLAMA_VISION_ENABLED", "true")
+    monkeypatch.setenv("OLLAMA_VISION_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_VISION_MODEL", "qwen2.5vl:7b")
+    monkeypatch.setenv("OLLAMA_VISION_MAX_IMAGE_BYTES", "7654")
+    monkeypatch.setenv("OLLAMA_VISION_TIMEOUT_SECONDS", "11.0")
+    monkeypatch.setenv("OLLAMA_API_BASE_URL", "http://127.0.0.1:11434/api/chat")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.ollama_api_key == "ollama-key"
+    assert settings.vision_outfit_analyzer_enabled is True
+    assert settings.vision_outfit_analyzer_provider == "ollama"
+    assert settings.vision_outfit_analyzer_model_name == "qwen2.5vl:7b"
+    assert settings.vision_outfit_analyzer_max_image_bytes == 7654
+    assert settings.vision_outfit_analyzer_timeout_seconds == 11.0
+    assert settings.vision_outfit_analyzer_api_base_url == "http://127.0.0.1:11434/api/chat"
+
+
+def test_runtime_config_prefers_ollama_alias_over_stale_gemini_model(monkeypatch) -> None:
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_MODEL_NAME", raising=False)
+    monkeypatch.setenv("GEMINI_VISION_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("OLLAMA_VISION_MODEL", "qwen2.5vl:7b")
+    monkeypatch.setenv("OLLAMA_API_BASE_URL", "http://127.0.0.1:11434/api/chat")
+    monkeypatch.setenv("OLLAMA_API_KEY", "ollama-key")
+
+    settings = Settings(_env_file=None)
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+
+    assert runtime_config["provider"] == "ollama"
+    assert runtime_config["model_name"] == "qwen2.5vl:7b"
+    assert runtime_config["api_base_url"] == "http://127.0.0.1:11434/api/chat"
+    assert runtime_config["api_key"] == "ollama-key"
 
 
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:

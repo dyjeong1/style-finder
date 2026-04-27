@@ -14,6 +14,7 @@ from src.services.image_analysis import CATEGORY_QUERY_LABELS, COLOR_QUERY_LABEL
 OPENAI_ALLOWED_CATEGORIES = ("top", "outer", "bottom", "shoes", "bag", "accessory")
 OPENAI_ALLOWED_COLORS = tuple(COLOR_QUERY_LABELS) + ("neutral", "unknown")
 GEMINI_GENERATE_CONTENT_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
 logger = logging.getLogger(__name__)
 OPENAI_RESPONSE_SCHEMA = {
     "name": "outfit_analysis",
@@ -86,6 +87,8 @@ class VisionOutfitAnalyzer:
                 provider_label = "OpenAI Vision"
             elif provider == "gemini":
                 provider_label = "Gemini Vision"
+            elif provider == "ollama":
+                provider_label = "Ollama Vision"
             logger.warning("%s provider fallback: %s", provider_label, summarize_provider_error(exc))
             return []
 
@@ -102,8 +105,9 @@ class VisionOutfitAnalyzer:
             return self._analyze_with_openai(content)
         if provider == "gemini":
             return self._analyze_with_gemini(content)
+        if provider == "ollama":
+            return self._analyze_with_ollama(content)
 
-        # 실제 비전 provider 연동은 다음 TASK에서 연결한다.
         return []
 
     def _analyze_with_openai(self, content: bytes) -> list[DetectedOutfitItem]:
@@ -191,6 +195,37 @@ class VisionOutfitAnalyzer:
         parsed_payload = self._extract_gemini_payload(response_payload)
         return self._coerce_detected_items(parsed_payload)
 
+    def _analyze_with_ollama(self, content: bytes) -> list[DetectedOutfitItem]:
+        model_name = self.config.model_name or "qwen2.5vl:7b"
+        payload = {
+            "model": model_name,
+            "stream": False,
+            "format": OPENAI_RESPONSE_SCHEMA["schema"],
+            "options": {"temperature": 0},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": OPENAI_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": "이미지를 분석해 지정된 JSON schema에 맞는 착장 품목만 반환해줘.",
+                    "images": [base64.b64encode(content).decode("ascii")],
+                },
+            ],
+        }
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+
+        response_payload = self._post_json(
+            url=self.config.api_base_url or OLLAMA_CHAT_URL,
+            payload=payload,
+            headers=headers,
+        )
+        parsed_payload = self._extract_ollama_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
     def _post_json(self, url: str, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
         request = Request(
             url,
@@ -232,6 +267,13 @@ class VisionOutfitAnalyzer:
                     return json.loads(text_value)
 
         raise ValueError("Gemini response did not contain structured JSON output")
+
+    def _extract_ollama_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
+        message = response_payload.get("message", {})
+        text_value = message.get("content")
+        if isinstance(text_value, str) and text_value.strip():
+            return json.loads(text_value)
+        raise ValueError("Ollama response did not contain structured JSON output")
 
     def _coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
         raw_items = parsed_payload.get("items", [])
