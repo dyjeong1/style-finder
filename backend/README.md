@@ -118,6 +118,10 @@ cp .env.example .env
 # GEMINI_VISION_MODEL=gemini-2.5-flash
 ```
 
+실호출 메모:
+- Gemini `generateContent`는 구조화 출력 시 `responseJsonSchema` 형식을 사용한다.
+- 2026-04-27 로컬 검증에서 `codytest_2.jpg`는 `하늘색 라운드넥 가디건`, `화이트 나시탑`, `블랙 스티치 와이드 팬츠`, `블랙 안경테`, `블랙 링 귀걸이`로 분석되었다.
+
 개인 비상업 프로젝트 메모:
 - 비용이 민감하면 OpenAI보다 Gemini 무료 티어를 우선 추천합니다.
 - 단, 무료 티어도 호출량 한도와 정책 제한은 있으니 실제 운영 전에는 Google AI Studio의 quota/billing 상태를 확인해야 합니다.

@@ -175,7 +175,7 @@ class VisionOutfitAnalyzer:
             ],
             "generationConfig": {
                 "responseMimeType": "application/json",
-                "responseSchema": OPENAI_RESPONSE_SCHEMA["schema"],
+                "responseJsonSchema": OPENAI_RESPONSE_SCHEMA["schema"],
             },
         }
         response_payload = self._post_json(

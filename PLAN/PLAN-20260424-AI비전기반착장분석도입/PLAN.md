@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-04-24
 updated_at: 2026-04-27
 related:
-  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가, TSK-0006-오픈에이아이비전프로바이더연결, TSK-0007-제미나이무료티어프로바이더연결]
+  tasks: [TSK-0001-비전분석초기구조도입, TSK-0002-사용자이미지데이터셋초안작성, TSK-0003-사용자라벨검수반영, TSK-0004-codytest9라벨재보정, TSK-0005-데이터셋평가스크립트추가, TSK-0006-오픈에이아이비전프로바이더연결, TSK-0007-제미나이무료티어프로바이더연결, TSK-0008-제미나이실호출검증및스키마보정]
 tags: [vision, ai, outfit-analysis, dataset]
 ---
 
@@ -56,3 +56,4 @@ tags: [vision, ai, outfit-analysis, dataset]
 - 2026-04-24: 데이터셋 기반 예측/정답 비교 평가 스크립트 작업을 추가함.
 - 2026-04-27: OpenAI Vision provider와 `OPENAI_VISION_*`/`OPENAI_API_KEY` 환경변수 호환을 추가함.
 - 2026-04-27: 개인 비상업 프로젝트용 무료 경로로 Gemini Vision provider와 `GEMINI_*` 환경변수 호환을 추가함.
+- 2026-04-27: Gemini 실호출 검증 중 `responseJsonSchema` 형식 차이를 수정했고, `codytest_2`에서 실제 품목 추출을 확인함.

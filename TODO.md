@@ -1,6 +1,7 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [TSK-0008-제미나이실호출검증및스키마보정] Gemini 실호출 검증과 응답 스키마 키 보정을 반영한다.
 - [x] [TSK-0007-제미나이무료티어프로바이더연결] Gemini 무료 티어 provider와 `GEMINI_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0006-오픈에이아이비전프로바이더연결] OpenAI Vision provider와 `OPENAI_VISION_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0005-데이터셋평가스크립트추가] 데이터셋 기준 예측/정답 비교 평가 스크립트를 추가한다.
