@@ -11,6 +11,7 @@ from src.services.vision_dataset_evaluator import (
     evaluate_dataset,
     format_comparison_text,
     format_evaluation_text,
+    load_dataset_samples,
 )
 
 
@@ -104,3 +105,30 @@ def test_compare_summaries_reports_improvement(tmp_path: Path) -> None:
     assert "비전 분석기 비교 결과" in text
     assert "기준 분석기: rule" in text
     assert "비교 분석기: gemini" in text
+
+
+def test_load_dataset_samples_supports_sample_ids_offset_and_limit(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    labels_dir = dataset_root / "labels"
+    images_dir = dataset_root / "images"
+
+    image = Image.new("RGB", (32, 32), (0, 0, 0))
+    image.save(images_dir / "sample-002.png")
+    (labels_dir / "sample-002.json").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample-002",
+                "source": "test",
+                "items": [{"category": "bag", "color": "black", "item_label": "숄더백"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    filtered = load_dataset_samples(dataset_root, sample_ids=("sample-002",))
+    assert [sample.sample_id for sample in filtered] == ["sample-002"]
+
+    windowed = load_dataset_samples(dataset_root, offset=1, limit=1)
+    assert [sample.sample_id for sample in windowed] == ["sample-002"]

@@ -1,6 +1,7 @@
 # TODO (Repository Backlog)
 
 ## Now
+- [x] [TSK-0011-qwen운영최적화및부분실행지원] qwen 기준 timeout/부분 실행/단일 업로드 확인 CLI를 추가한다.
 - [x] [TSK-0010-올라마로컬비전프로바이더연결] Ollama 로컬 Vision provider와 `OLLAMA_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0009-규칙기반대제미나이비교리포트] 규칙 기반과 Gemini 비교 스크립트 및 캐시/재시도 구조를 추가한다.
 - [x] [TSK-0008-제미나이실호출검증및스키마보정] Gemini 실호출 검증과 응답 스키마 키 보정을 반영한다.
@@ -128,6 +129,7 @@
 
 ## Next
 - [ ] [PLAN-20260424-AI비전기반착장분석도입] 실제 비전 provider를 연결해 이미지별 착장 분석을 수행한다.
+- [ ] [다음 TASK] Ollama 기본 모델을 더 가벼운 `gemma3:4b`로 전환하고 로컬 실응답을 검증한다.
 - [ ] [다음 TASK] Ollama 설치 후 `qwen2.5vl:7b` 실호출 검증과 rule/gemini/ollama 3-way 비교를 수행한다.
 - [ ] [다음 TASK] 사용자의 로컬 Ollama 설치 가이드와 모델 pull 절차를 정리한다.
 - [ ] [다음 TASK] OpenAI Vision 예측 결과와 정답 라벨 비교 리포트를 자동 생성한다.

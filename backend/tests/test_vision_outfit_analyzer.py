@@ -341,6 +341,26 @@ def test_runtime_config_prefers_ollama_alias_over_stale_gemini_model(monkeypatch
     assert runtime_config["api_key"] == "ollama-key"
 
 
+def test_runtime_config_uses_longer_default_timeout_for_ollama(monkeypatch) -> None:
+    monkeypatch.delenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("OLLAMA_VISION_TIMEOUT_SECONDS", raising=False)
+
+    settings = Settings(_env_file=None)
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+
+    assert runtime_config["timeout_seconds"] == 90.0
+
+
+def test_runtime_config_prefers_provider_specific_timeout_when_provider_overridden(monkeypatch) -> None:
+    monkeypatch.setenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", "20")
+    monkeypatch.setenv("OLLAMA_VISION_TIMEOUT_SECONDS", "120")
+
+    settings = Settings(_env_file=None)
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+
+    assert runtime_config["timeout_seconds"] == 120.0
+
+
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"

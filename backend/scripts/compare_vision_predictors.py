@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import socket
 import sys
 import time
 from urllib.error import HTTPError, URLError
@@ -32,6 +33,7 @@ def build_predictor(
     cache_path: Path | None = None,
     min_interval_seconds: float = 0.0,
     max_retries: int = 2,
+    timeout_seconds: float | None = None,
 ):
     normalized = name.lower()
     if normalized == "rule":
@@ -47,7 +49,7 @@ def build_predictor(
             provider=provider,
             model_name=str(runtime_config["model_name"]),
             max_image_bytes=int(runtime_config["max_image_bytes"]),
-            timeout_seconds=float(runtime_config["timeout_seconds"]),
+            timeout_seconds=timeout_seconds or float(runtime_config["timeout_seconds"]),
             api_base_url=str(runtime_config["api_base_url"]),
             api_key=(
                 str(runtime_config["api_key"])
@@ -76,7 +78,7 @@ def build_predictor(
                 if cache_path:
                     save_cache(cache_path, cache)
                 return items
-            except (HTTPError, URLError, ValueError) as exc:
+            except (HTTPError, URLError, ValueError, socket.timeout, TimeoutError) as exc:
                 last_called_at["value"] = time.monotonic()
                 if attempt >= max_retries:
                     print(f"{normalized} predictor fallback: {summarize_provider_error(exc)}", file=sys.stderr)
@@ -127,9 +129,33 @@ def main() -> int:
         default=2,
         help="AI provider 실패 시 샘플별 최대 재시도 횟수",
     )
+    parser.add_argument(
+        "--sample-ids",
+        default="",
+        help="쉼표로 구분한 샘플 ID 목록만 실행",
+    )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="앞에서 건너뛸 샘플 수",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="실행할 최대 샘플 수",
+    )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=None,
+        help="이번 실행에만 적용할 provider 타임아웃(초)",
+    )
     args = parser.parse_args()
 
     dataset_root = Path(args.dataset_root)
+    selected_sample_ids = tuple(sample_id.strip() for sample_id in args.sample_ids.split(",") if sample_id.strip())
     baseline_cache = dataset_root / "cache" / f"{args.baseline}.json"
     candidate_cache = dataset_root / "cache" / f"{args.candidate}.json"
     interval_seconds = args.min_interval_seconds
@@ -143,7 +169,11 @@ def main() -> int:
             cache_path=baseline_cache if args.baseline != "rule" else None,
             min_interval_seconds=12.5 if args.baseline == "gemini" else 0.0,
             max_retries=args.max_retries,
+            timeout_seconds=args.timeout_seconds if args.baseline != "rule" else None,
         ),
+        sample_ids=selected_sample_ids or None,
+        offset=args.offset,
+        limit=args.limit,
     )
     candidate_summary = evaluate_dataset(
         dataset_root,
@@ -152,7 +182,11 @@ def main() -> int:
             cache_path=candidate_cache if args.candidate != "rule" else None,
             min_interval_seconds=interval_seconds,
             max_retries=args.max_retries,
+            timeout_seconds=args.timeout_seconds if args.candidate != "rule" else None,
         ),
+        sample_ids=selected_sample_ids or None,
+        offset=args.offset,
+        limit=args.limit,
     )
     comparison = compare_summaries(
         baseline_name=args.baseline,
@@ -234,6 +268,8 @@ def parse_retry_delay_seconds(exc: Exception) -> float:
                 except ValueError:
                     return 12.5
     if isinstance(exc, URLError):
+        return 1.0
+    if isinstance(exc, (socket.timeout, TimeoutError)):
         return 1.0
     return 12.5
 

@@ -69,14 +69,22 @@ class DatasetComparisonSummary:
     unchanged_samples: tuple[str, ...]
 
 
-def load_dataset_samples(dataset_root: Path) -> list[DatasetSample]:
+def load_dataset_samples(
+    dataset_root: Path,
+    sample_ids: tuple[str, ...] | None = None,
+    offset: int = 0,
+    limit: int | None = None,
+) -> list[DatasetSample]:
     labels_dir = dataset_root / "labels"
     images_dir = dataset_root / "images"
     samples: list[DatasetSample] = []
+    selected_ids = set(sample_ids or ())
 
     for label_path in sorted(labels_dir.glob("*.json")):
         payload = json.loads(label_path.read_text(encoding="utf-8"))
         sample_id = payload["sample_id"]
+        if selected_ids and sample_id not in selected_ids:
+            continue
         image_candidates = sorted(images_dir.glob(f"{sample_id}.*"))
         if not image_candidates:
             raise FileNotFoundError(f"이미지 파일을 찾을 수 없습니다: {sample_id}")
@@ -98,15 +106,22 @@ def load_dataset_samples(dataset_root: Path) -> list[DatasetSample]:
                 expected_items=expected_items,
             )
         )
+    if offset > 0:
+        samples = samples[offset:]
+    if limit is not None:
+        samples = samples[:limit]
     return samples
 
 
 def evaluate_dataset(
     dataset_root: Path,
     predictor: Callable[[bytes], list[DetectedOutfitItem]] | None = None,
+    sample_ids: tuple[str, ...] | None = None,
+    offset: int = 0,
+    limit: int | None = None,
 ) -> DatasetEvaluationSummary:
     predictor = predictor or analyze_outfit_items
-    samples = load_dataset_samples(dataset_root)
+    samples = load_dataset_samples(dataset_root, sample_ids=sample_ids, offset=offset, limit=limit)
     evaluated_samples: list[SampleEvaluation] = []
     expected_total = 0
     predicted_total = 0
