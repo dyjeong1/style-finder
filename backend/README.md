@@ -135,14 +135,14 @@ cp .env.example .env
 # .env에 아래 값을 입력
 # OLLAMA_VISION_ENABLED=true
 # OLLAMA_VISION_PROVIDER=ollama
-# OLLAMA_VISION_MODEL=qwen2.5vl:7b
+# OLLAMA_VISION_MODEL=gemma3:4b
 # OLLAMA_API_BASE_URL=http://127.0.0.1:11434/api/chat
 ```
 
 Ollama 실행 메모:
-- 먼저 로컬에 Ollama를 설치한 뒤 `ollama pull qwen2.5vl:7b`를 실행합니다.
+- 먼저 로컬에 Ollama를 설치한 뒤 `ollama pull gemma3:4b`를 실행합니다.
 - 그 다음 `ollama serve` 또는 데스크톱 앱으로 로컬 서버를 켭니다.
-- 이 저장소 기준 기본 권장 로컬 무료 경로는 `Ollama + qwen2.5vl:7b`입니다.
+- 이 저장소 기준 기본 권장 로컬 무료 경로는 `Ollama + gemma3:4b`입니다.
 
 실호출 메모:
 - Gemini `generateContent`는 구조화 출력 시 `responseJsonSchema` 형식을 사용한다.
@@ -151,7 +151,8 @@ Ollama 실행 메모:
 개인 비상업 프로젝트 메모:
 - 비용이 민감하면 OpenAI보다 Gemini 무료 티어를 우선 추천합니다.
 - 단, 무료 티어도 호출량 한도와 정책 제한은 있으니 실제 운영 전에는 Google AI Studio의 quota/billing 상태를 확인해야 합니다.
-- 반복 실험량이 많으면 Gemini보다 `Ollama + qwen2.5vl:7b` 조합을 우선 추천합니다.
+- 반복 실험량이 많으면 Gemini보다 `Ollama + gemma3:4b` 조합을 우선 추천합니다.
+- 2026-04-29 로컬 검증에서 `codytest_2.jpg`는 `화이트 셔츠`, `회색 가디건`, `청바지 팬츠`, `검정 선글라스`로 응답했고, 단일 샘플 비교도 timeout 없이 완료되었습니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`

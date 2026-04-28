@@ -173,7 +173,7 @@ def resolve_vision_outfit_analyzer_runtime_config(settings: Settings, provider_o
         model_name = resolve_value(
             "VISION_OUTFIT_ANALYZER_MODEL_NAME",
             "OLLAMA_VISION_MODEL",
-            "qwen2.5vl:7b",
+            "gemma3:4b",
             prefer_provider_key=prefer_provider_key,
         )
         api_base_url = resolve_value(
