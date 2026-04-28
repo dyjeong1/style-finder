@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import json
 
 from PIL import Image, ImageDraw
 
@@ -209,7 +210,7 @@ def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
         VisionOutfitAnalyzerConfig(
             enabled=True,
             provider="ollama",
-            model_name="qwen2.5vl:7b",
+            model_name="gemma3:4b",
             api_base_url="http://127.0.0.1:11434/api/chat",
         )
     )
@@ -231,11 +232,60 @@ def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
 
     assert captured["url"] == "http://127.0.0.1:11434/api/chat"
     assert captured["headers"]["Content-Type"] == "application/json"
-    assert captured["payload"]["model"] == "qwen2.5vl:7b"
+    assert captured["payload"]["model"] == "gemma3:4b"
     assert captured["payload"]["stream"] is False
     assert captured["payload"]["messages"][1]["images"][0]
     assert captured["payload"]["format"]["type"] == "object"
     assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+
+
+def test_ollama_provider_normalizes_lightweight_model_item_labels(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="ollama",
+            model_name="gemma3:4b",
+            api_base_url="http://127.0.0.1:11434/api/chat",
+        )
+    )
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "items": [
+                            {
+                                "category": "top",
+                                "color": "white",
+                                "item_label": "나시",
+                                "query": "화이트 나시",
+                            },
+                            {
+                                "category": "bottom",
+                                "color": "blue",
+                                "item_label": "청바지 팬츠",
+                                "query": "청바지 팬츠",
+                            },
+                            {
+                                "category": "accessory",
+                                "color": "black",
+                                "item_label": "선글라스",
+                                "query": "검정 선글라스",
+                            },
+                        ]
+                    },
+                    ensure_ascii=False,
+                )
+            }
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert [item.item_label for item in items] == ["슬리브리스 탑", "데님 팬츠", "안경"]
+    assert [item.query for item in items] == ["화이트 슬리브리스 탑", "블루 데님 팬츠", "블랙 안경"]
 
 
 def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:

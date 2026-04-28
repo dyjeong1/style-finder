@@ -130,7 +130,8 @@
 ## Next
 - [ ] [PLAN-20260424-AI비전기반착장분석도입] 실제 비전 provider를 연결해 이미지별 착장 분석을 수행한다.
 - [x] [TSK-0012-올라마경량기본모델전환] Ollama 기본 모델을 더 가벼운 `gemma3:4b`로 전환하고 로컬 실응답을 검증한다.
-- [ ] [다음 TASK] `gemma3:4b` 기준 rule/gemini/ollama 3-way 비교와 후처리 정규화 튜닝을 수행한다.
+- [x] [TSK-0013-경량모델후처리정규화] `gemma3:4b` 응답 후처리 정규화를 추가한다.
+- [ ] [다음 TASK] `gemma3:4b` 기준 rule/gemini/ollama 3-way 비교와 상의/아우터 정밀화 튜닝을 수행한다.
 - [ ] [다음 TASK] 사용자의 로컬 Ollama 설치 가이드와 모델 pull 절차를 정리한다.
 - [ ] [다음 TASK] OpenAI Vision 예측 결과와 정답 라벨 비교 리포트를 자동 생성한다.
 - [ ] [다음 TASK] Gemini Vision 예측 결과와 정답 라벨 비교 리포트를 무료 티어 quota가 풀린 뒤 전체 10장으로 재실행한다.
