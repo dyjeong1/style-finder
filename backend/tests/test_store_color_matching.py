@@ -186,3 +186,41 @@ def test_rgb_color_classifier_maps_common_outfit_colors(tmp_path: Path) -> None:
     assert store._classify_rgb_color(248, 247, 244) == "white"
     assert store._classify_rgb_color(211, 189, 154) == "beige"
     assert store._classify_rgb_color(42, 59, 110) == "navy"
+
+
+def test_registered_products_do_not_leak_into_default_recommendation_fallback(tmp_path: Path) -> None:
+    store = InMemoryStore(wishlist_store_path=tmp_path / "wishlist.json")
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+
+    leaked_product = ProductRecord(
+        id="naver-top-999",
+        source="naver",
+        product_name="이전 업로드 전용 상품",
+        category="top",
+        price=99000,
+        product_url="https://example.com/naver-top-999",
+        image_url="https://example.com/naver-top-999.jpg",
+        dominant_tone="cool",
+        style_mood="minimal",
+        silhouette="balanced",
+        feature_vector=(0.9, 0.9, 0.9, 0.9),
+    )
+    store.register_products([leaked_product])
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category=None,
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=20,
+        candidate_products=None,
+    )
+
+    assert all(item["product_id"] != "naver-top-999" for item in items)

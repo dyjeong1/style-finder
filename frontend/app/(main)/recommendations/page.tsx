@@ -12,6 +12,7 @@ import {
   getStoredUploadedImageId,
   getWishlist,
   RecommendationItem,
+  setStoredUploadedImageId,
 } from "@/lib/api";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
@@ -141,6 +142,16 @@ export default function RecommendationPage() {
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
+    const uploadedImageIdFromUrl = new URLSearchParams(window.location.search).get("uploaded_image_id");
+
+    if (uploadedImageIdFromUrl) {
+      setStoredUploadedImageId(uploadedImageIdFromUrl);
+      setUploadedImageId(uploadedImageIdFromUrl);
+      setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
+      setIsClientReady(true);
+      return;
+    }
+
     setUploadedImageId(getStoredUploadedImageId());
     setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
     setIsClientReady(true);

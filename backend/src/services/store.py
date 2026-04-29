@@ -81,7 +81,9 @@ class InMemoryStore:
         enable_gemini_correction: bool = False,
     ) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
-        self.products: dict[str, ProductRecord] = self._seed_products()
+        self.seeded_products: dict[str, ProductRecord] = self._seed_products()
+        self.seeded_product_ids: tuple[str, ...] = tuple(self.seeded_products)
+        self.products: dict[str, ProductRecord] = dict(self.seeded_products)
         self.wishlist_store_path = wishlist_store_path or Path(__file__).resolve().parents[2] / "data" / "wishlist.json"
         self.wishlist_by_user: dict[str, dict[str, str]] = self._load_wishlist()
         self.vision_outfit_analyzer = vision_outfit_analyzer or VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig())
@@ -347,7 +349,7 @@ class InMemoryStore:
         if upload is None:
             return []
 
-        items = candidate_products or list(self.products.values())
+        items = candidate_products or self._list_default_recommendation_products()
         if category:
             items = [item for item in items if item.category == category]
         if min_price is not None:
@@ -432,6 +434,13 @@ class InMemoryStore:
             item["rank"] = rank
 
         return scored[:limit]
+
+    def _list_default_recommendation_products(self) -> list[ProductRecord]:
+        return [
+            self.products[product_id]
+            for product_id in self.seeded_product_ids
+            if product_id in self.products
+        ]
 
     def register_products(self, products: list[ProductRecord]) -> None:
         for product in products:

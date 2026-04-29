@@ -46,6 +46,7 @@ npm run test:e2e
 - `/upload`: `POST /images/upload` 호출 후 업로드 ID를 `stylematch_uploaded_image_id`에 저장
 - `/recommendations`: `GET /recommendations` 조회 및 `POST /wishlist` 찜 추가
 - `/wishlist`: `GET /wishlist` 조회 시 상품명/가격/쇼핑몰/카테고리/링크를 함께 노출하고 `DELETE /wishlist/{product_id}`로 찜 삭제
+- 업로드 후 추천 이동 시 `/recommendations?uploaded_image_id=...` 형태로 최신 업로드 ID를 URL에도 함께 실어 전달합니다.
 
 ## UI 개선 사항 (TSK-0003)
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내
@@ -84,6 +85,10 @@ npm run test:e2e
 ## 최근 추천 복구 개선
 - 백엔드 재시작 뒤 오래된 `uploaded_image_id`가 남아 있어도 추천 페이지가 치명적으로 깨지지 않음
 - stale 업로드 상태를 자동으로 비우고 `/upload` 재업로드를 안내함
+
+## 최근 최신 업로드 동기화 개선
+- 업로드 화면과 최근 업로드 재사용은 추천 페이지 이동 시 최신 `uploaded_image_id`를 URL에 함께 전달합니다.
+- 추천 페이지는 첫 진입 시 URL의 `uploaded_image_id`를 우선 사용해 현재 업로드 기준으로 추천을 다시 조회합니다.
 
 ## 최근 위시리스트 정렬 개선
 - 위시리스트에서 최신순/오래된순/가격 오름차순/가격 내림차순/이름순 정렬을 지원

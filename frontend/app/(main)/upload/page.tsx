@@ -227,7 +227,7 @@ export default function UploadPage() {
         }),
       );
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
-      router.push("/recommendations");
+      router.push(`/recommendations?uploaded_image_id=${encodeURIComponent(uploaded.id)}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "업로드 중 오류가 발생했습니다.";
       setErrorMessage(message);
@@ -239,7 +239,7 @@ export default function UploadPage() {
   function handleReuseUpload(item: UploadHistoryItem) {
     setStoredUploadedImageId(item.id);
     setStoredUploadedImageAnalysis(item.analysis);
-    router.push("/recommendations");
+    router.push(`/recommendations?uploaded_image_id=${encodeURIComponent(item.id)}`);
   }
 
   function handleDeleteRecentUpload(itemId: string, event: MouseEvent<HTMLButtonElement>) {
