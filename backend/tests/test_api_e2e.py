@@ -46,8 +46,11 @@ def test_core_e2e_flow() -> None:
         params={"uploaded_image_id": uploaded_image_id, "limit": 3},
     )
     assert rec_resp.status_code == 200
-    rec_items = rec_resp.json()["data"]["items"]
+    rec_data = rec_resp.json()["data"]
+    rec_items = rec_data["items"]
     assert len(rec_items) >= 1
+    assert rec_data["analysis"]["checksum"] == upload_data["analysis"]["checksum"]
+    assert rec_data["analysis"]["category_query_hints"] == upload_data["analysis"]["category_query_hints"]
     assert "score_breakdown" in rec_items[0]
     assert "color_bonus" in rec_items[0]["score_breakdown"]
     assert "product_image_color_bonus" in rec_items[0]["score_breakdown"]

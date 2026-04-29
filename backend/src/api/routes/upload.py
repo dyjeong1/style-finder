@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from src.core.auth import get_current_user
 from src.core.response import ok_response
 from src.services.auth_service import AuthUser
-from src.services.store import store
+from src.services.store import serialize_upload_analysis, store
 
 router = APIRouter()
 
@@ -60,23 +60,6 @@ async def upload_image(
             "id": record.id,
             "image_url": record.image_url,
             "created_at": record.created_at,
-            "analysis": {
-                "checksum": record.analysis.checksum,
-                "dominant_tone": record.analysis.dominant_tone,
-                "dominant_color": record.analysis.dominant_color,
-                "style_mood": record.analysis.style_mood,
-                "silhouette": record.analysis.silhouette,
-                "preferred_categories": list(record.analysis.preferred_categories),
-                "category_query_hints": record.analysis.category_query_hints,
-                "detected_items": [
-                    {
-                        "category": item.category,
-                        "color": item.color,
-                        "item_label": item.item_label,
-                        "query": item.query,
-                    }
-                    for item in record.analysis.detected_items
-                ],
-            },
+            "analysis": serialize_upload_analysis(record.analysis),
         }
     )

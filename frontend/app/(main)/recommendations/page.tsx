@@ -8,14 +8,15 @@ import {
   addWishlist,
   clearStoredUploadedImageAnalysis,
   clearStoredUploadedImageId,
-  getUploadHistory,
   getRecommendations,
   getStoredUploadedImageAnalysis,
   getStoredUploadedImageId,
+  getUploadHistory,
   getWishlist,
   RecommendationItem,
-  setStoredUploadedImageId,
   setStoredUploadedImageAnalysis,
+  setStoredUploadedImageId,
+  updateUploadHistoryAnalysis,
 } from "@/lib/api";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
@@ -171,6 +172,7 @@ function RecommendationPageContent() {
   useEffect(() => {
     const nextUploadedImageId = uploadedImageIdFromUrl || getStoredUploadedImageId();
     const uploadChanged = lastResolvedUploadIdRef.current !== nextUploadedImageId;
+    const nextAnalysis = getAnalysisForUpload(nextUploadedImageId);
 
     if (uploadChanged) {
       setItems([]);
@@ -189,8 +191,6 @@ function RecommendationPageContent() {
     if (uploadedImageIdFromUrl) {
       setStoredUploadedImageId(uploadedImageIdFromUrl);
     }
-
-    const nextAnalysis = getAnalysisForUpload(nextUploadedImageId);
     if (nextUploadedImageId && nextAnalysis) {
       setStoredUploadedImageAnalysis(nextAnalysis);
     }
@@ -253,6 +253,13 @@ function RecommendationPageContent() {
       setDataSource(result.source ?? "mock");
       setSearchQuery(result.query ?? "");
       setFallbackMessage(result.fallback_message ?? null);
+      if (result.analysis) {
+        setUploadedImageAnalysis(result.analysis);
+        if (requestUploadedImageId === getStoredUploadedImageId()) {
+          setStoredUploadedImageAnalysis(result.analysis);
+        }
+        updateUploadHistoryAnalysis(requestUploadedImageId, result.analysis);
+      }
     } catch (error) {
       if (latestRequestKeyRef.current !== requestKey || lastResolvedUploadIdRef.current !== requestUploadedImageId) {
         return;

@@ -16,7 +16,7 @@ from src.services.naver_shopping import (
     build_naver_category_queries,
     build_naver_query,
 )
-from src.services.store import ProductRecord, UploadAnalysis
+from src.services.store import ProductRecord, UploadAnalysis, serialize_upload_analysis
 from src.services.store import store
 from src.services.vision_reranker import VisionReranker, VisionRerankerConfig
 
@@ -152,6 +152,7 @@ def get_recommendations(
             "total_count": len(items),
             "source": "naver_shopping" if naver_products else "mock",
             "query": query,
+            "analysis": serialize_upload_analysis(upload.analysis),
             "fallback_reason": fallback_reason,
             "fallback_message": fallback_message,
         }

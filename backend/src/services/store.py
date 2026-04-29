@@ -72,6 +72,27 @@ class ProductRecord:
     dominant_color: str = "unknown"
 
 
+def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
+    return {
+        "checksum": analysis.checksum,
+        "dominant_tone": analysis.dominant_tone,
+        "dominant_color": analysis.dominant_color,
+        "style_mood": analysis.style_mood,
+        "silhouette": analysis.silhouette,
+        "preferred_categories": list(analysis.preferred_categories),
+        "category_query_hints": analysis.category_query_hints,
+        "detected_items": [
+            {
+                "category": item.category,
+                "color": item.color,
+                "item_label": item.item_label,
+                "query": item.query,
+            }
+            for item in analysis.detected_items
+        ],
+    }
+
+
 def resolve_detected_items(
     content: bytes,
     vision_predictor: Callable[[bytes], list[DetectedOutfitItem]],

@@ -95,6 +95,7 @@ type RecommendationListResponse = {
   total_count: number;
   source?: "naver_shopping" | "mock";
   query?: string;
+  analysis?: UploadAnalysis;
   fallback_reason?: string | null;
   fallback_message?: string | null;
 };
@@ -259,6 +260,23 @@ export function prependUploadHistory(item: UploadHistoryItem): UploadHistoryItem
     ...getUploadHistory().filter((existingItem) => existingItem.id !== item.id),
   ].slice(0, 6);
 
+  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
+  return nextItems;
+}
+
+export function updateUploadHistoryAnalysis(uploadHistoryId: string, analysis: UploadAnalysis): UploadHistoryItem[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const nextItems = getUploadHistory().map((item) =>
+    item.id === uploadHistoryId
+      ? {
+          ...item,
+          analysis,
+        }
+      : item,
+  );
   window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
   return nextItems;
 }
