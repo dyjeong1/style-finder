@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import {
   addWishlist,
   clearStoredUploadedImageAnalysis,
   clearStoredUploadedImageId,
+  getUploadHistory,
   getRecommendations,
   getStoredUploadedImageAnalysis,
   getStoredUploadedImageId,
   getWishlist,
   RecommendationItem,
   setStoredUploadedImageId,
+  setStoredUploadedImageAnalysis,
 } from "@/lib/api";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
@@ -119,7 +122,27 @@ function resolveRecommendationImage(item: RecommendationItem): string {
   return item.image_url;
 }
 
-export default function RecommendationPage() {
+function getAnalysisForUpload(uploadedImageId: string | null): ReturnType<typeof getStoredUploadedImageAnalysis> {
+  if (!uploadedImageId) {
+    return null;
+  }
+
+  const historyItem = getUploadHistory().find((item) => item.id === uploadedImageId);
+  if (historyItem) {
+    return historyItem.analysis;
+  }
+
+  if (getStoredUploadedImageId() === uploadedImageId) {
+    return getStoredUploadedImageAnalysis();
+  }
+
+  return null;
+}
+
+function RecommendationPageContent() {
+  const searchParams = useSearchParams();
+  const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id");
+  const lastResolvedUploadIdRef = useRef<string | null>(null);
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
@@ -142,20 +165,40 @@ export default function RecommendationPage() {
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
-    const uploadedImageIdFromUrl = new URLSearchParams(window.location.search).get("uploaded_image_id");
+  }, []);
+
+  useEffect(() => {
+    const nextUploadedImageId = uploadedImageIdFromUrl || getStoredUploadedImageId();
+    const uploadChanged = lastResolvedUploadIdRef.current !== nextUploadedImageId;
+
+    if (uploadChanged) {
+      setItems([]);
+      setTotalCount(0);
+      setSearchQuery("");
+      setFallbackMessage(null);
+      setFeedbackMessage(null);
+      setCategory("");
+      setSort("similarity_desc");
+      setMinPrice("");
+      setMaxPrice("");
+      setCustomQueryInput("");
+      setAppliedCustomQuery("");
+    }
 
     if (uploadedImageIdFromUrl) {
       setStoredUploadedImageId(uploadedImageIdFromUrl);
-      setUploadedImageId(uploadedImageIdFromUrl);
-      setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
-      setIsClientReady(true);
-      return;
     }
 
-    setUploadedImageId(getStoredUploadedImageId());
-    setUploadedImageAnalysis(getStoredUploadedImageAnalysis());
+    const nextAnalysis = getAnalysisForUpload(nextUploadedImageId);
+    if (nextUploadedImageId && nextAnalysis) {
+      setStoredUploadedImageAnalysis(nextAnalysis);
+    }
+
+    lastResolvedUploadIdRef.current = nextUploadedImageId;
+    setUploadedImageId(nextUploadedImageId);
+    setUploadedImageAnalysis(nextAnalysis);
     setIsClientReady(true);
-  }, []);
+  }, [uploadedImageIdFromUrl]);
 
   async function loadSavedWishlistState() {
     setWishlistLoading(true);
@@ -632,5 +675,21 @@ export default function RecommendationPage() {
         </div>
       ) : null}
     </section>
+  );
+}
+
+export default function RecommendationPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="card recommendations-shell" aria-busy="true">
+          <p className="lead" role="status">
+            추천 결과를 불러오는 중입니다...
+          </p>
+        </section>
+      }
+    >
+      <RecommendationPageContent />
+    </Suspense>
   );
 }
