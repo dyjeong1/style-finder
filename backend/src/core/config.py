@@ -2,10 +2,28 @@ from __future__ import annotations
 
 from functools import lru_cache
 import os
+from pathlib import Path
 from typing import Optional
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ENV_FILE_PATH = Path(__file__).resolve().parents[2] / ".env"
+
+
+def _read_env_file_values(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
 
 
 class Settings(BaseSettings):
@@ -107,7 +125,7 @@ class Settings(BaseSettings):
         ),
     )
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=str(ENV_FILE_PATH), env_file_encoding="utf-8")
 
 
 @lru_cache(maxsize=1)
@@ -115,38 +133,38 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def resolve_vision_outfit_analyzer_runtime_config(settings: Settings, provider_override: str | None = None) -> dict[str, object]:
+def resolve_vision_outfit_analyzer_runtime_config(
+    settings: Settings,
+    provider_override: str | None = None,
+    env_values: dict[str, str] | None = None,
+) -> dict[str, object]:
     provider = (provider_override or settings.vision_outfit_analyzer_provider or "disabled").lower()
+    env_file_values = _read_env_file_values(ENV_FILE_PATH) if env_values is None else env_values
 
-    def resolve_value(common_key: str, provider_key: str, fallback: object, *, prefer_provider_key: bool = False) -> object:
-        if prefer_provider_key:
-            provider_value = os.getenv(provider_key)
-            if provider_value not in (None, ""):
-                return provider_value
-            common_value = os.getenv(common_key)
-            if common_value not in (None, ""):
-                return common_value
-            return fallback
+    def lookup_env(key: str) -> str | None:
+        value = os.getenv(key)
+        if value not in (None, ""):
+            return value
+        return env_file_values.get(key)
 
-        common_value = os.getenv(common_key)
-        if common_value not in (None, ""):
-            return common_value
-        provider_value = os.getenv(provider_key)
+    def resolve_value(common_key: str, provider_key: str, fallback: object) -> object:
+        provider_value = lookup_env(provider_key)
         if provider_value not in (None, ""):
             return provider_value
+        common_value = lookup_env(common_key)
+        if common_value not in (None, ""):
+            return common_value
         return fallback
 
-    prefer_provider_key = provider_override is not None
-
     def resolve_int_value(common_key: str, provider_key: str, fallback: int) -> int:
-        resolved = resolve_value(common_key, provider_key, fallback, prefer_provider_key=prefer_provider_key)
+        resolved = resolve_value(common_key, provider_key, fallback)
         try:
             return int(resolved)
         except (TypeError, ValueError):
             return fallback
 
     def resolve_float_value(common_key: str, provider_key: str, fallback: float) -> float:
-        resolved = resolve_value(common_key, provider_key, fallback, prefer_provider_key=prefer_provider_key)
+        resolved = resolve_value(common_key, provider_key, fallback)
         try:
             return float(resolved)
         except (TypeError, ValueError):
@@ -157,13 +175,11 @@ def resolve_vision_outfit_analyzer_runtime_config(settings: Settings, provider_o
             "VISION_OUTFIT_ANALYZER_MODEL_NAME",
             "GEMINI_VISION_MODEL",
             "gemini-2.5-flash",
-            prefer_provider_key=prefer_provider_key,
         )
         api_base_url = resolve_value(
             "VISION_OUTFIT_ANALYZER_API_BASE_URL",
             "GEMINI_VISION_API_BASE_URL",
             "",
-            prefer_provider_key=prefer_provider_key,
         )
         api_key = settings.gemini_api_key
         max_image_bytes = resolve_int_value(
@@ -181,13 +197,11 @@ def resolve_vision_outfit_analyzer_runtime_config(settings: Settings, provider_o
             "VISION_OUTFIT_ANALYZER_MODEL_NAME",
             "OLLAMA_VISION_MODEL",
             "gemma3:4b",
-            prefer_provider_key=prefer_provider_key,
         )
         api_base_url = resolve_value(
             "VISION_OUTFIT_ANALYZER_API_BASE_URL",
             "OLLAMA_API_BASE_URL",
             "",
-            prefer_provider_key=prefer_provider_key,
         )
         api_key = settings.ollama_api_key
         max_image_bytes = resolve_int_value(
@@ -205,13 +219,11 @@ def resolve_vision_outfit_analyzer_runtime_config(settings: Settings, provider_o
             "VISION_OUTFIT_ANALYZER_MODEL_NAME",
             "OPENAI_VISION_MODEL",
             "gpt-4o",
-            prefer_provider_key=prefer_provider_key,
         )
         api_base_url = resolve_value(
             "VISION_OUTFIT_ANALYZER_API_BASE_URL",
             "OPENAI_API_BASE_URL",
             "",
-            prefer_provider_key=prefer_provider_key,
         )
         api_key = settings.openai_api_key
         max_image_bytes = resolve_int_value(

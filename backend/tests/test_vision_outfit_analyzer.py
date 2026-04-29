@@ -790,7 +790,7 @@ def test_runtime_config_prefers_ollama_alias_over_stale_gemini_model(monkeypatch
     monkeypatch.setenv("OLLAMA_API_KEY", "ollama-key")
 
     settings = Settings(_env_file=None)
-    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama", env_values={})
 
     assert runtime_config["provider"] == "ollama"
     assert runtime_config["model_name"] == "qwen2.5vl:7b"
@@ -803,7 +803,7 @@ def test_runtime_config_uses_longer_default_timeout_for_ollama(monkeypatch) -> N
     monkeypatch.delenv("OLLAMA_VISION_TIMEOUT_SECONDS", raising=False)
 
     settings = Settings(_env_file=None)
-    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama", env_values={})
 
     assert runtime_config["timeout_seconds"] == 90.0
 
@@ -813,9 +813,23 @@ def test_runtime_config_prefers_provider_specific_timeout_when_provider_overridd
     monkeypatch.setenv("OLLAMA_VISION_TIMEOUT_SECONDS", "120")
 
     settings = Settings(_env_file=None)
-    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama")
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="ollama", env_values={})
 
     assert runtime_config["timeout_seconds"] == 120.0
+
+
+def test_runtime_config_prefers_provider_specific_model_for_current_ollama_provider(monkeypatch) -> None:
+    monkeypatch.setenv("VISION_OUTFIT_ANALYZER_PROVIDER", "ollama")
+    monkeypatch.setenv("VISION_OUTFIT_ANALYZER_MODEL_NAME", "gemini-2.5-flash")
+    monkeypatch.setenv("OLLAMA_VISION_MODEL", "gemma3:4b")
+    monkeypatch.setenv("OLLAMA_API_BASE_URL", "http://127.0.0.1:11434/api/chat")
+
+    settings = Settings(_env_file=None)
+    runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings, env_values={})
+
+    assert runtime_config["provider"] == "ollama"
+    assert runtime_config["model_name"] == "gemma3:4b"
+    assert runtime_config["api_base_url"] == "http://127.0.0.1:11434/api/chat"
 
 
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:

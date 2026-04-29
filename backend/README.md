@@ -71,6 +71,7 @@ pip install -e ".[vision]"
 - 여기에 AI 비전 모델을 붙일 수 있도록 `vision_outfit_analyzer` 인터페이스가 추가되었습니다.
 - 현재는 `disabled`, `mock`, `openai`, `gemini`, `ollama` provider를 지원합니다.
 - 선택적 Gemini 보정이 켜져 있으면 다른 AI provider 결과를 교체/추가하는 용도로만 사용하고, 규칙 기반 결과를 최종 detected_items에 자동 병합하지 않습니다.
+- 현재 설정 로딩은 실행 디렉터리와 무관하게 `backend/.env`를 기준으로 읽으며, `ollama` 사용 시 `OLLAMA_VISION_MODEL`, `OLLAMA_API_BASE_URL` 같은 provider별 값이 런타임에서 공통 `VISION_*`보다 우선 적용됩니다.
 - OpenAI 호출이 실패하거나 응답이 비어 있으면 업로드 분석은 자동으로 기존 규칙 기반으로 fallback 합니다.
 - Gemini 호출이 실패하거나 응답이 비어 있어도 동일하게 규칙 기반으로 fallback 합니다.
 - Ollama 로컬 호출이 실패하거나 서버가 꺼져 있어도 동일하게 규칙 기반으로 fallback 합니다.
