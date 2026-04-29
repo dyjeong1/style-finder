@@ -128,6 +128,18 @@ cp .env.example .env
 # GEMINI_VISION_MODEL=gemini-2.5-flash
 ```
 
+선택적 Gemini 보정 예시:
+```bash
+cd backend
+cp .env.example .env
+# .env에 아래 값을 입력
+# VISION_OUTFIT_ANALYZER_ENABLED=true
+# VISION_OUTFIT_ANALYZER_PROVIDER=ollama
+# OLLAMA_VISION_MODEL=gemma3:4b
+# GEMINI_API_KEY=...
+# GEMINI_CORRECTION_ENABLED=true
+```
+
 Ollama Vision 예시:
 ```bash
 cd backend
@@ -156,6 +168,8 @@ Ollama 실행 메모:
 - 이후 경량 모델 후처리 정규화를 추가해 같은 샘플의 하의/악세서리 표현을 `블루 데님 팬츠`, `블랙 안경` 형태로 표준화했습니다.
 - 3-way 비교 기준 현재 성능 순위는 `gemini > ollama(gemma3:4b) > rule`이며, `ollama` 비교를 fresh 실행하려면 `--no-cache` 옵션을 사용합니다.
 - 2026-04-29 하이브리드 병합 보정으로 AI 결과를 규칙 기반 fallback과 제한적으로 재조정하도록 보강했고, `codytest_2.jpg`는 `화이트 셔츠 / 블루 가디건 / 블랙 데님 팬츠 / 블랙 안경`으로 정리되었습니다.
+- 2026-04-29 선택적 Gemini 보정 경로를 추가해, Ollama 결과가 모호한 카테고리에만 Gemini를 보조 호출하도록 했습니다.
+- 같은 날 `codytest_2.jpg`는 `화이트 슬리브리스 탑 / 블루 가디건 / 블랙 와이드 팬츠 / 블랙 안경 / 블랙 귀걸이`, `codytest_3.png`는 `화이트 티셔츠 / 블루 가디건 / 브라운 와이드 팬츠 / 화이트 운동화` 수준으로 개선되는 것을 확인했습니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`

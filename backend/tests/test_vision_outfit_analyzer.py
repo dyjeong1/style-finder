@@ -7,7 +7,11 @@ from PIL import Image, ImageDraw
 
 from src.core.config import Settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import DetectedOutfitItem
-from src.services.store import InMemoryStore
+from src.services.store import (
+    InMemoryStore,
+    apply_selective_category_corrections,
+    select_gemini_correction_categories,
+)
 from src.services.vision_outfit_analyzer import (
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
@@ -158,6 +162,95 @@ def test_store_keeps_all_detected_items_but_uses_first_query_hint_per_category(t
         "그레이 목걸이",
     ]
     assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
+
+
+def test_select_gemini_correction_categories_targets_layered_and_conflicting_categories() -> None:
+    vision_items = [
+        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        DetectedOutfitItem(category="outer", color="gray", item_label="가디건", query="그레이 가디건"),
+        DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+    ]
+    fallback_items = [
+        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
+        DetectedOutfitItem(category="bottom", color="black", item_label="데님 팬츠", query="블랙 데님 팬츠"),
+        DetectedOutfitItem(category="accessory", color="brown", item_label="안경", query="브라운 안경"),
+    ]
+    merged_items = tuple(merge_detected_items(vision_items, fallback_items))
+
+    categories = select_gemini_correction_categories(vision_items, fallback_items, merged_items)
+
+    assert categories == ("top", "outer", "bottom", "accessory")
+
+
+def test_apply_selective_category_corrections_replaces_only_targeted_categories() -> None:
+    base_items = (
+        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
+        DetectedOutfitItem(category="bottom", color="black", item_label="데님 팬츠", query="블랙 데님 팬츠"),
+        DetectedOutfitItem(category="bag", color="brown", item_label="숄더백", query="브라운 숄더백"),
+        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+    )
+    correction_items = [
+        DetectedOutfitItem(category="top", color="white", item_label="슬리브리스 탑", query="화이트 슬리브리스 탑"),
+        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="귀걸이", query="그레이 귀걸이"),
+    ]
+
+    corrected = apply_selective_category_corrections(base_items, correction_items, ("top", "accessory"))
+
+    assert [(item.category, item.query) for item in corrected] == [
+        ("top", "화이트 슬리브리스 탑"),
+        ("outer", "블루 가디건"),
+        ("bottom", "블랙 데님 팬츠"),
+        ("bag", "브라운 숄더백"),
+        ("accessory", "블랙 안경"),
+        ("accessory", "그레이 귀걸이"),
+    ]
+
+
+def test_store_applies_optional_gemini_correction_for_ambiguous_ollama_output(tmp_path) -> None:
+    primary_items = (
+        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        DetectedOutfitItem(category="outer", color="gray", item_label="가디건", query="그레이 가디건"),
+        DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+    )
+    correction_items = (
+        DetectedOutfitItem(category="top", color="white", item_label="슬리브리스 탑", query="화이트 슬리브리스 탑"),
+        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
+        DetectedOutfitItem(category="bottom", color="black", item_label="와이드 데님 팬츠", query="블랙 와이드 데님 팬츠"),
+        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
+        DetectedOutfitItem(category="accessory", color="black", item_label="귀걸이", query="블랙 귀걸이"),
+    )
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=primary_items,
+        ),
+        gemini_correction_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=correction_items,
+        ),
+        enable_gemini_correction=True,
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert record.analysis.category_query_hints["top"] == "화이트 슬리브리스 탑"
+    assert record.analysis.category_query_hints["outer"] == "블루 가디건"
+    assert record.analysis.category_query_hints["bottom"] == "블랙 와이드 데님 팬츠"
+    assert [item.query for item in record.analysis.detected_items if item.category == "accessory"] == [
+        "블랙 안경",
+        "블랙 귀걸이",
+    ]
 
 
 def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:
@@ -460,6 +553,14 @@ def test_settings_support_ollama_alias_names(monkeypatch) -> None:
     assert settings.vision_outfit_analyzer_max_image_bytes == 7654
     assert settings.vision_outfit_analyzer_timeout_seconds == 11.0
     assert settings.vision_outfit_analyzer_api_base_url == "http://127.0.0.1:11434/api/chat"
+
+
+def test_settings_support_gemini_correction_alias_name(monkeypatch) -> None:
+    monkeypatch.setenv("GEMINI_CORRECTION_ENABLED", "false")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.vision_outfit_analyzer_gemini_correction_enabled is False
 
 
 def test_runtime_config_prefers_ollama_alias_over_stale_gemini_model(monkeypatch) -> None:

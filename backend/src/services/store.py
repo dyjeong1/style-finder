@@ -77,12 +77,16 @@ class InMemoryStore:
         self,
         wishlist_store_path: Path | None = None,
         vision_outfit_analyzer: VisionOutfitAnalyzer | None = None,
+        gemini_correction_analyzer: VisionOutfitAnalyzer | None = None,
+        enable_gemini_correction: bool = False,
     ) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
         self.products: dict[str, ProductRecord] = self._seed_products()
         self.wishlist_store_path = wishlist_store_path or Path(__file__).resolve().parents[2] / "data" / "wishlist.json"
         self.wishlist_by_user: dict[str, dict[str, str]] = self._load_wishlist()
         self.vision_outfit_analyzer = vision_outfit_analyzer or VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig())
+        self.gemini_correction_analyzer = gemini_correction_analyzer
+        self.enable_gemini_correction = enable_gemini_correction and gemini_correction_analyzer is not None
 
     def _load_wishlist(self) -> dict[str, dict[str, str]]:
         if not self.wishlist_store_path.exists():
@@ -241,6 +245,22 @@ class InMemoryStore:
         rule_detected_items = analyze_outfit_items(content)
         vision_detected_items = self.vision_outfit_analyzer.analyze(content)
         detected_items = tuple(merge_detected_items(vision_detected_items, rule_detected_items))
+        if self.enable_gemini_correction:
+            correction_categories = select_gemini_correction_categories(
+                vision_items=vision_detected_items,
+                fallback_items=rule_detected_items,
+                merged_items=detected_items,
+            )
+            if correction_categories:
+                correction_items = self.gemini_correction_analyzer.analyze(content)
+                if correction_items:
+                    detected_items = tuple(
+                        apply_selective_category_corrections(
+                            base_items=detected_items,
+                            correction_items=correction_items,
+                            categories=correction_categories,
+                        )
+                    )
         category_query_hints: dict[str, str] = {}
         for item in detected_items:
             category_query_hints.setdefault(item.category, item.query)
@@ -466,8 +486,111 @@ class InMemoryStore:
         items.sort(key=lambda x: x["created_at"], reverse=True)
         return items
 
+
+def select_gemini_correction_categories(
+    vision_items: list[DetectedOutfitItem],
+    fallback_items: list[DetectedOutfitItem],
+    merged_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+) -> tuple[str, ...]:
+    target_order = ("top", "outer", "bottom", "accessory")
+    generic_labels = {
+        "top": {"탑", "셔츠", "티셔츠", "니트 탑", "블라우스"},
+        "outer": {"가디건", "자켓", "점퍼", "베스트"},
+        "bottom": {"팬츠", "바지", "데님 팬츠", "스커트"},
+        "accessory": {"안경", "양말", "목걸이", "귀걸이"},
+    }
+    vision_by_category = _first_item_by_category(vision_items)
+    fallback_by_category = _first_item_by_category(fallback_items)
+    merged_categories = {item.category for item in merged_items}
+    categories: list[str] = []
+
+    if {"top", "outer"}.issubset(merged_categories):
+        categories.extend(["top", "outer"])
+
+    for category in target_order:
+        vision_item = vision_by_category.get(category)
+        fallback_item = fallback_by_category.get(category)
+
+        if vision_item and fallback_item:
+            if vision_item.color != fallback_item.color or vision_item.item_label != fallback_item.item_label:
+                categories.append(category)
+                continue
+
+        item_to_check = vision_item or fallback_item
+        if item_to_check and item_to_check.item_label in generic_labels.get(category, set()):
+            categories.append(category)
+            continue
+
+        if not vision_item and fallback_item and category in {"top", "outer", "accessory"}:
+            categories.append(category)
+
+    return tuple(dict.fromkeys(category for category in categories if category in target_order))
+
+
+def apply_selective_category_corrections(
+    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+    correction_items: list[DetectedOutfitItem],
+    categories: tuple[str, ...],
+) -> list[DetectedOutfitItem]:
+    if not categories:
+        return list(base_items)
+
+    correction_by_category: dict[str, list[DetectedOutfitItem]] = {}
+    for item in correction_items:
+        if item.category in categories:
+            correction_by_category.setdefault(item.category, []).append(item)
+
+    if not correction_by_category:
+        return list(base_items)
+
+    result: list[DetectedOutfitItem] = []
+    replaced: set[str] = set()
+    for item in base_items:
+        if item.category in correction_by_category:
+            if item.category in replaced:
+                continue
+            result.extend(correction_by_category[item.category])
+            replaced.add(item.category)
+            continue
+        result.append(item)
+
+    for category in categories:
+        if category in replaced:
+            continue
+        if category in correction_by_category:
+            result.extend(correction_by_category[category])
+            replaced.add(category)
+
+    ordered_categories = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+    order_map = {category: index for index, category in enumerate(ordered_categories)}
+    return [
+        item
+        for _, item in sorted(
+            enumerate(result),
+            key=lambda pair: (order_map.get(pair[1].category, len(order_map)), pair[0]),
+        )
+    ]
+
+
+def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> dict[str, DetectedOutfitItem]:
+    first_items: dict[str, DetectedOutfitItem] = {}
+    for item in items:
+        first_items.setdefault(item.category, item)
+    return first_items
+
 settings = get_settings()
 vision_runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings)
+enable_gemini_correction = (
+    bool(settings.vision_outfit_analyzer_gemini_correction_enabled)
+    and bool(vision_runtime_config["enabled"])
+    and str(vision_runtime_config["provider"]).lower() == "ollama"
+    and bool(settings.gemini_api_key)
+)
+gemini_correction_runtime_config = (
+    resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="gemini")
+    if enable_gemini_correction
+    else None
+)
 store = InMemoryStore(
     vision_outfit_analyzer=VisionOutfitAnalyzer(
         VisionOutfitAnalyzerConfig(
@@ -483,5 +606,25 @@ store = InMemoryStore(
                 else None
             ),
         )
-    )
+    ),
+    gemini_correction_analyzer=(
+        VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(
+                enabled=bool(gemini_correction_runtime_config["enabled"]),
+                provider=str(gemini_correction_runtime_config["provider"]),
+                model_name=str(gemini_correction_runtime_config["model_name"]),
+                max_image_bytes=int(gemini_correction_runtime_config["max_image_bytes"]),
+                timeout_seconds=float(gemini_correction_runtime_config["timeout_seconds"]),
+                api_base_url=str(gemini_correction_runtime_config["api_base_url"]),
+                api_key=(
+                    str(gemini_correction_runtime_config["api_key"])
+                    if gemini_correction_runtime_config["api_key"] is not None
+                    else None
+                ),
+            )
+        )
+        if gemini_correction_runtime_config is not None
+        else None
+    ),
+    enable_gemini_correction=enable_gemini_correction,
 )

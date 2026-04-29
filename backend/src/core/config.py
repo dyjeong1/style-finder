@@ -99,6 +99,13 @@ class Settings(BaseSettings):
             "OLLAMA_API_BASE_URL",
         ),
     )
+    vision_outfit_analyzer_gemini_correction_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "VISION_OUTFIT_ANALYZER_GEMINI_CORRECTION_ENABLED",
+            "GEMINI_CORRECTION_ENABLED",
+        ),
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
