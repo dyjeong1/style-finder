@@ -467,6 +467,13 @@ def build_item_query(category: str, color: str, item_label: str) -> str:
     color_prefix = COLOR_QUERY_LABELS.get(color, "")
     category_label = CATEGORY_QUERY_LABELS.get(category, category)
     normalized_label = item_label.strip() or category_label
+    if category == "accessory":
+        family = _item_family(normalized_label)
+        if family in {"목걸이", "귀걸이", "팔찌", "반지"}:
+            if color == "gray":
+                color_prefix = "실버"
+            elif color == "yellow":
+                color_prefix = "골드"
     if color_prefix and color_prefix not in normalized_label:
         return f"{color_prefix} {normalized_label}".strip()
     return normalized_label

@@ -10,6 +10,7 @@ from src.services.image_analysis import DetectedOutfitItem
 from src.services.store import (
     InMemoryStore,
     apply_selective_category_corrections,
+    _sort_detected_items_for_display,
     select_gemini_correction_categories,
 )
 from src.services.vision_outfit_analyzer import (
@@ -224,6 +225,24 @@ def test_apply_selective_category_corrections_replaces_only_targeted_categories(
     ]
 
 
+def test_sort_detected_items_for_display_prioritizes_jewelry_over_ring_and_socks() -> None:
+    items = [
+        DetectedOutfitItem(category="accessory", color="white", item_label="양말", query="화이트 양말"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="반지", query="실버 반지"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="목걸이", query="실버 목걸이"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="팔찌", query="실버 팔찌"),
+    ]
+
+    sorted_items = _sort_detected_items_for_display(items)
+
+    assert [item.query for item in sorted_items] == [
+        "실버 목걸이",
+        "실버 팔찌",
+        "실버 반지",
+        "화이트 양말",
+    ]
+
+
 def test_store_applies_optional_gemini_correction_to_generic_bag_label(tmp_path) -> None:
     primary_items = (
         DetectedOutfitItem(category="top", color="white", item_label="티셔츠", query="화이트 티셔츠"),
@@ -336,7 +355,7 @@ def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypat
     user_content = captured_payload["input"][1]["content"]
     assert user_content[1]["type"] == "input_image"
     assert user_content[1]["image_url"].startswith("data:image/png;base64,")
-    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+    assert [item.query for item in items] == ["블루 가디건", "실버 목걸이"]
 
 
 def test_gemini_provider_uses_generate_content_payload(monkeypatch) -> None:
@@ -377,7 +396,7 @@ def test_gemini_provider_uses_generate_content_payload(monkeypatch) -> None:
     assert captured["headers"]["Content-Type"] == "application/json"
     parts = captured["payload"]["contents"][0]["parts"]
     assert parts[1]["inline_data"]["mime_type"] == "image/png"
-    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+    assert [item.query for item in items] == ["블루 가디건", "실버 목걸이"]
 
 
 def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
@@ -411,7 +430,7 @@ def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
     assert captured["payload"]["stream"] is False
     assert captured["payload"]["messages"][1]["images"][0]
     assert captured["payload"]["format"]["type"] == "object"
-    assert [item.query for item in items] == ["블루 가디건", "그레이 목걸이"]
+    assert [item.query for item in items] == ["블루 가디건", "실버 목걸이"]
 
 
 def test_ollama_provider_normalizes_lightweight_model_item_labels(monkeypatch) -> None:
@@ -539,8 +558,8 @@ def test_ollama_provider_normalizes_jewelry_labels_and_defaults_unknown_color_to
     items = analyzer.analyze(build_flatlay_fixture())
 
     assert [(item.color, item.item_label, item.query) for item in items] == [
-        ("gray", "팔찌", "그레이 팔찌"),
-        ("gray", "반지", "그레이 반지"),
+        ("gray", "팔찌", "실버 팔찌"),
+        ("gray", "반지", "실버 반지"),
     ]
 
 
@@ -730,3 +749,4 @@ def test_runtime_config_prefers_provider_specific_timeout_when_provider_overridd
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
+    assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"

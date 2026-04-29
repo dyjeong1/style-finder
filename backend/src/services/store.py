@@ -261,6 +261,7 @@ class InMemoryStore:
                             categories=correction_categories,
                         )
                     )
+        detected_items = tuple(_sort_detected_items_for_display(detected_items))
         category_query_hints: dict[str, str] = {}
         for item in detected_items:
             category_query_hints.setdefault(item.category, item.query)
@@ -578,6 +579,35 @@ def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[Detecte
     for item in items:
         first_items.setdefault(item.category, item)
     return first_items
+
+
+def _sort_detected_items_for_display(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> list[DetectedOutfitItem]:
+    ordered_categories = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+    order_map = {category: index for index, category in enumerate(ordered_categories)}
+    accessory_priority = {
+        "안경": 0,
+        "목걸이": 1,
+        "귀걸이": 2,
+        "팔찌": 3,
+        "벨트": 4,
+        "머리끈": 5,
+        "모자": 6,
+        "머플러": 7,
+        "반지": 8,
+        "양말": 9,
+    }
+
+    def sort_key(pair: tuple[int, DetectedOutfitItem]) -> tuple[int, int, int]:
+        index, item = pair
+        if item.category != "accessory":
+            return (order_map.get(item.category, len(order_map)), 0, index)
+        return (
+            order_map["accessory"],
+            accessory_priority.get(item.item_label, len(accessory_priority)),
+            index,
+        )
+
+    return [item for _, item in sorted(enumerate(items), key=sort_key)]
 
 settings = get_settings()
 vision_runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings)
