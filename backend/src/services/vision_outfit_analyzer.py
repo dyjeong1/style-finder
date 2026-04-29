@@ -412,11 +412,36 @@ def merge_detected_items(
     fallback_items: list[DetectedOutfitItem],
 ) -> list[DetectedOutfitItem]:
     merged_items: list[DetectedOutfitItem] = []
-    covered_categories: set[str] = set()
+    fallback_by_category: dict[str, list[DetectedOutfitItem]] = {}
 
+    for item in fallback_items:
+        fallback_by_category.setdefault(item.category, []).append(item)
+
+    vision_by_category: dict[str, list[DetectedOutfitItem]] = {}
     for item in vision_items:
-        merged_items.append(item)
-        covered_categories.add(item.category)
+        category = _reassign_category_with_fallback(item, fallback_by_category)
+        normalized_item = item if category == item.category else DetectedOutfitItem(
+            category=category,
+            color=item.color,
+            item_label=item.item_label,
+            query=build_item_query(category=category, color=item.color, item_label=item.item_label),
+        )
+        vision_by_category.setdefault(category, []).append(normalized_item)
+
+    covered_categories: set[str] = set()
+    for category, items in vision_by_category.items():
+        if category == "accessory":
+            merged_items.extend(items)
+            covered_categories.add(category)
+            continue
+
+        primary_item = items[0]
+        fallback_candidates = fallback_by_category.get(category, [])
+        if fallback_candidates:
+            primary_item = _reconcile_with_fallback(primary_item, fallback_candidates[0])
+        merged_items.append(primary_item)
+        covered_categories.add(category)
+
     for item in fallback_items:
         if item.category in covered_categories:
             continue
@@ -441,6 +466,110 @@ def build_item_query(category: str, color: str, item_label: str) -> str:
     if color_prefix and color_prefix not in normalized_label:
         return f"{color_prefix} {normalized_label}".strip()
     return normalized_label
+
+
+def _reconcile_with_fallback(vision_item: DetectedOutfitItem, fallback_item: DetectedOutfitItem) -> DetectedOutfitItem:
+    if vision_item.category != fallback_item.category:
+        return vision_item
+
+    vision_family = _item_family(vision_item.item_label)
+    fallback_family = _item_family(fallback_item.item_label)
+    if vision_item.category == "bottom":
+        if vision_family in {"데님 팬츠", "와이드 데님 팬츠"} and fallback_family in {"데님 팬츠", "와이드 데님 팬츠"}:
+            if _specificity_score(fallback_item.item_label) >= _specificity_score(vision_item.item_label):
+                return fallback_item
+
+    if vision_item.category == "outer" and vision_family == "가디건":
+        if fallback_family == "가디건" and fallback_item.color not in {"unknown", "neutral"} and fallback_item.color != vision_item.color:
+            return fallback_item
+
+    if vision_family and fallback_family and vision_family != fallback_family:
+        return vision_item
+
+    if vision_item.category == "accessory" and fallback_family == vision_family and fallback_item.color != vision_item.color:
+        return fallback_item
+
+    if _specificity_score(fallback_item.item_label) > _specificity_score(vision_item.item_label) and fallback_family == vision_family:
+        return fallback_item
+
+    return vision_item
+
+
+def _reassign_category_with_fallback(
+    vision_item: DetectedOutfitItem,
+    fallback_by_category: dict[str, list[DetectedOutfitItem]],
+) -> str:
+    family = _item_family(vision_item.item_label)
+    if not family:
+        return vision_item.category
+
+    if vision_item.category == "top" and family in {"가디건", "니트 베스트", "베스트", "자켓", "레더 자켓", "점퍼", "코트", "원피스"}:
+        fallback_outer = fallback_by_category.get("outer", [])
+        if fallback_outer and _item_family(fallback_outer[0].item_label) == family:
+            return "outer"
+
+    if vision_item.category == "outer" and family in {"슬리브리스 탑", "블라우스", "셔츠", "티셔츠", "니트 탑", "탑"}:
+        fallback_top = fallback_by_category.get("top", [])
+        if fallback_top and _item_family(fallback_top[0].item_label) == family:
+            return "top"
+
+    return vision_item.category
+
+
+def _item_family(item_label: str) -> str:
+    label = item_label.strip()
+    for family in (
+        "가디건",
+        "니트 베스트",
+        "베스트",
+        "자켓",
+        "레더 자켓",
+        "점퍼",
+        "원피스",
+        "슬리브리스 탑",
+        "블라우스",
+        "셔츠",
+        "티셔츠",
+        "니트 탑",
+        "탑",
+        "와이드 데님 팬츠",
+        "데님 팬츠",
+        "와이드 팬츠",
+        "팬츠",
+        "슬랙스",
+        "스커트",
+        "도트 미니 스커트",
+        "플리츠 스커트",
+        "레이스 스커트",
+        "미니 스커트",
+        "메리제인 슈즈",
+        "스니커즈",
+        "로퍼",
+        "부츠",
+        "숄더백",
+        "크로스백",
+        "토트백",
+        "가방",
+        "안경",
+        "목걸이",
+        "귀걸이",
+        "머리끈",
+        "양말",
+        "벨트",
+        "모자",
+        "머플러",
+    ):
+        if family in label:
+            return family
+    return label
+
+
+def _specificity_score(item_label: str) -> int:
+    label = item_label.strip()
+    score = len(label)
+    if any(keyword in label for keyword in ("와이드", "브이넥", "스트라이프", "레이스", "플리츠", "슬리브리스", "메리제인", "레더", "도트")):
+        score += 5
+    return score
 
 
 def _normalize_item_color(category: str, color: str, item_label: str, query: str) -> str:

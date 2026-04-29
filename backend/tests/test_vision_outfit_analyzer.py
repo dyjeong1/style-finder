@@ -53,6 +53,41 @@ def test_merge_detected_items_prefers_vision_category_and_keeps_fallback_rest() 
     assert merged[4].query == "그레이 목걸이"
 
 
+def test_merge_detected_items_reconciles_outer_color_and_bottom_specificity() -> None:
+    vision_items = [
+        DetectedOutfitItem(category="outer", color="gray", item_label="가디건", query="그레이 가디건"),
+        DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+    ]
+    fallback_items = [
+        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
+        DetectedOutfitItem(category="bottom", color="navy", item_label="와이드 데님 팬츠", query="네이비 와이드 데님 팬츠"),
+    ]
+
+    merged = merge_detected_items(vision_items, fallback_items)
+
+    assert [(item.category, item.query) for item in merged] == [
+        ("outer", "블루 가디건"),
+        ("bottom", "네이비 와이드 데님 팬츠"),
+    ]
+
+
+def test_merge_detected_items_reassigns_cardigan_from_top_to_outer_and_keeps_fallback_top() -> None:
+    vision_items = [
+        DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
+    ]
+    fallback_items = [
+        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
+    ]
+
+    merged = merge_detected_items(vision_items, fallback_items)
+
+    assert [(item.category, item.query) for item in merged] == [
+        ("top", "화이트 셔츠"),
+        ("outer", "블루 가디건"),
+    ]
+
+
 def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path) -> None:
     store = InMemoryStore(
         wishlist_store_path=tmp_path / "wishlist.json",
