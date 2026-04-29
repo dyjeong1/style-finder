@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+from typing import Callable
 from uuid import uuid4
 
 from src.core.config import get_settings, resolve_vision_outfit_analyzer_runtime_config
@@ -69,6 +70,41 @@ class ProductRecord:
     silhouette: str
     feature_vector: tuple[float, ...]
     dominant_color: str = "unknown"
+
+
+def resolve_detected_items(
+    content: bytes,
+    vision_predictor: Callable[[bytes], list[DetectedOutfitItem]],
+    correction_predictor: Callable[[bytes], list[DetectedOutfitItem]] | None = None,
+    enable_gemini_correction: bool = False,
+    rule_predictor: Callable[[bytes], list[DetectedOutfitItem]] = analyze_outfit_items,
+) -> tuple[DetectedOutfitItem, ...]:
+    vision_detected_items = vision_predictor(content)
+    rule_detected_items: list[DetectedOutfitItem] = []
+    detected_items = tuple(vision_detected_items)
+
+    if detected_items and enable_gemini_correction and correction_predictor is not None:
+        rule_detected_items = rule_predictor(content)
+        correction_categories = select_gemini_correction_categories(
+            vision_items=vision_detected_items,
+            fallback_items=rule_detected_items,
+            merged_items=detected_items,
+        )
+        if correction_categories:
+            correction_items = correction_predictor(content)
+            if correction_items:
+                detected_items = tuple(
+                    apply_selective_category_corrections(
+                        base_items=detected_items,
+                        correction_items=correction_items,
+                        categories=correction_categories,
+                    )
+                )
+
+    if not detected_items:
+        detected_items = tuple(rule_predictor(content))
+
+    return tuple(_sort_detected_items_for_display(detected_items))
 
 
 class InMemoryStore:
@@ -243,31 +279,16 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        vision_detected_items = self.vision_outfit_analyzer.analyze(content)
-        rule_detected_items: list[DetectedOutfitItem] = []
-        detected_items = tuple(vision_detected_items)
-
-        if detected_items and self.enable_gemini_correction:
-            rule_detected_items = analyze_outfit_items(content)
-            correction_categories = select_gemini_correction_categories(
-                vision_items=vision_detected_items,
-                fallback_items=rule_detected_items,
-                merged_items=detected_items,
-            )
-            if correction_categories:
-                correction_items = self.gemini_correction_analyzer.analyze(content)
-                if correction_items:
-                    detected_items = tuple(
-                        apply_selective_category_corrections(
-                            base_items=detected_items,
-                            correction_items=correction_items,
-                            categories=correction_categories,
-                        )
-                    )
-        if not detected_items:
-            rule_detected_items = analyze_outfit_items(content)
-            detected_items = tuple(rule_detected_items)
-        detected_items = tuple(_sort_detected_items_for_display(detected_items))
+        detected_items = resolve_detected_items(
+            content,
+            vision_predictor=self.vision_outfit_analyzer.analyze,
+            correction_predictor=(
+                self.gemini_correction_analyzer.analyze
+                if self.enable_gemini_correction and self.gemini_correction_analyzer is not None
+                else None
+            ),
+            enable_gemini_correction=self.enable_gemini_correction,
+        )
         category_query_hints: dict[str, str] = {}
         for item in detected_items:
             category_query_hints.setdefault(item.category, item.query)

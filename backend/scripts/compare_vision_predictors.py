@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 from src.core.config import Settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import DetectedOutfitItem, analyze_outfit_items
+from src.services.store import resolve_detected_items
 from src.services.vision_dataset_evaluator import (
     compare_summaries,
     evaluate_dataset,
@@ -93,6 +94,67 @@ def build_predictor(
     return predictor
 
 
+def build_runtime_predictor(
+    name: str,
+    dataset_root: Path,
+    max_retries: int = 2,
+    timeout_seconds: float | None = None,
+    use_cache: bool = True,
+):
+    normalized = name.lower()
+    if not normalized.startswith("runtime-"):
+        raise ValueError(f"지원하지 않는 런타임 분석기 이름입니다: {name}")
+
+    descriptor = normalized.removeprefix("runtime-")
+    parts = tuple(part.strip() for part in descriptor.split("+") if part.strip())
+    if not parts:
+        raise ValueError(f"런타임 분석기 구성이 비어 있습니다: {name}")
+
+    primary_name = parts[0]
+    if primary_name == "rule":
+        return analyze_outfit_items
+
+    if primary_name not in {"openai", "gemini", "ollama"}:
+        raise ValueError(f"지원하지 않는 1차 provider입니다: {primary_name}")
+
+    correction_name = parts[1] if len(parts) > 1 else None
+    if len(parts) > 2:
+        raise ValueError(f"런타임 분석기는 최대 2개 provider만 지원합니다: {name}")
+    if correction_name is not None and correction_name not in {"openai", "gemini", "ollama"}:
+        raise ValueError(f"지원하지 않는 보정 provider입니다: {correction_name}")
+
+    primary_predictor = build_predictor(
+        primary_name,
+        cache_path=dataset_root / "cache" / f"{primary_name}.json",
+        min_interval_seconds=12.5 if primary_name == "gemini" else 0.0,
+        max_retries=max_retries,
+        timeout_seconds=timeout_seconds,
+        use_cache=use_cache,
+    )
+    correction_predictor = None
+    if correction_name is not None:
+        correction_predictor = build_predictor(
+            correction_name,
+            cache_path=dataset_root / "cache" / f"{correction_name}.json",
+            min_interval_seconds=12.5 if correction_name == "gemini" else 0.0,
+            max_retries=max_retries,
+            timeout_seconds=timeout_seconds,
+            use_cache=use_cache,
+        )
+
+    def predictor(content: bytes):
+        return list(
+            resolve_detected_items(
+                content,
+                vision_predictor=primary_predictor,
+                correction_predictor=correction_predictor,
+                enable_gemini_correction=correction_predictor is not None,
+            )
+        )
+
+    return predictor
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="규칙 기반 분석기와 AI 비전 분석기 비교")
     parser.add_argument(
@@ -103,14 +165,12 @@ def main() -> int:
     parser.add_argument(
         "--baseline",
         default="rule",
-        choices=("rule", "openai", "gemini", "ollama"),
-        help="기준 분석기",
+        help="기준 분석기 이름 (예: rule, gemini, ollama, runtime-ollama+gemini)",
     )
     parser.add_argument(
         "--candidate",
         default="gemini",
-        choices=("rule", "openai", "gemini", "ollama"),
-        help="비교 분석기",
+        help="비교 분석기 이름 (예: gemini, ollama, runtime-ollama+gemini)",
     )
     parser.add_argument(
         "--format",
@@ -168,30 +228,35 @@ def main() -> int:
     if interval_seconds is None:
         interval_seconds = 12.5 if args.candidate == "gemini" else 0.0
 
+    baseline_predictor = _resolve_predictor(
+        args.baseline,
+        dataset_root=dataset_root,
+        cache_path=baseline_cache if args.baseline != "rule" else None,
+        min_interval_seconds=12.5 if args.baseline == "gemini" else 0.0,
+        max_retries=args.max_retries,
+        timeout_seconds=args.timeout_seconds if args.baseline != "rule" else None,
+        use_cache=not args.no_cache,
+    )
+    candidate_predictor = _resolve_predictor(
+        args.candidate,
+        dataset_root=dataset_root,
+        cache_path=candidate_cache if args.candidate != "rule" else None,
+        min_interval_seconds=interval_seconds,
+        max_retries=args.max_retries,
+        timeout_seconds=args.timeout_seconds if args.candidate != "rule" else None,
+        use_cache=not args.no_cache,
+    )
+
     baseline_summary = evaluate_dataset(
         dataset_root,
-        predictor=build_predictor(
-            args.baseline,
-            cache_path=baseline_cache if args.baseline != "rule" else None,
-            min_interval_seconds=12.5 if args.baseline == "gemini" else 0.0,
-            max_retries=args.max_retries,
-            timeout_seconds=args.timeout_seconds if args.baseline != "rule" else None,
-            use_cache=not args.no_cache,
-        ),
+        predictor=baseline_predictor,
         sample_ids=selected_sample_ids or None,
         offset=args.offset,
         limit=args.limit,
     )
     candidate_summary = evaluate_dataset(
         dataset_root,
-        predictor=build_predictor(
-            args.candidate,
-            cache_path=candidate_cache if args.candidate != "rule" else None,
-            min_interval_seconds=interval_seconds,
-            max_retries=args.max_retries,
-            timeout_seconds=args.timeout_seconds if args.candidate != "rule" else None,
-            use_cache=not args.no_cache,
-        ),
+        predictor=candidate_predictor,
         sample_ids=selected_sample_ids or None,
         offset=args.offset,
         limit=args.limit,
@@ -276,6 +341,34 @@ def parse_retry_delay_seconds(exc: Exception) -> float:
     if isinstance(exc, (socket.timeout, TimeoutError)):
         return 1.0
     return 12.5
+
+
+def _resolve_predictor(
+    name: str,
+    dataset_root: Path,
+    cache_path: Path | None,
+    min_interval_seconds: float,
+    max_retries: int,
+    timeout_seconds: float | None,
+    use_cache: bool,
+):
+    if name.lower().startswith("runtime-"):
+        return build_runtime_predictor(
+            name,
+            dataset_root=dataset_root,
+            max_retries=max_retries,
+            timeout_seconds=timeout_seconds,
+            use_cache=use_cache,
+        )
+
+    return build_predictor(
+        name,
+        cache_path=cache_path,
+        min_interval_seconds=min_interval_seconds,
+        max_retries=max_retries,
+        timeout_seconds=timeout_seconds,
+        use_cache=use_cache,
+    )
 
 
 if __name__ == "__main__":

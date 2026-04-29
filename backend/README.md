@@ -206,9 +206,16 @@ cd backend
 PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate ollama --format text
 ```
 
+실제 런타임 AI-first 경로 비교 예시:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate runtime-ollama+gemini --format text
+```
+
 비교 스크립트 메모:
 - Gemini 비교는 `backend/data/vision_dataset/cache/gemini.json`에 샘플별 응답 캐시를 남긴다.
 - Ollama 비교는 `backend/data/vision_dataset/cache/ollama.json`에 샘플별 응답 캐시를 남긴다.
+- `runtime-ollama+gemini` 같은 이름은 실제 업로드 런타임과 같은 순서로 `1차 AI -> 선택적 보정 AI -> rule fallback` 경로를 재현한다.
 - 기본적으로 Gemini 무료 티어 제한을 고려해 요청 간 대기와 재시도를 적용한다.
 - Ollama는 로컬 서버라 기본적으로 추가 대기 없이 실행한다.
 - 2026-04-27 기준 무료 티어 일일 한도로 인해 3샘플 캐시까지만 확보되었다.
@@ -216,6 +223,11 @@ PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --cand
 현재 로컬 데이터셋(11샘플) 기준 첫 측정값:
 - 아이템 정밀도: `0.2500`
 - 아이템 재현율: `0.2281`
+- 샘플 완전일치율: `0.0000`
+
+캐시 기준 `runtime-ollama+gemini` 측정값:
+- 아이템 정밀도: `0.6111`
+- 아이템 재현율: `0.5789`
 - 샘플 완전일치율: `0.0000`
 
 ## 업로드 이미지 파일 응답

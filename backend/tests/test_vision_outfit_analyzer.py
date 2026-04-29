@@ -10,6 +10,7 @@ from src.services.image_analysis import DetectedOutfitItem
 from src.services.store import (
     InMemoryStore,
     apply_selective_category_corrections,
+    resolve_detected_items,
     _sort_detected_items_for_display,
     select_gemini_correction_categories,
 )
@@ -352,6 +353,42 @@ def test_store_uses_rule_fallback_only_when_ai_returns_no_items(tmp_path) -> Non
 
     assert record.analysis.category_query_hints["top"] == "화이트 셔츠"
     assert record.analysis.category_query_hints["outer"] == "블랙 니트 베스트"
+
+
+def test_resolve_detected_items_prefers_vision_and_applies_correction_without_rule_fill() -> None:
+    detected_items = resolve_detected_items(
+        b"fixture",
+        vision_predictor=lambda _content: [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+        ],
+        correction_predictor=lambda _content: [
+            DetectedOutfitItem(category="top", color="white", item_label="슬리브리스 탑", query="화이트 슬리브리스 탑"),
+            DetectedOutfitItem(category="shoes", color="gray", item_label="스니커즈", query="그레이 스니커즈"),
+        ],
+        enable_gemini_correction=True,
+        rule_predictor=lambda _content: [
+            DetectedOutfitItem(category="shoes", color="gray", item_label="스니커즈", query="그레이 스니커즈"),
+        ],
+    )
+
+    assert [(item.category, item.query) for item in detected_items] == [
+        ("top", "화이트 슬리브리스 탑"),
+        ("shoes", "그레이 스니커즈"),
+    ]
+
+
+def test_resolve_detected_items_uses_rule_only_when_vision_is_empty() -> None:
+    detected_items = resolve_detected_items(
+        b"fixture",
+        vision_predictor=lambda _content: [],
+        rule_predictor=lambda _content: [
+            DetectedOutfitItem(category="outer", color="black", item_label="자켓", query="블랙 자켓"),
+        ],
+    )
+
+    assert [(item.category, item.query) for item in detected_items] == [
+        ("outer", "블랙 자켓"),
+    ]
 
 
 def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import hashlib
 
 from PIL import Image
 
+from scripts.compare_vision_predictors import build_runtime_predictor
 from src.services.image_analysis import DetectedOutfitItem
 from src.services.vision_dataset_evaluator import (
     compare_summaries,
@@ -132,3 +134,42 @@ def test_load_dataset_samples_supports_sample_ids_offset_and_limit(tmp_path: Pat
 
     windowed = load_dataset_samples(dataset_root, offset=1, limit=1)
     assert [sample.sample_id for sample in windowed] == ["sample-002"]
+
+
+def test_build_runtime_predictor_uses_cached_primary_and_correction_items(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    image_bytes = (dataset_root / "images" / "sample-001.png").read_bytes()
+    cache_key = hashlib.sha256(image_bytes).hexdigest()
+    cache_dir = dataset_root / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "ollama.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "탑", "query": "화이트 탑"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (cache_dir / "gemini.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "슬리브리스 탑", "query": "화이트 슬리브리스 탑"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    predictor = build_runtime_predictor("runtime-ollama+gemini", dataset_root=dataset_root)
+    detected_items = predictor(image_bytes)
+
+    assert [(item.category, item.query) for item in detected_items] == [
+        ("top", "화이트 슬리브리스 탑"),
+    ]
