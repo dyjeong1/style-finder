@@ -126,7 +126,7 @@ def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path)
     assert record.analysis.category_query_hints["outer"] == "블랙 니트 베스트"
 
 
-def test_store_merges_mock_vision_items_with_rule_based_analysis(tmp_path) -> None:
+def test_store_prefers_mock_vision_items_without_rule_fill(tmp_path) -> None:
     mock_items = (
         DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
         DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
@@ -149,7 +149,8 @@ def test_store_merges_mock_vision_items_with_rule_based_analysis(tmp_path) -> No
 
     assert record.analysis.category_query_hints["top"] == "블루 가디건"
     assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
-    assert record.analysis.category_query_hints["bottom"] == "화이트 팬츠"
+    assert "bottom" not in record.analysis.category_query_hints
+    assert [item.query for item in record.analysis.detected_items] == ["블루 가디건", "블랙 안경"]
 
 
 def test_store_keeps_all_detected_items_but_uses_first_query_hint_per_category(tmp_path) -> None:
@@ -197,6 +198,19 @@ def test_select_gemini_correction_categories_targets_layered_and_conflicting_cat
     categories = select_gemini_correction_categories(vision_items, fallback_items, merged_items)
 
     assert categories == ("top", "outer", "bottom", "accessory")
+
+
+def test_select_gemini_correction_categories_includes_missing_shoes_from_fallback() -> None:
+    vision_items = [
+        DetectedOutfitItem(category="top", color="white", item_label="탑", query="화이트 탑"),
+    ]
+    fallback_items = [
+        DetectedOutfitItem(category="shoes", color="gray", item_label="스니커즈", query="그레이 스니커즈"),
+    ]
+
+    categories = select_gemini_correction_categories(vision_items, fallback_items, tuple(vision_items))
+
+    assert categories == ("top", "shoes")
 
 
 def test_apply_selective_category_corrections_replaces_only_targeted_categories() -> None:
@@ -317,6 +331,27 @@ def test_store_applies_optional_gemini_correction_for_ambiguous_ollama_output(tm
         "블랙 안경",
         "블랙 귀걸이",
     ]
+
+
+def test_store_uses_rule_fallback_only_when_ai_returns_no_items(tmp_path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=(),
+        ),
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert record.analysis.category_query_hints["top"] == "화이트 셔츠"
+    assert record.analysis.category_query_hints["outer"] == "블랙 니트 베스트"
 
 
 def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:

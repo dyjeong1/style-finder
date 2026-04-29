@@ -22,7 +22,6 @@ from src.services.image_analysis import (
 from src.services.vision_outfit_analyzer import (
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
-    merge_detected_items,
 )
 
 
@@ -244,10 +243,12 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        rule_detected_items = analyze_outfit_items(content)
         vision_detected_items = self.vision_outfit_analyzer.analyze(content)
-        detected_items = tuple(merge_detected_items(vision_detected_items, rule_detected_items))
-        if self.enable_gemini_correction:
+        rule_detected_items: list[DetectedOutfitItem] = []
+        detected_items = tuple(vision_detected_items)
+
+        if detected_items and self.enable_gemini_correction:
+            rule_detected_items = analyze_outfit_items(content)
             correction_categories = select_gemini_correction_categories(
                 vision_items=vision_detected_items,
                 fallback_items=rule_detected_items,
@@ -263,6 +264,9 @@ class InMemoryStore:
                             categories=correction_categories,
                         )
                     )
+        if not detected_items:
+            rule_detected_items = analyze_outfit_items(content)
+            detected_items = tuple(rule_detected_items)
         detected_items = tuple(_sort_detected_items_for_display(detected_items))
         category_query_hints: dict[str, str] = {}
         for item in detected_items:
@@ -502,11 +506,12 @@ def select_gemini_correction_categories(
     fallback_items: list[DetectedOutfitItem],
     merged_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
 ) -> tuple[str, ...]:
-    target_order = ("top", "outer", "bottom", "bag", "accessory")
+    target_order = ("top", "outer", "bottom", "shoes", "bag", "accessory")
     generic_labels = {
         "top": {"탑", "셔츠", "티셔츠", "니트 탑", "블라우스"},
         "outer": {"가디건", "자켓", "점퍼", "베스트"},
         "bottom": {"팬츠", "바지", "데님 팬츠", "스커트"},
+        "shoes": {"슈즈", "신발"},
         "bag": {"가방"},
         "accessory": {"안경", "양말", "목걸이", "귀걸이"},
     }
@@ -532,7 +537,7 @@ def select_gemini_correction_categories(
             categories.append(category)
             continue
 
-        if not vision_item and fallback_item and category in {"top", "outer", "bag", "accessory"}:
+        if not vision_item and fallback_item and category in {"top", "outer", "shoes", "bag", "accessory"}:
             categories.append(category)
 
     return tuple(dict.fromkeys(category for category in categories if category in target_order))
