@@ -499,6 +499,51 @@ def test_ollama_provider_normalizes_shoes_generic_label(monkeypatch) -> None:
     assert [(item.item_label, item.query) for item in items] == [("스니커즈", "화이트 스니커즈")]
 
 
+def test_ollama_provider_normalizes_jewelry_labels_and_defaults_unknown_color_to_gray(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="ollama",
+            model_name="gemma3:4b",
+            api_base_url="http://127.0.0.1:11434/api/chat",
+        )
+    )
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "items": [
+                            {
+                                "category": "accessory",
+                                "color": "unknown",
+                                "item_label": "체인 팔찌",
+                                "query": "체인 팔찌",
+                            },
+                            {
+                                "category": "accessory",
+                                "color": "neutral",
+                                "item_label": "반지",
+                                "query": "반지",
+                            },
+                        ]
+                    },
+                    ensure_ascii=False,
+                )
+            }
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert [(item.color, item.item_label, item.query) for item in items] == [
+        ("gray", "팔찌", "그레이 팔찌"),
+        ("gray", "반지", "그레이 반지"),
+    ]
+
+
 def test_model_output_normalizes_outer_variants_and_recategorizes_bag(monkeypatch) -> None:
     analyzer = VisionOutfitAnalyzer(
         VisionOutfitAnalyzerConfig(

@@ -127,6 +127,9 @@ ITEM_LABEL_NORMALIZATION_RULES = {
         (("안경",), "안경"),
         (("목걸이", "네크리스"), "목걸이"),
         (("귀걸이", "이어링"), "귀걸이"),
+        (("체인 팔찌",), "팔찌"),
+        (("팔찌", "브레이슬릿"), "팔찌"),
+        (("반지", "링"), "반지"),
         (("머플러", "스카프"), "머플러"),
         (("모자", "캡", "비니", "버킷", "베레모"), "모자"),
         (("머리끈", "스크런치", "헤어밴드", "리본"), "머리끈"),
@@ -587,6 +590,13 @@ def _normalize_item_color(category: str, color: str, item_label: str, query: str
     inferred_color = infer_color_from_text(combined_text)
     if inferred_color != "unknown":
         return inferred_color
+    if category == "accessory":
+        if any(keyword in combined_text for keyword in ("실버", "은", "실버톤", "메탈")):
+            return "gray"
+        if any(keyword in combined_text for keyword in ("골드", "금", "골드톤")):
+            return "yellow"
+        if any(keyword in combined_text for keyword in ("목걸이", "네크리스", "귀걸이", "이어링", "팔찌", "브레이슬릿", "반지", "링")) and color in {"unknown", "neutral"}:
+            return "gray"
     if category == "bottom" and any(keyword in combined_text for keyword in ("청바지", "데님")) and color in {"unknown", "neutral"}:
         return "blue"
     if color == "neutral":
