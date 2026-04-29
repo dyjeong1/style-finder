@@ -92,6 +92,21 @@ def test_merge_detected_items_reassigns_cardigan_from_top_to_outer_and_keeps_fal
     ]
 
 
+def test_merge_detected_items_refines_generic_bag_with_more_specific_fallback() -> None:
+    vision_items = [
+        DetectedOutfitItem(category="bag", color="brown", item_label="가방", query="브라운 가방"),
+    ]
+    fallback_items = [
+        DetectedOutfitItem(category="bag", color="brown", item_label="숄더백", query="브라운 숄더백"),
+    ]
+
+    merged = merge_detected_items(vision_items, fallback_items)
+
+    assert [(item.category, item.query) for item in merged] == [
+        ("bag", "브라운 숄더백"),
+    ]
+
+
 def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path) -> None:
     store = InMemoryStore(
         wishlist_store_path=tmp_path / "wishlist.json",
@@ -207,6 +222,38 @@ def test_apply_selective_category_corrections_replaces_only_targeted_categories(
         ("accessory", "블랙 안경"),
         ("accessory", "그레이 귀걸이"),
     ]
+
+
+def test_store_applies_optional_gemini_correction_to_generic_bag_label(tmp_path) -> None:
+    primary_items = (
+        DetectedOutfitItem(category="top", color="white", item_label="티셔츠", query="화이트 티셔츠"),
+        DetectedOutfitItem(category="bag", color="brown", item_label="가방", query="브라운 가방"),
+    )
+    correction_items = (
+        DetectedOutfitItem(category="bag", color="brown", item_label="숄더백", query="브라운 숄더백"),
+    )
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=primary_items,
+        ),
+        gemini_correction_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=correction_items,
+        ),
+        enable_gemini_correction=True,
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert record.analysis.category_query_hints["bag"] == "브라운 숄더백"
 
 
 def test_store_applies_optional_gemini_correction_for_ambiguous_ollama_output(tmp_path) -> None:
@@ -414,6 +461,42 @@ def test_ollama_provider_normalizes_lightweight_model_item_labels(monkeypatch) -
 
     assert [item.item_label for item in items] == ["슬리브리스 탑", "데님 팬츠", "안경"]
     assert [item.query for item in items] == ["화이트 슬리브리스 탑", "블루 데님 팬츠", "블랙 안경"]
+
+
+def test_ollama_provider_normalizes_shoes_generic_label(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="ollama",
+            model_name="gemma3:4b",
+            api_base_url="http://127.0.0.1:11434/api/chat",
+        )
+    )
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "items": [
+                            {
+                                "category": "shoes",
+                                "color": "white",
+                                "item_label": "운동화",
+                                "query": "화이트 운동화",
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                )
+            }
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert [(item.item_label, item.query) for item in items] == [("스니커즈", "화이트 스니커즈")]
 
 
 def test_model_output_normalizes_outer_variants_and_recategorizes_bag(monkeypatch) -> None:

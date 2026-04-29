@@ -109,6 +109,7 @@ ITEM_LABEL_NORMALIZATION_RULES = {
         (("메리제인",), "메리제인 슈즈"),
         (("로퍼",), "로퍼"),
         (("부츠",), "부츠"),
+        (("운동화",), "스니커즈"),
         (("스니커",), "스니커즈"),
         (("구두",), "구두"),
     ),
@@ -478,6 +479,14 @@ def _reconcile_with_fallback(vision_item: DetectedOutfitItem, fallback_item: Det
         if vision_family in {"데님 팬츠", "와이드 데님 팬츠"} and fallback_family in {"데님 팬츠", "와이드 데님 팬츠"}:
             if _specificity_score(fallback_item.item_label) >= _specificity_score(vision_item.item_label):
                 return fallback_item
+        if vision_family in {"와이드 팬츠", "팬츠", "바지"} and fallback_family in {"와이드 팬츠", "팬츠", "바지", "슬랙스"}:
+            if _specificity_score(fallback_item.item_label) > _specificity_score(vision_item.item_label):
+                return fallback_item
+
+    if vision_item.category == "bag":
+        if vision_family in {"숄더백", "크로스백", "토트백", "백팩", "가방"} and fallback_family in {"숄더백", "크로스백", "토트백", "백팩", "가방"}:
+            if _specificity_score(fallback_item.item_label) > _specificity_score(vision_item.item_label):
+                return fallback_item
 
     if vision_item.category == "outer" and vision_family == "가디건":
         if fallback_family == "가디건" and fallback_item.color not in {"unknown", "neutral"} and fallback_item.color != vision_item.color:
@@ -536,6 +545,7 @@ def _item_family(item_label: str) -> str:
         "데님 팬츠",
         "와이드 팬츠",
         "팬츠",
+        "바지",
         "슬랙스",
         "스커트",
         "도트 미니 스커트",

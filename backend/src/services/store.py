@@ -492,11 +492,12 @@ def select_gemini_correction_categories(
     fallback_items: list[DetectedOutfitItem],
     merged_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
 ) -> tuple[str, ...]:
-    target_order = ("top", "outer", "bottom", "accessory")
+    target_order = ("top", "outer", "bottom", "bag", "accessory")
     generic_labels = {
         "top": {"탑", "셔츠", "티셔츠", "니트 탑", "블라우스"},
         "outer": {"가디건", "자켓", "점퍼", "베스트"},
         "bottom": {"팬츠", "바지", "데님 팬츠", "스커트"},
+        "bag": {"가방"},
         "accessory": {"안경", "양말", "목걸이", "귀걸이"},
     }
     vision_by_category = _first_item_by_category(vision_items)
@@ -521,7 +522,7 @@ def select_gemini_correction_categories(
             categories.append(category)
             continue
 
-        if not vision_item and fallback_item and category in {"top", "outer", "accessory"}:
+        if not vision_item and fallback_item and category in {"top", "outer", "bag", "accessory"}:
             categories.append(category)
 
     return tuple(dict.fromkeys(category for category in categories if category in target_order))
