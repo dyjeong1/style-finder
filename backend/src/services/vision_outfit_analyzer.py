@@ -147,6 +147,32 @@ ALL_KEYWORD_NORMALIZATION_LABELS = {
     "와이드 데님 팬츠",
     "와이드 팬츠",
 }
+QUERY_DESCRIPTOR_RULES = (
+    ("레더", ("레더", "가죽", "라이더")),
+    ("스웨이드", ("스웨이드",)),
+    ("데님", ("데님", "청바지", "흑청")),
+    ("스트라이프", ("스트라이프",)),
+    ("도트", ("도트",)),
+    ("플리츠", ("플리츠",)),
+    ("레이스", ("레이스",)),
+    ("브이넥", ("브이넥",)),
+    ("골지", ("골지",)),
+    ("앙고라", ("앙고라",)),
+    ("크롭", ("크롭",)),
+    ("오버핏", ("오버핏",)),
+    ("와이드", ("와이드",)),
+    ("미니", ("미니",)),
+    ("플랫", ("플랫",)),
+    ("체인", ("체인",)),
+)
+QUERY_DESCRIPTOR_ORDER = {
+    "top": ("오버핏", "크롭", "스트라이프", "브이넥", "골지", "앙고라"),
+    "outer": ("레더", "스웨이드", "오버핏", "크롭"),
+    "bottom": ("도트", "플리츠", "레이스", "와이드", "미니"),
+    "shoes": ("플랫",),
+    "bag": ("스웨이드", "체인", "미니"),
+    "accessory": ("체인",),
+}
 
 
 @dataclass(frozen=True)
@@ -394,7 +420,7 @@ class VisionOutfitAnalyzer:
             color = _normalize_item_color(category=category, color=color, item_label=item_label, query=query)
             item_label = _normalize_item_label(category=category, color=color, item_label=item_label, query=query)
             category = _normalize_item_category(category=category, item_label=item_label, query=query)
-            query = build_item_query(category=category, color=color, item_label=item_label)
+            query = build_item_query(category=category, color=color, item_label=item_label, query_hint=query)
             normalized = DetectedOutfitItem(
                 category=category,
                 color=color,
@@ -468,7 +494,7 @@ def merge_detected_items(
     ]
 
 
-def build_item_query(category: str, color: str, item_label: str) -> str:
+def build_item_query(category: str, color: str, item_label: str, query_hint: str = "") -> str:
     color_prefix = COLOR_QUERY_LABELS.get(color, "")
     category_label = CATEGORY_QUERY_LABELS.get(category, category)
     normalized_label = item_label.strip() or category_label
@@ -479,9 +505,13 @@ def build_item_query(category: str, color: str, item_label: str) -> str:
                 color_prefix = "실버"
             elif color == "yellow":
                 color_prefix = "골드"
+    descriptors = _extract_query_descriptors(category, normalized_label, query_hint)
+    query_parts: list[str] = []
     if color_prefix and color_prefix not in normalized_label:
-        return f"{color_prefix} {normalized_label}".strip()
-    return normalized_label
+        query_parts.append(color_prefix)
+    query_parts.extend(descriptors)
+    query_parts.append(normalized_label)
+    return " ".join(_dedupe_preserve_order(query_parts)).strip()
 
 
 def _reconcile_with_fallback(vision_item: DetectedOutfitItem, fallback_item: DetectedOutfitItem) -> DetectedOutfitItem:
@@ -640,6 +670,40 @@ def _normalize_item_category(category: str, item_label: str, query: str) -> str:
     if category == "outer" and any(keyword in combined_text for keyword in ("숄더백", "크로스백", "토트백", "백팩", "가방")):
         return "bag"
     return category
+
+
+def _extract_query_descriptors(category: str, item_label: str, query_hint: str) -> list[str]:
+    combined_text = " ".join(part for part in (query_hint, item_label) if part).strip()
+    if not combined_text:
+        return []
+    item_family = _item_family(item_label)
+
+    detected: list[str] = []
+    for normalized_keyword, aliases in QUERY_DESCRIPTOR_RULES:
+        if category == "accessory" and item_family in {"목걸이", "귀걸이", "팔찌", "반지"}:
+            if normalized_keyword == "체인":
+                continue
+        if normalized_keyword in item_label:
+            continue
+        if any(alias in combined_text for alias in aliases):
+            detected.append(normalized_keyword)
+
+    category_order = QUERY_DESCRIPTOR_ORDER.get(category, ())
+    ordered = [keyword for keyword in category_order if keyword in detected]
+    ordered.extend(keyword for keyword in detected if keyword not in ordered)
+    return ordered
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
 
 
 def guess_mime_type(content: bytes) -> str:

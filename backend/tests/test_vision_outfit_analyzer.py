@@ -822,6 +822,8 @@ def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
     assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"
+    assert build_item_query(category="outer", color="black", item_label="자켓", query_hint="가죽 재킷") == "블랙 레더 자켓"
+    assert build_item_query(category="bottom", color="black", item_label="미니 스커트", query_hint="검은색 도트 미니 스커트") == "블랙 도트 미니 스커트"
 
 
 def test_model_output_normalizes_denim_and_stripe_labels() -> None:
@@ -862,5 +864,5 @@ def test_model_output_normalizes_denim_and_stripe_labels() -> None:
         ("top", "navy", "스트라이프 니트 탑", "네이비 스트라이프 니트 탑"),
         ("bottom", "navy", "와이드 데님 팬츠", "네이비 와이드 데님 팬츠"),
         ("bottom", "blue", "와이드 데님 팬츠", "블루 와이드 데님 팬츠"),
-        ("bottom", "black", "미니 스커트", "블랙 미니 스커트"),
+        ("bottom", "black", "미니 스커트", "블랙 도트 미니 스커트"),
     ]

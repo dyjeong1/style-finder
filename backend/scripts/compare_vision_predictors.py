@@ -21,6 +21,7 @@ from src.services.vision_dataset_evaluator import (
     compare_summaries,
     evaluate_dataset,
     format_comparison_text,
+    load_dataset_samples,
 )
 from src.services.vision_outfit_analyzer import (
     VisionOutfitAnalyzer,
@@ -218,6 +219,11 @@ def main() -> int:
         action="store_true",
         help="AI provider 캐시를 읽거나 저장하지 않고 새 결과로 실행",
     )
+    parser.add_argument(
+        "--report-file",
+        default="",
+        help="샘플별 baseline/candidate 상세를 저장할 JSON 파일 경로",
+    )
     args = parser.parse_args()
 
     dataset_root = Path(args.dataset_root)
@@ -267,6 +273,11 @@ def main() -> int:
         candidate_name=args.candidate,
         candidate=candidate_summary,
     )
+    if args.report_file:
+        report_payload = build_comparison_report_payload(dataset_root, comparison)
+        report_path = Path(args.report_file)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report_payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     if args.format == "json":
         payload = {
@@ -341,6 +352,57 @@ def parse_retry_delay_seconds(exc: Exception) -> float:
     if isinstance(exc, (socket.timeout, TimeoutError)):
         return 1.0
     return 12.5
+
+
+def build_comparison_report_payload(dataset_root: Path, comparison) -> dict[str, object]:
+    expected_by_id = {
+        sample.sample_id: [f"{item.category}:{item.color}:{item.item_label}" for item in sample.expected_items]
+        for sample in load_dataset_samples(dataset_root)
+    }
+    baseline_by_id = {sample.sample_id: sample for sample in comparison.baseline.samples}
+    candidate_by_id = {sample.sample_id: sample for sample in comparison.candidate.samples}
+    sample_ids = sorted(set(expected_by_id) | set(baseline_by_id) | set(candidate_by_id))
+
+    return {
+        "baseline_name": comparison.baseline_name,
+        "candidate_name": comparison.candidate_name,
+        "baseline": {
+            "item_precision": comparison.baseline.item_precision,
+            "item_recall": comparison.baseline.item_recall,
+            "exact_match_accuracy": comparison.baseline.exact_match_accuracy,
+        },
+        "candidate": {
+            "item_precision": comparison.candidate.item_precision,
+            "item_recall": comparison.candidate.item_recall,
+            "exact_match_accuracy": comparison.candidate.exact_match_accuracy,
+        },
+        "precision_delta": comparison.precision_delta,
+        "recall_delta": comparison.recall_delta,
+        "exact_match_delta": comparison.exact_match_delta,
+        "samples": [
+            {
+                "sample_id": sample_id,
+                "expected_items": expected_by_id.get(sample_id, []),
+                "baseline": _sample_report_payload(baseline_by_id.get(sample_id)),
+                "candidate": _sample_report_payload(candidate_by_id.get(sample_id)),
+            }
+            for sample_id in sample_ids
+        ],
+    }
+
+
+def _sample_report_payload(sample) -> dict[str, object] | None:
+    if sample is None:
+        return None
+    return {
+        "expected_count": sample.expected_count,
+        "predicted_count": sample.predicted_count,
+        "matched_count": sample.matched_count,
+        "exact_match": sample.exact_match,
+        "matched_items": list(sample.matched_items),
+        "missing_items": list(sample.missing_items),
+        "unexpected_items": list(sample.unexpected_items),
+    }
 
 
 def _resolve_predictor(

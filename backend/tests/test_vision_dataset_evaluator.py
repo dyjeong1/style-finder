@@ -6,7 +6,7 @@ import hashlib
 
 from PIL import Image
 
-from scripts.compare_vision_predictors import build_runtime_predictor
+from scripts.compare_vision_predictors import build_comparison_report_payload, build_runtime_predictor
 from src.services.image_analysis import DetectedOutfitItem
 from src.services.vision_dataset_evaluator import (
     compare_summaries,
@@ -173,3 +173,29 @@ def test_build_runtime_predictor_uses_cached_primary_and_correction_items(tmp_pa
     assert [(item.category, item.query) for item in detected_items] == [
         ("top", "화이트 슬리브리스 탑"),
     ]
+
+
+def test_build_comparison_report_payload_includes_expected_and_sample_details(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def baseline_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")]
+
+    def candidate_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+        ]
+
+    baseline = evaluate_dataset(dataset_root, predictor=baseline_predictor)
+    candidate = evaluate_dataset(dataset_root, predictor=candidate_predictor)
+    comparison = compare_summaries("rule", baseline, "runtime-ollama+gemini", candidate)
+    payload = build_comparison_report_payload(dataset_root, comparison)
+
+    assert payload["baseline_name"] == "rule"
+    assert payload["candidate_name"] == "runtime-ollama+gemini"
+    sample = payload["samples"][0]
+    assert sample["sample_id"] == "sample-001"
+    assert sample["expected_items"] == ["top:white:셔츠", "bottom:blue:데님 팬츠"]
+    assert sample["baseline"]["matched_items"] == ["top:white:셔츠"]
+    assert sample["candidate"]["matched_items"] == ["bottom:blue:데님 팬츠", "top:white:셔츠"]

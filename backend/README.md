@@ -174,6 +174,7 @@ Ollama 실행 메모:
 - 2026-04-29 가방/하의 generic 품목 정교화를 추가해 `운동화 -> 스니커즈`, `가방 -> 숄더백` 같은 보정을 적용했고, `codytest_3.png`는 `브라운 숄더백 / 화이트 스니커즈 / 브라운 팬츠` 수준까지 개선됐습니다.
 - 2026-04-29 액세서리 세부명/색상 정교화를 추가해 `체인 팔찌 -> 팔찌` 정규화와 주얼리 accessory의 `unknown -> gray` 보정을 적용했고, `codytest_3.png`는 `그레이 팔찌 / 그레이 목걸이` 수준까지 개선됐습니다.
 - 2026-04-29 액세서리 우선순위와 금속 톤 검색어를 정리해 주얼리 `gray/yellow` 검색어를 `실버/골드`로 노출하고, `codytest_3.png`는 `실버 목걸이 / 실버 팔찌 / 실버 반지 / 화이트 양말` 순서로 정리되는 것을 확인했습니다.
+- 2026-04-29 검색어 descriptor 보존 규칙을 추가해 `가죽 재킷 -> 블랙 레더 자켓`, `검은색 도트 미니 스커트 -> 블랙 도트 미니 스커트`처럼 더 구체적인 네이버 쇼핑 검색어를 생성하도록 보강했습니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`
@@ -212,10 +213,17 @@ cd backend
 PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate runtime-ollama+gemini --format text
 ```
 
+샘플별 상세 리포트 파일 저장 예시:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate runtime-ollama+gemini --format json --report-file /tmp/runtime-report.json
+```
+
 비교 스크립트 메모:
 - Gemini 비교는 `backend/data/vision_dataset/cache/gemini.json`에 샘플별 응답 캐시를 남긴다.
 - Ollama 비교는 `backend/data/vision_dataset/cache/ollama.json`에 샘플별 응답 캐시를 남긴다.
 - `runtime-ollama+gemini` 같은 이름은 실제 업로드 런타임과 같은 순서로 `1차 AI -> 선택적 보정 AI -> rule fallback` 경로를 재현한다.
+- `--report-file`을 주면 정답 라벨과 baseline/candidate의 샘플별 일치/누락/오탐 정보를 JSON으로 함께 저장한다.
 - 기본적으로 Gemini 무료 티어 제한을 고려해 요청 간 대기와 재시도를 적용한다.
 - Ollama는 로컬 서버라 기본적으로 추가 대기 없이 실행한다.
 - 2026-04-27 기준 무료 티어 일일 한도로 인해 3샘플 캐시까지만 확보되었다.
