@@ -1,0 +1,351 @@
+from __future__ import annotations
+
+from io import BytesIO
+
+from PIL import Image, ImageDraw
+
+from src.services.image_analysis import analyze_outfit_category_query_hints, classify_rgb_color
+from src.services.naver_shopping import build_naver_category_queries
+from src.services.store import UploadAnalysis
+
+
+def build_flatlay_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (153, 125, 102))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((60, 65, 455, 280), fill=(246, 247, 245))
+    draw.rectangle((145, 40, 375, 310), fill=(18, 19, 20))
+    draw.rectangle((115, 275, 340, 735), fill=(248, 246, 237))
+    draw.rectangle((320, 365, 500, 560), fill=(238, 234, 205))
+    draw.ellipse((55, 580, 128, 735), fill=(42, 30, 26))
+    draw.ellipse((132, 580, 205, 735), fill=(42, 30, 26))
+    draw.rectangle((60, 640, 200, 655), fill=(48, 30, 24))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_colored_flatlay_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 430, 275), fill=(188, 35, 52))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.rectangle((160, 60, 365, 245), fill=(47, 126, 82))
+    draw.ellipse((55, 590, 130, 740), fill=(16, 16, 17))
+    draw.ellipse((138, 590, 213, 740), fill=(16, 16, 17))
+    draw.rectangle((330, 375, 500, 555), fill=(210, 184, 57))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_simple_outfit_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 430, 275), fill=(188, 35, 52))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.ellipse((55, 590, 130, 740), fill=(16, 16, 17))
+    draw.ellipse((138, 590, 213, 740), fill=(16, 16, 17))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_accessory_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((75, 55, 350, 250), fill=(246, 247, 245))
+    draw.rectangle((135, 300, 355, 720), fill=(53, 86, 170))
+    draw.ellipse((390, 55, 450, 105), fill=(15, 15, 15))
+    draw.ellipse((455, 55, 515, 105), fill=(15, 15, 15))
+    draw.rectangle((445, 75, 460, 85), fill=(15, 15, 15))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_cardigan_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (218, 215, 205))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((150, 70, 280, 330), fill=(96, 96, 96))
+    draw.rectangle((240, 95, 375, 300), fill=(245, 245, 245))
+    draw.rectangle((145, 310, 355, 725), fill=(48, 58, 125))
+    draw.ellipse((388, 75, 446, 118), fill=(20, 20, 20))
+    draw.ellipse((452, 75, 510, 118), fill=(20, 20, 20))
+    draw.rectangle((442, 91, 455, 101), fill=(20, 20, 20))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_mirror_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (420, 760), (173, 145, 112))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 54, 760), fill=(123, 98, 72))
+    draw.rectangle((366, 0, 420, 760), fill=(194, 174, 140))
+    draw.rectangle((112, 90, 304, 415), fill=(204, 220, 252))
+    draw.rectangle((160, 190, 260, 410), fill=(248, 247, 243))
+    draw.rectangle((118, 400, 302, 748), fill=(32, 38, 57))
+    draw.ellipse((188, 258, 214, 308), fill=(18, 18, 18))
+    draw.ellipse((230, 258, 256, 308), fill=(18, 18, 18))
+    draw.rectangle((212, 280, 232, 286), fill=(18, 18, 18))
+    draw.rectangle((180, 80, 240, 168), fill=(24, 23, 22))
+    draw.rectangle((176, 82, 244, 152), fill=(32, 30, 29))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_bag_and_shoes_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (179, 154, 125))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 48, 780), fill=(130, 104, 74))
+    draw.rectangle((380, 0, 430, 780), fill=(203, 184, 154))
+    draw.rectangle((128, 120, 302, 380), fill=(228, 214, 194))
+    draw.rectangle((152, 170, 278, 348), fill=(248, 248, 242))
+    draw.rectangle((142, 360, 290, 540), fill=(38, 39, 42))
+    draw.rectangle((136, 540, 308, 680), fill=(34, 34, 37))
+    draw.rectangle((284, 332, 360, 520), fill=(112, 80, 58))
+    draw.ellipse((126, 706, 188, 768), fill=(246, 246, 244))
+    draw.ellipse((242, 706, 304, 768), fill=(246, 246, 244))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_sneakers_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (174, 148, 121))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.rectangle((136, 110, 296, 300), fill=(94, 97, 108))
+    draw.rectangle((156, 308, 280, 510), fill=(222, 224, 230))
+    draw.rectangle((132, 512, 300, 742), fill=(88, 116, 171))
+    draw.ellipse((136, 708, 202, 770), fill=(246, 246, 244))
+    draw.ellipse((228, 708, 294, 770), fill=(246, 246, 244))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_wide_denim_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (214, 210, 202))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((92, 70, 422, 250), fill=(242, 242, 239))
+    draw.rectangle((66, 280, 458, 742), fill=(56, 88, 162))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_skirt_fixture() -> bytes:
+    image = Image.new("RGB", (524, 788), (214, 210, 202))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((120, 70, 400, 250), fill=(246, 246, 244))
+    draw.rectangle((150, 282, 372, 462), fill=(28, 29, 34))
+    draw.ellipse((158, 566, 228, 726), fill=(18, 18, 18))
+    draw.ellipse((296, 566, 366, 726), fill=(18, 18, 18))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_hat_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (174, 148, 121))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.ellipse((152, 82, 278, 172), fill=(24, 24, 26))
+    draw.rectangle((164, 60, 266, 118), fill=(24, 24, 26))
+    draw.ellipse((176, 118, 254, 206), fill=(224, 194, 169))
+    draw.rectangle((136, 204, 296, 382), fill=(98, 100, 110))
+    draw.rectangle((158, 260, 274, 420), fill=(238, 238, 234))
+    draw.rectangle((136, 418, 302, 742), fill=(78, 112, 171))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def build_earring_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (179, 154, 125))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 52, 780), fill=(123, 97, 71))
+    draw.rectangle((378, 0, 430, 780), fill=(195, 173, 147))
+    draw.ellipse((174, 98, 256, 196), fill=(222, 193, 168))
+    draw.rectangle((156, 198, 274, 368), fill=(246, 246, 242))
+    draw.rectangle((138, 368, 298, 742), fill=(56, 88, 162))
+    draw.ellipse((148, 156, 176, 188), fill=(178, 180, 186))
+    draw.ellipse((254, 156, 282, 188), fill=(178, 180, 186))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
+    hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
+
+    assert hints["top"] == "화이트 셔츠"
+    assert hints["bottom"] == "화이트 팬츠"
+    assert hints["outer"] == "블랙 니트 베스트"
+    assert hints["shoes"] == "브라운 메리제인 슈즈"
+    assert hints["bag"] == "아이보리 숄더백"
+
+
+def test_outfit_query_hints_are_dynamic_for_different_images() -> None:
+    hints = analyze_outfit_category_query_hints(build_colored_flatlay_fixture())
+
+    assert hints["top"] != "화이트 셔츠"
+    assert hints["bottom"] != "화이트 팬츠"
+    assert hints["outer"] != "블랙 니트 베스트"
+    assert hints["shoes"] != "브라운 메리제인 슈즈"
+    assert hints["bag"] != "아이보리 숄더백"
+    assert hints["top"] == "레드 상의"
+    assert hints["bottom"] == "블루 데님 팬츠"
+    assert hints["outer"] == "그린 자켓"
+    assert hints["shoes"] == "블랙 로퍼"
+    assert hints["bag"] == "옐로우 토트백"
+
+
+def test_naver_category_queries_prefer_outfit_category_hints() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="neutral",
+        style_mood="feminine",
+        silhouette="layered",
+        preferred_categories=("top",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="beige",
+        category_query_hints={
+            "top": "화이트 셔츠",
+            "bottom": "화이트 팬츠",
+            "outer": "블랙 니트 베스트",
+            "shoes": "브라운 메리제인 슈즈",
+            "bag": "아이보리 숄더백",
+        },
+    )
+
+    assert build_naver_category_queries(analysis) == [
+        ("top", "화이트 셔츠"),
+        ("bottom", "화이트 팬츠"),
+        ("outer", "블랙 니트 베스트"),
+        ("shoes", "브라운 메리제인 슈즈"),
+        ("bag", "아이보리 숄더백"),
+    ]
+
+
+def test_outfit_query_hints_skip_absent_categories() -> None:
+    hints = analyze_outfit_category_query_hints(build_simple_outfit_fixture())
+
+    assert hints == {
+        "top": "레드 상의",
+        "bottom": "블루 데님 팬츠",
+        "shoes": "블랙 로퍼",
+    }
+
+
+def test_outfit_query_hints_detect_accessory_separately() -> None:
+    hints = analyze_outfit_category_query_hints(build_accessory_fixture())
+
+    assert hints["top"] == "화이트 셔츠"
+    assert hints["bottom"] == "블루 데님 팬츠"
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "outer" not in hints
+
+
+def test_dark_warm_shoes_are_brown_not_black() -> None:
+    assert classify_rgb_color(42, 30, 26) == "brown"
+
+
+def test_outfit_query_hints_keep_cardigan_and_skip_missing_bag_and_shoes() -> None:
+    hints = analyze_outfit_category_query_hints(build_cardigan_fixture())
+
+    assert hints["outer"] == "그레이 가디건"
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "shoes" not in hints
+
+
+def test_outfit_query_hints_generalize_for_mirror_selfie_without_missing_categories() -> None:
+    hints = analyze_outfit_category_query_hints(build_mirror_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의"}
+    assert hints["outer"] in {"블루 가디건", "그레이 가디건"}
+    assert hints["bottom"] in {"블랙 슬랙스", "네이비 데님 팬츠", "블루 데님 팬츠"}
+    assert hints["accessory"] == "블랙 안경"
+    assert "bag" not in hints
+    assert "shoes" not in hints
+
+
+def test_outfit_query_hints_detect_present_bag_and_shoes_in_selfie() -> None:
+    hints = analyze_outfit_category_query_hints(build_bag_and_shoes_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의"}
+    assert hints["outer"] in {"그레이 가디건", "베이지 자켓", "베이지 가디건"}
+    assert hints["bottom"] in {"블랙 슬랙스", "블랙 스커트"}
+    assert hints["bag"] in {"브라운 숄더백", "브라운 토트백"}
+    assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
+    assert "accessory" not in hints
+
+
+def test_outfit_query_hints_keep_sneakers_and_skip_bag_when_absent() -> None:
+    hints = analyze_outfit_category_query_hints(build_sneakers_selfie_fixture())
+
+    assert hints["top"] in {"화이트 셔츠", "화이트 상의", "그레이 니트 탑", "그레이 상의"}
+    assert hints["outer"] in {"그레이 가디건", "그레이 자켓"}
+    assert hints["bottom"] in {"블루 데님 팬츠", "블루 와이드 팬츠"}
+    assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
+    assert "bag" not in hints
+
+
+def test_outfit_query_hints_detect_wide_denim_bottom() -> None:
+    hints = analyze_outfit_category_query_hints(build_wide_denim_fixture())
+
+    assert hints["bottom"] in {"블루 와이드 데님 팬츠", "블루 데님 팬츠"}
+
+
+def test_outfit_query_hints_detect_skirt_bottom() -> None:
+    hints = analyze_outfit_category_query_hints(build_skirt_fixture())
+
+    assert hints["bottom"] == "블랙 스커트"
+
+
+def test_outfit_query_hints_detect_hat_accessory() -> None:
+    hints = analyze_outfit_category_query_hints(build_hat_selfie_fixture())
+
+    assert hints["accessory"] == "블랙 모자"
+
+
+def test_outfit_query_hints_detect_earring_accessory() -> None:
+    hints = analyze_outfit_category_query_hints(build_earring_selfie_fixture())
+
+    assert hints["accessory"] == "그레이 귀걸이"
+
+
+def test_outfit_query_hints_do_not_reuse_layered_flatlay_signature_for_colored_outfit() -> None:
+    image = Image.new("RGB", (524, 788), (178, 172, 162))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((82, 50, 440, 245), fill=(122, 138, 72))
+    draw.rectangle((250, 40, 510, 235), fill=(246, 246, 242))
+    draw.rectangle((92, 70, 230, 250), fill=(22, 22, 24))
+    draw.rectangle((150, 320, 374, 620), fill=(246, 246, 240))
+    draw.ellipse((190, 610, 250, 720), fill=(18, 18, 18))
+    draw.ellipse((280, 610, 340, 720), fill=(18, 18, 18))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    hints = analyze_outfit_category_query_hints(output.getvalue())
+
+    assert hints.get("outer") != "블랙 니트 베스트"
+    assert hints.get("shoes") != "브라운 메리제인 슈즈"

@@ -1,0 +1,42 @@
+{
+  "sample_id": "codytest_5",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "셔츠",
+      "notes": "화이트 셔츠"
+    },
+    {
+      "category": "outer",
+      "color": "black",
+      "item_label": "자켓",
+      "notes": "블랙 또는 네이비 크롭 자켓"
+    },
+    {
+      "category": "bottom",
+      "color": "beige",
+      "item_label": "플리츠 스커트",
+      "notes": "베이지 무릎 기장 플리츠 스커트"
+    },
+    {
+      "category": "shoes",
+      "color": "black",
+      "item_label": "메리제인 슈즈",
+      "notes": "블랙 플랫 메리제인"
+    },
+    {
+      "category": "bag",
+      "color": "black",
+      "item_label": "토트백",
+      "notes": "블랙 미니 토트백"
+    },
+    {
+      "category": "accessory",
+      "color": "white",
+      "item_label": "양말",
+      "notes": "화이트 양말"
+    }
+  ]
+}

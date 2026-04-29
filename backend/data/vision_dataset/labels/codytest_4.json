@@ -1,0 +1,30 @@
+{
+  "sample_id": "codytest_4",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "스트라이프 티셔츠",
+      "notes": "블랙 앤 화이트 스트라이프 티셔츠"
+    },
+    {
+      "category": "outer",
+      "color": "navy",
+      "item_label": "브이넥 니트",
+      "notes": "네이비 브이넥 니트"
+    },
+    {
+      "category": "bottom",
+      "color": "blue",
+      "item_label": "와이드 데님 팬츠",
+      "notes": "연청 와이드 데님"
+    },
+    {
+      "category": "shoes",
+      "color": "black",
+      "item_label": "로퍼",
+      "notes": "블랙 슈즈 일부 노출"
+    }
+  ]
+}

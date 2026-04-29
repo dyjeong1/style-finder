@@ -1,0 +1,262 @@
+from __future__ import annotations
+
+from io import BytesIO
+from urllib.error import HTTPError
+
+import pytest
+from PIL import Image
+
+from src.services.naver_shopping import (
+    CATEGORY_ORDER,
+    NaverShoppingClient,
+    NaverShoppingConfig,
+    build_custom_naver_category_queries,
+    build_custom_naver_query,
+    build_naver_category_queries,
+    build_naver_query,
+    infer_custom_query_categories,
+)
+from src.services.store import UploadAnalysis
+
+
+def test_naver_shopping_client_disabled_without_credentials() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id=None, client_secret=None))
+
+    assert client.search_products(query="미니멀 상의", category="top", limit=3) == []
+
+    result = client.search(query="미니멀 상의", category="top", limit=3)
+    assert result.products == []
+    assert result.fallback_reason == "credentials_missing"
+
+
+def test_naver_shopping_client_reports_auth_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+    error_body = b'{"errorMessage":"NID AUTH Result Invalid (1000) : Authentication failed.","errorCode":"024"}'
+
+    def raise_http_error(*_: object, **__: object) -> None:
+        raise HTTPError(
+            url="https://openapi.naver.com/v1/search/shop.json",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(error_body),
+        )
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", raise_http_error)
+
+    result = client.search(query="미니멀 상의", category="top", limit=3)
+
+    assert result.products == []
+    assert result.fallback_reason == "auth_failed"
+    assert "네이버 쇼핑 API 인증에 실패" in (result.fallback_message or "")
+    assert "Authentication failed" in (result.fallback_message or "")
+
+
+def test_naver_shopping_item_parse_strips_html_and_maps_fields() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "<b>오버핏</b> 셔츠",
+            "link": "https://smartstore.naver.com/demo/products/1",
+            "image": "https://shopping-phinf.pstatic.net/main_1.jpg",
+            "lprice": "29000",
+            "productId": "12345",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "셔츠",
+        },
+        category_hint=None,
+    )
+
+    assert product is not None
+    assert product.id == "naver-12345"
+    assert product.source == "naver"
+    assert product.product_name == "오버핏 셔츠"
+    assert product.product_url.startswith("https://smartstore.naver.com")
+    assert product.image_url.startswith("https://shopping-phinf.pstatic.net")
+    assert product.price == 29000
+    assert product.category == "top"
+
+
+def test_naver_shopping_item_parse_uses_product_image_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(
+        NaverShoppingConfig(
+            client_id="id",
+            client_secret="secret",
+            analyze_product_images=True,
+        )
+    )
+
+    image_bytes = BytesIO()
+    Image.new("RGB", (12, 12), (12, 12, 12)).save(image_bytes, format="PNG")
+
+    class DummyResponse:
+        def __init__(self, payload: bytes) -> None:
+            self.payload = payload
+            self.headers = {}
+
+        def read(self, *_: object) -> bytes:
+            return self.payload
+
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", lambda *_args, **_kwargs: DummyResponse(image_bytes.getvalue()))
+
+    product = client._parse_item(
+        {
+            "title": "메리제인 슈즈",
+            "link": "https://smartstore.naver.com/demo/products/99",
+            "image": "https://shopping-phinf.pstatic.net/main_black.png",
+            "lprice": "49000",
+            "productId": "99",
+            "category1": "패션잡화",
+            "category2": "여성슈즈",
+            "category3": "메리제인",
+        },
+        category_hint="shoes",
+        query="브라운 메리제인 슈즈",
+    )
+
+    assert product is not None
+    assert product.dominant_color == "black"
+    assert product.feature_vector[0] < 0.1
+    assert product.category == "shoes"
+
+
+def test_naver_shopping_item_parse_drops_irrelevant_category_hint_result() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "와이드 데님 팬츠",
+            "link": "https://smartstore.naver.com/demo/products/101",
+            "image": "https://shopping-phinf.pstatic.net/pants.png",
+            "lprice": "49000",
+            "productId": "101",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "바지",
+        },
+        category_hint="shoes",
+        query="브라운 로퍼",
+    )
+
+    assert product is None
+
+
+def test_naver_shopping_item_parse_drops_outer_result_when_specific_item_label_mismatches() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "그레이 집업 점퍼",
+            "link": "https://smartstore.naver.com/demo/products/202",
+            "image": "https://shopping-phinf.pstatic.net/jumper.png",
+            "lprice": "59000",
+            "productId": "202",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "점퍼",
+        },
+        category_hint="outer",
+        query="그레이 가디건",
+    )
+
+    assert product is None
+
+
+def test_build_naver_query_uses_analysis_and_category() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="cool",
+        style_mood="minimal",
+        silhouette="relaxed",
+        preferred_categories=("outer",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="black",
+    )
+
+    assert build_naver_query(analysis, "bag") == "블랙 쿨톤 미니멀 가방"
+    assert build_naver_query(analysis, None) == "블랙 쿨톤 미니멀 아우터"
+
+
+def test_build_naver_category_queries_covers_all_recommendation_categories() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="neutral",
+        style_mood="feminine",
+        silhouette="layered",
+        preferred_categories=("bag",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+    )
+
+    queries = build_naver_category_queries(analysis)
+
+    assert [category for category, _ in queries] == list(CATEGORY_ORDER)
+    assert queries == [
+        ("top", "뉴트럴 페미닌 상의"),
+        ("bottom", "뉴트럴 페미닌 하의"),
+        ("outer", "뉴트럴 페미닌 아우터"),
+        ("shoes", "뉴트럴 페미닌 신발"),
+        ("bag", "뉴트럴 페미닌 가방"),
+        ("accessory", "뉴트럴 페미닌 악세서리"),
+    ]
+
+
+def test_build_custom_naver_query_appends_category_when_missing() -> None:
+    assert build_custom_naver_query("블랙 미니멀", "outer") == "블랙 미니멀 아우터"
+    assert build_custom_naver_query("블랙 미니멀 아우터", "outer") == "블랙 미니멀 아우터"
+    assert build_custom_naver_query("  블랙   미니멀  ", None) == "블랙 미니멀"
+
+
+def test_build_custom_naver_category_queries_covers_all_recommendation_categories() -> None:
+    queries = build_custom_naver_category_queries("블랙 미니멀")
+
+    assert [category for category, _ in queries] == list(CATEGORY_ORDER)
+    assert queries == [
+        ("top", "블랙 미니멀 상의"),
+        ("bottom", "블랙 미니멀 하의"),
+        ("outer", "블랙 미니멀 아우터"),
+        ("shoes", "블랙 미니멀 신발"),
+        ("bag", "블랙 미니멀 가방"),
+        ("accessory", "블랙 미니멀 악세서리"),
+    ]
+
+
+def test_infer_custom_query_categories_detects_product_group_keywords() -> None:
+    assert infer_custom_query_categories("크롭 니트") == ["top"]
+    assert infer_custom_query_categories("화이트 셔츠") == ["top"]
+    assert infer_custom_query_categories("와이드 슬랙스") == ["bottom"]
+    assert infer_custom_query_categories("흑청 데님") == ["bottom"]
+    assert infer_custom_query_categories("베이지 트렌치코트") == ["outer"]
+    assert infer_custom_query_categories("오버핏 블레이저") == ["outer"]
+    assert infer_custom_query_categories("검은색 신발") == ["shoes"]
+    assert infer_custom_query_categories("블랙 메리제인") == ["shoes"]
+    assert infer_custom_query_categories("브라운 로퍼") == ["shoes"]
+    assert infer_custom_query_categories("여름 슬리퍼") == ["shoes"]
+    assert infer_custom_query_categories("미니멀 구두") == ["shoes"]
+    assert infer_custom_query_categories("브라운 호보백") == ["bag"]
+    assert infer_custom_query_categories("캔버스 에코백") == ["bag"]
+    assert infer_custom_query_categories("블랙 안경") == ["accessory"]
+    assert infer_custom_query_categories("베이지 머플러") == ["accessory"]
+    assert infer_custom_query_categories("미니멀 재킷과 토트백") == ["outer", "bag"]
+    assert infer_custom_query_categories("블랙 미니멀") == []
+
+
+def test_build_custom_naver_category_queries_limits_to_explicit_product_group() -> None:
+    assert build_custom_naver_category_queries("크롭 니트") == [("top", "크롭 니트 상의")]
+    assert build_custom_naver_category_queries("와이드 슬랙스") == [("bottom", "와이드 슬랙스 하의")]
+    assert build_custom_naver_category_queries("베이지 트렌치코트") == [("outer", "베이지 트렌치코트 아우터")]
+    assert build_custom_naver_category_queries("검은색 신발") == [("shoes", "검은색 신발")]
+    assert build_custom_naver_category_queries("블랙 메리제인") == [("shoes", "블랙 메리제인 신발")]
+    assert build_custom_naver_category_queries("브라운 호보백") == [("bag", "브라운 호보백 가방")]
+    assert build_custom_naver_category_queries("블랙 안경") == [("accessory", "블랙 안경 악세서리")]
+    assert build_custom_naver_category_queries("미니멀 재킷과 토트백") == [
+        ("outer", "미니멀 재킷과 토트백 아우터"),
+        ("bag", "미니멀 재킷과 토트백 가방"),
+    ]
