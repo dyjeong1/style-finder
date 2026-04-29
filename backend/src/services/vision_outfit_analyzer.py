@@ -69,6 +69,8 @@ GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 ITEM_LABEL_NORMALIZATION_RULES = {
     "top": (
         (("슬리브리스", "나시", "탱크"), "슬리브리스 탑"),
+        (("스트라이프", "니트"), "스트라이프 니트 탑"),
+        (("스트라이프", "스웨터"), "스트라이프 니트 탑"),
         (("골지 상의", "골지 탑", "이너 탑", "이너웨어"), "탑"),
         (("이너",), "탑"),
         (("상의",), "탑"),
@@ -92,7 +94,7 @@ ITEM_LABEL_NORMALIZATION_RULES = {
         (("코트",), "코트"),
     ),
     "bottom": (
-        (("도트", "미니", "스커트"), "도트 미니 스커트"),
+        (("도트", "미니", "스커트"), "미니 스커트"),
         (("플리츠", "스커트"), "플리츠 스커트"),
         (("레이스", "스커트"), "레이스 스커트"),
         (("미니", "스커트"), "미니 스커트"),
@@ -195,6 +197,9 @@ class VisionOutfitAnalyzer:
             return self._analyze_with_ollama(content)
 
         return []
+
+    def coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
+        return self._coerce_detected_items(parsed_payload)
 
     def _analyze_with_openai(self, content: bytes) -> list[DetectedOutfitItem]:
         if not self.config.api_key:
@@ -615,6 +620,12 @@ def _normalize_item_label(category: str, color: str, item_label: str, query: str
     combined_text = " ".join(part for part in (item_label, query) if part).strip()
     if not combined_text:
         return DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
+
+    if category == "bottom" and color in {"blue", "navy"}:
+        if "와이드" in combined_text and "팬츠" in combined_text:
+            return "와이드 데님 팬츠"
+        if any(keyword in combined_text for keyword in ("팬츠", "바지")):
+            return "데님 팬츠"
 
     for keywords, normalized_label in ITEM_LABEL_NORMALIZATION_RULES.get(category, ()):
         matcher = all if normalized_label in ALL_KEYWORD_NORMALIZATION_LABELS else any

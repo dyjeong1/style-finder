@@ -3,7 +3,7 @@ id: PLAN-20260424-AI비전기반착장분석도입-SPEC
 plan_id: PLAN-20260424-AI비전기반착장분석도입
 status: doing
 created_at: 2026-04-24
-updated_at: 2026-04-27
+updated_at: 2026-04-29
 ---
 
 ## 기술 스펙
@@ -15,6 +15,7 @@ updated_at: 2026-04-27
 - Gemini provider는 `generateContent`의 이미지 입력과 `application/json` 응답 스키마를 사용한다.
 - Ollama provider는 `/api/chat`의 이미지 입력과 JSON schema 형식 응답을 사용한다.
 - 기존 `VISION_OUTFIT_ANALYZER_*` 설정과 함께 `OPENAI_VISION_*`, `OPENAI_API_KEY`, `GEMINI_VISION_*`, `GEMINI_API_KEY`, `OLLAMA_VISION_*`, `OLLAMA_API_BASE_URL` 이름도 동일하게 인식한다.
+- 평가 스크립트는 캐시된 provider 원문 응답도 런타임과 동일한 정규화 경로로 변환한 뒤 정답 라벨과 비교한다.
 
 ## 공통 분석 결과 포맷
 - category: `top|bottom|outer|shoes|bag|accessory`
@@ -28,6 +29,7 @@ updated_at: 2026-04-27
 - OpenAI 호출 실패, 인증 실패, 타임아웃 발생 시에도 예외를 전파하지 않고 규칙 기반 분석으로 자동 fallback 한다.
 - Gemini 호출 실패, quota 초과, 인증 실패, 타임아웃 발생 시에도 예외를 전파하지 않고 규칙 기반 분석으로 자동 fallback 한다.
 - Ollama 호출 실패, 서버 미기동, 모델 미설치, 타임아웃 발생 시에도 예외를 전파하지 않고 규칙 기반 분석으로 자동 fallback 한다.
+- 캐시 비교는 모델 원문 품목명을 보존하되, `DetectedOutfitItem` 표준 품목명/색상/검색어로 정규화된 결과를 기준으로 지표를 계산한다.
 
 ## 데이터셋 포맷
 - 이미지: `backend/data/vision_dataset/images/<sample_id>.<ext>`

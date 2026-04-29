@@ -750,3 +750,45 @@ def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
     assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"
+
+
+def test_model_output_normalizes_denim_and_stripe_labels() -> None:
+    analyzer = VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig(enabled=True, provider="mock"))
+
+    items = analyzer.coerce_detected_items(
+        {
+            "items": [
+                {
+                    "category": "top",
+                    "color": "blue",
+                    "item_label": "네이비 스트라이프 스웨터",
+                    "query": "네이비 스트라이프 스웨터",
+                },
+                {
+                    "category": "bottom",
+                    "color": "navy",
+                    "item_label": "와이드 팬츠",
+                    "query": "네이비 와이드 팬츠",
+                },
+                {
+                    "category": "bottom",
+                    "color": "blue",
+                    "item_label": "와이드 데님 팬츠",
+                    "query": "블루 와이드 데님 팬츠",
+                },
+                {
+                    "category": "bottom",
+                    "color": "black",
+                    "item_label": "검은색 도트 미니 스커트",
+                    "query": "검은색 도트 미니 스커트",
+                },
+            ]
+        }
+    )
+
+    assert [(item.category, item.color, item.item_label, item.query) for item in items] == [
+        ("top", "navy", "스트라이프 니트 탑", "네이비 스트라이프 니트 탑"),
+        ("bottom", "navy", "와이드 데님 팬츠", "네이비 와이드 데님 팬츠"),
+        ("bottom", "blue", "와이드 데님 팬츠", "블루 와이드 데님 팬츠"),
+        ("bottom", "black", "미니 스커트", "블랙 미니 스커트"),
+    ]

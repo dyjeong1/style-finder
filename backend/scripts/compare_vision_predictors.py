@@ -65,7 +65,7 @@ def build_predictor(
     def predictor(content: bytes):
         cache_key = hashlib.sha256(content).hexdigest()
         if use_cache and cache_key in cache:
-            return deserialize_items(cache[cache_key])
+            return analyzer.coerce_detected_items({"items": cache[cache_key]})
 
         for attempt in range(max_retries + 1):
             wait_seconds = min_interval_seconds - (time.monotonic() - last_called_at["value"])
@@ -254,10 +254,6 @@ def serialize_items(items):
         }
         for item in items
     ]
-
-
-def deserialize_items(raw_items):
-    return [DetectedOutfitItem(**raw_item) for raw_item in raw_items]
 
 
 def parse_retry_delay_seconds(exc: Exception) -> float:
