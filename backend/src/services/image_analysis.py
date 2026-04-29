@@ -243,11 +243,7 @@ def analyze_outfit_items(content: bytes) -> list[DetectedOutfitItem]:
     shoes_counts = region_counts["shoes"]
     bag_counts = region_counts["bag"]
     accessory_counts = region_counts["accessory"]
-    layered_vest_signature = (
-        _has_meaningful_color(top_counts, "white")
-        and _has_meaningful_color(outer_counts, "black")
-        and _has_light_garment(bottom_counts)
-    )
+    layered_vest_signature = _has_layered_vest_signature(top_counts, outer_counts, bottom_counts)
 
     selected_components = _select_category_components(components)
     component_map: dict[str, ForegroundComponent] = {}
@@ -426,6 +422,26 @@ def _build_dynamic_query_hint(category: str, counts: Counter) -> str:
         return f"{color_label} {accessory_label}"
 
     return f"{color_label} {category_label}"
+
+
+def _has_layered_vest_signature(top_counts: Counter, outer_counts: Counter, bottom_counts: Counter) -> bool:
+    if not (
+        _has_meaningful_color(top_counts, "white")
+        and _has_meaningful_color(outer_counts, "black")
+        and _has_light_garment(bottom_counts)
+    ):
+        return False
+
+    distracting_colors = {"yellow", "green", "red", "pink", "blue", "navy"}
+    for counts in (top_counts, outer_counts, bottom_counts):
+        total = sum(counts.values())
+        if total == 0:
+            continue
+        distracting_ratio = sum(counts[color] for color in distracting_colors) / total
+        if distracting_ratio >= 0.10:
+            return False
+
+    return True
 
 
 def _build_detected_item(

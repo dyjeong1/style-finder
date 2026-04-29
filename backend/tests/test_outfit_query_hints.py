@@ -331,3 +331,21 @@ def test_outfit_query_hints_detect_earring_accessory() -> None:
     hints = analyze_outfit_category_query_hints(build_earring_selfie_fixture())
 
     assert hints["accessory"] == "그레이 귀걸이"
+
+
+def test_outfit_query_hints_do_not_reuse_layered_flatlay_signature_for_colored_outfit() -> None:
+    image = Image.new("RGB", (524, 788), (178, 172, 162))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((82, 50, 440, 245), fill=(122, 138, 72))
+    draw.rectangle((250, 40, 510, 235), fill=(246, 246, 242))
+    draw.rectangle((92, 70, 230, 250), fill=(22, 22, 24))
+    draw.rectangle((150, 320, 374, 620), fill=(246, 246, 240))
+    draw.ellipse((190, 610, 250, 720), fill=(18, 18, 18))
+    draw.ellipse((280, 610, 340, 720), fill=(18, 18, 18))
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    hints = analyze_outfit_category_query_hints(output.getvalue())
+
+    assert hints.get("outer") != "블랙 니트 베스트"
+    assert hints.get("shoes") != "브라운 메리제인 슈즈"

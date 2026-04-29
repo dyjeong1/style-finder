@@ -143,6 +143,7 @@ function RecommendationPageContent() {
   const searchParams = useSearchParams();
   const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id");
   const lastResolvedUploadIdRef = useRef<string | null>(null);
+  const latestRequestKeyRef = useRef(0);
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
@@ -231,22 +232,31 @@ function RecommendationPageContent() {
     setLoading(true);
     setErrorMessage(null);
     setFallbackMessage(null);
+    const requestKey = latestRequestKeyRef.current + 1;
+    latestRequestKeyRef.current = requestKey;
+    const requestUploadedImageId = uploadedImageId;
 
     try {
       const result = await getRecommendations({
-        uploadedImageId,
+        uploadedImageId: requestUploadedImageId,
         category: category || undefined,
         sort,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         customQuery: appliedCustomQuery || undefined,
       });
+      if (latestRequestKeyRef.current !== requestKey || lastResolvedUploadIdRef.current !== requestUploadedImageId) {
+        return;
+      }
       setItems(result.items);
       setTotalCount(result.total_count);
       setDataSource(result.source ?? "mock");
       setSearchQuery(result.query ?? "");
       setFallbackMessage(result.fallback_message ?? null);
     } catch (error) {
+      if (latestRequestKeyRef.current !== requestKey || lastResolvedUploadIdRef.current !== requestUploadedImageId) {
+        return;
+      }
       const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
       const isStaleUpload =
         message.includes("Recommendation result does not exist for uploaded_image_id") ||
@@ -273,7 +283,9 @@ function RecommendationPageContent() {
       setSearchQuery("");
       setFallbackMessage(null);
     } finally {
-      setLoading(false);
+      if (latestRequestKeyRef.current === requestKey && lastResolvedUploadIdRef.current === requestUploadedImageId) {
+        setLoading(false);
+      }
     }
   }
 
