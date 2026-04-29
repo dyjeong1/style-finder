@@ -34,6 +34,7 @@ def build_predictor(
     min_interval_seconds: float = 0.0,
     max_retries: int = 2,
     timeout_seconds: float | None = None,
+    use_cache: bool = True,
 ):
     normalized = name.lower()
     if normalized == "rule":
@@ -58,12 +59,12 @@ def build_predictor(
             ),
         )
     )
-    cache = load_cache(cache_path) if cache_path else {}
+    cache = load_cache(cache_path) if cache_path and use_cache else {}
     last_called_at = {"value": 0.0}
 
     def predictor(content: bytes):
         cache_key = hashlib.sha256(content).hexdigest()
-        if cache_key in cache:
+        if use_cache and cache_key in cache:
             return deserialize_items(cache[cache_key])
 
         for attempt in range(max_retries + 1):
@@ -75,7 +76,7 @@ def build_predictor(
                 items = analyzer.analyze_or_raise(content)
                 last_called_at["value"] = time.monotonic()
                 cache[cache_key] = serialize_items(items)
-                if cache_path:
+                if cache_path and use_cache:
                     save_cache(cache_path, cache)
                 return items
             except (HTTPError, URLError, ValueError, socket.timeout, TimeoutError) as exc:
@@ -152,6 +153,11 @@ def main() -> int:
         default=None,
         help="이번 실행에만 적용할 provider 타임아웃(초)",
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="AI provider 캐시를 읽거나 저장하지 않고 새 결과로 실행",
+    )
     args = parser.parse_args()
 
     dataset_root = Path(args.dataset_root)
@@ -170,6 +176,7 @@ def main() -> int:
             min_interval_seconds=12.5 if args.baseline == "gemini" else 0.0,
             max_retries=args.max_retries,
             timeout_seconds=args.timeout_seconds if args.baseline != "rule" else None,
+            use_cache=not args.no_cache,
         ),
         sample_ids=selected_sample_ids or None,
         offset=args.offset,
@@ -183,6 +190,7 @@ def main() -> int:
             min_interval_seconds=interval_seconds,
             max_retries=args.max_retries,
             timeout_seconds=args.timeout_seconds if args.candidate != "rule" else None,
+            use_cache=not args.no_cache,
         ),
         sample_ids=selected_sample_ids or None,
         offset=args.offset,

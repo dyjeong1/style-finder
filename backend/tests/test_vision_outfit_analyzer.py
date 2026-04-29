@@ -288,6 +288,58 @@ def test_ollama_provider_normalizes_lightweight_model_item_labels(monkeypatch) -
     assert [item.query for item in items] == ["화이트 슬리브리스 탑", "블루 데님 팬츠", "블랙 안경"]
 
 
+def test_model_output_normalizes_outer_variants_and_recategorizes_bag(monkeypatch) -> None:
+    analyzer = VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=True,
+            provider="ollama",
+            model_name="gemma3:4b",
+            api_base_url="http://127.0.0.1:11434/api/chat",
+        )
+    )
+
+    def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "items": [
+                            {
+                                "category": "outer",
+                                "color": "black",
+                                "item_label": "블랙 재킷",
+                                "query": "블랙 재킷",
+                            },
+                            {
+                                "category": "outer",
+                                "color": "black",
+                                "item_label": "점프수트",
+                                "query": "블랙 점프수트",
+                            },
+                            {
+                                "category": "outer",
+                                "color": "brown",
+                                "item_label": "가방",
+                                "query": "브라운 가방",
+                            },
+                        ]
+                    },
+                    ensure_ascii=False,
+                )
+            }
+        }
+
+    monkeypatch.setattr(analyzer, "_post_json", fake_post_json)
+
+    items = analyzer.analyze(build_flatlay_fixture())
+
+    assert [(item.category, item.item_label, item.query) for item in items] == [
+        ("outer", "자켓", "블랙 자켓"),
+        ("outer", "원피스", "블랙 원피스"),
+        ("bag", "가방", "브라운 가방"),
+    ]
+
+
 def test_settings_support_openai_vision_alias_names(monkeypatch) -> None:
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_ENABLED", raising=False)
     monkeypatch.delenv("VISION_OUTFIT_ANALYZER_PROVIDER", raising=False)

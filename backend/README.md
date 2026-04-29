@@ -154,6 +154,7 @@ Ollama 실행 메모:
 - 반복 실험량이 많으면 Gemini보다 `Ollama + gemma3:4b` 조합을 우선 추천합니다.
 - 2026-04-29 로컬 검증에서 `codytest_2.jpg`는 `화이트 셔츠`, `회색 가디건`, `청바지 팬츠`, `검정 선글라스`로 응답했고, 단일 샘플 비교도 timeout 없이 완료되었습니다.
 - 이후 경량 모델 후처리 정규화를 추가해 같은 샘플의 하의/악세서리 표현을 `블루 데님 팬츠`, `블랙 안경` 형태로 표준화했습니다.
+- 3-way 비교 기준 현재 성능 순위는 `gemini > ollama(gemma3:4b) > rule`이며, `ollama` 비교를 fresh 실행하려면 `--no-cache` 옵션을 사용합니다.
 
 데이터셋 경로:
 - `backend/data/vision_dataset/images/`

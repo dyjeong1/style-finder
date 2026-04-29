@@ -69,18 +69,26 @@ GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 ITEM_LABEL_NORMALIZATION_RULES = {
     "top": (
         (("슬리브리스", "나시", "탱크"), "슬리브리스 탑"),
+        (("골지 상의", "골지 탑", "이너 탑", "이너웨어"), "탑"),
+        (("이너",), "탑"),
+        (("상의",), "탑"),
         (("블라우스",), "블라우스"),
         (("셔츠",), "셔츠"),
         (("티셔츠", "티 ", "tee"), "티셔츠"),
+        (("스웨터",), "니트 탑"),
         (("니트",), "니트 탑"),
     ),
     "outer": (
         (("가디건",), "가디건"),
+        (("니트 조끼", "브이넥 니트 조끼"), "니트 베스트"),
         (("니트 베스트",), "니트 베스트"),
         (("베스트",), "베스트"),
         (("레더", "가죽", "라이더"), "레더 자켓"),
+        (("재킷",), "자켓"),
         (("블레이저", "자켓"), "자켓"),
         (("점퍼", "블루종", "집업"), "점퍼"),
+        (("민소매 원피스", "점프수트"), "원피스"),
+        (("원피스",), "원피스"),
         (("코트",), "코트"),
     ),
     "bottom": (
@@ -376,6 +384,7 @@ class VisionOutfitAnalyzer:
             query = str(raw_item.get("query", "")).strip()
             color = _normalize_item_color(category=category, color=color, item_label=item_label, query=query)
             item_label = _normalize_item_label(category=category, color=color, item_label=item_label, query=query)
+            category = _normalize_item_category(category=category, item_label=item_label, query=query)
             query = build_item_query(category=category, color=color, item_label=item_label)
             normalized = DetectedOutfitItem(
                 category=category,
@@ -457,6 +466,13 @@ def _normalize_item_label(category: str, color: str, item_label: str, query: str
             return normalized_label
 
     return item_label.strip() or DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
+
+
+def _normalize_item_category(category: str, item_label: str, query: str) -> str:
+    combined_text = " ".join(part for part in (item_label, query) if part).strip()
+    if category == "outer" and any(keyword in combined_text for keyword in ("숄더백", "크로스백", "토트백", "백팩", "가방")):
+        return "bag"
+    return category
 
 
 def guess_mime_type(content: bytes) -> str:
