@@ -396,7 +396,7 @@ function createRecommendationFixtures(): Record<string, RecommendationFixture> {
   };
 }
 
-test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한다", async ({ page }) => {
+test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const wishlist = createWishlistRoutes();
   const uploadedImageId = "upload-e2e-001";
@@ -483,7 +483,7 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();
 });
 
-test("추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어와 필터, 분석 요약을 초기화한다", async ({ page }) => {
+test("@smoke 추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어와 필터, 분석 요약을 초기화한다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const wishlist = createWishlistRoutes();
 

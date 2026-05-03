@@ -49,6 +49,7 @@ npm run test:e2e
 - 업로드 후 추천 이동 시 `/recommendations?uploaded_image_id=...` 형태의 현재 업로드 ID만 URL로 전달합니다.
 - 추천 페이지는 `useSearchParams()` 값이 늦게 들어오는 경우에도 현재 브라우저 URL의 `uploaded_image_id`를 다시 읽어 업로드 기준 상태를 복구합니다.
 - Playwright는 기본적으로 dev 서버를 띄우지만, production-start 회귀 확인이 필요하면 `npm run test:e2e:local`로 `npm run local` 기반 `next build + next start` 경로까지 검증할 수 있습니다.
+- 업로드 핵심 흐름과 `uploaded_image_id` 상태 동기화 회귀는 `@smoke` 태그로 묶여 있어 `npm run test:e2e:smoke`, `npm run test:e2e:local:smoke`로 빠르게 확인할 수 있습니다.
 
 ## UI 개선 사항 (TSK-0003)
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내

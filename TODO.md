@@ -13,6 +13,7 @@
 - [x] [TSK-0039-로컬올라마지연fallback보정] 로컬 Ollama 미실행 시 업로드 분석이 긴 timeout 동안 멈추지 않고 즉시 규칙 fallback 으로 전환되게 한다.
 - [x] [TSK-0040-추천url쿼리동기화보정] 추천 페이지가 production build에서도 `uploaded_image_id`를 안정적으로 읽도록 query 동기화를 보정한다.
 - [x] [TSK-0041-프로덕션스타트회귀검증경로추가] Playwright가 `next build + next start` 경로에서도 같은 추천 회귀 테스트를 돌릴 수 있게 한다.
+- [x] [TSK-0042-업로드추천스모크경로정리] 업로드 핵심 흐름과 `uploaded_image_id` 회귀를 smoke 태그와 전용 스크립트로 빠르게 재검증할 수 있게 한다.
 - [x] [TSK-0011-qwen운영최적화및부분실행지원] qwen 기준 timeout/부분 실행/단일 업로드 확인 CLI를 추가한다.
 - [x] [TSK-0010-올라마로컬비전프로바이더연결] Ollama 로컬 Vision provider와 `OLLAMA_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0009-규칙기반대제미나이비교리포트] 규칙 기반과 Gemini 비교 스크립트 및 캐시/재시도 구조를 추가한다.
