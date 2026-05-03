@@ -42,7 +42,7 @@ tags: [frontend, design, art-direction, polish]
 - [x] 첫 화면에서 브랜드/제품 인상이 더 강하게 드러남
 - [x] 추천/위시리스트가 단순 관리 화면보다 편집된 쇼핑 서비스처럼 보임
 - [x] `cd frontend && npm run build` 통과
-- [ ] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
+- [x] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
 
 ## 7. 변경 이력
 - 2026-05-04: PLAN 생성 및 프론트 디자인 고급화 작업 시작

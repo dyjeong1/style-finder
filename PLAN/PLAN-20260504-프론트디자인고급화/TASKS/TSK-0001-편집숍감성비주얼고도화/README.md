@@ -40,5 +40,5 @@ updated_at: 2026-05-04
 ## 완료 기준(DoD)
 - [x] 핵심 3개 화면 디자인 고급화 반영
 - [x] 프론트 빌드 통과
-- [ ] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
+- [x] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
 - [x] README/TODO/PLAN/TASK 갱신
