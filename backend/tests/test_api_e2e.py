@@ -36,7 +36,8 @@ def test_core_e2e_flow() -> None:
     assert isinstance(upload_data["analysis"]["category_query_hints"], dict)
     assert isinstance(upload_data["analysis"]["detected_items"], list)
     assert upload_data["analysis"]["analysis_source"] in {"vision", "rule_fallback"}
-    assert upload_data["analysis"]["query_source"] in {"detected_items", "rule_hints", "none"}
+    assert upload_data["analysis"]["query_source"] in {"detected_items", "rule_fallback", "none"}
+    assert "fallback_reason" in upload_data["analysis"]
 
     image_resp = client.get(upload_data["image_url"])
     assert image_resp.status_code == 200

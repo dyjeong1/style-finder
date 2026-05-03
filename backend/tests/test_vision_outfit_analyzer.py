@@ -125,6 +125,9 @@ def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path)
 
     assert record.analysis.category_query_hints["top"] == "화이트 셔츠"
     assert record.analysis.category_query_hints["outer"] == "블랙 니트 베스트"
+    assert record.analysis.analysis_source == "rule_fallback"
+    assert record.analysis.query_source == "rule_fallback"
+    assert record.analysis.fallback_reason == "vision_disabled"
 
 
 def test_store_prefers_mock_vision_items_without_rule_fill(tmp_path) -> None:
@@ -188,30 +191,20 @@ def test_select_gemini_correction_categories_targets_layered_and_conflicting_cat
         DetectedOutfitItem(category="outer", color="gray", item_label="가디건", query="그레이 가디건"),
         DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
     ]
-    fallback_items = [
-        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
-        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
-        DetectedOutfitItem(category="bottom", color="black", item_label="데님 팬츠", query="블랙 데님 팬츠"),
-        DetectedOutfitItem(category="accessory", color="brown", item_label="안경", query="브라운 안경"),
-    ]
-    merged_items = tuple(merge_detected_items(vision_items, fallback_items))
+    merged_items = tuple(vision_items)
 
-    categories = select_gemini_correction_categories(vision_items, fallback_items, merged_items)
+    categories = select_gemini_correction_categories(vision_items, merged_items)
 
-    assert categories == ("top", "outer", "bottom", "accessory")
+    assert categories == ("top", "outer", "bottom")
 
 
-def test_select_gemini_correction_categories_includes_missing_shoes_from_fallback() -> None:
+def test_select_gemini_correction_categories_does_not_add_missing_category_from_rule_signal() -> None:
     vision_items = [
         DetectedOutfitItem(category="top", color="white", item_label="탑", query="화이트 탑"),
     ]
-    fallback_items = [
-        DetectedOutfitItem(category="shoes", color="gray", item_label="스니커즈", query="그레이 스니커즈"),
-    ]
+    categories = select_gemini_correction_categories(vision_items, tuple(vision_items))
 
-    categories = select_gemini_correction_categories(vision_items, fallback_items, tuple(vision_items))
-
-    assert categories == ("top", "shoes")
+    assert categories == ("top",)
 
 
 def test_apply_selective_category_corrections_replaces_only_targeted_categories() -> None:
@@ -334,7 +327,7 @@ def test_store_applies_optional_gemini_correction_for_ambiguous_ollama_output(tm
     ]
 
 
-def test_store_uses_rule_fallback_only_when_ai_returns_no_items(tmp_path) -> None:
+def test_store_does_not_use_rule_fallback_when_ai_returns_empty_result(tmp_path) -> None:
     store = InMemoryStore(
         wishlist_store_path=tmp_path / "wishlist.json",
         vision_outfit_analyzer=VisionOutfitAnalyzer(
@@ -351,12 +344,15 @@ def test_store_uses_rule_fallback_only_when_ai_returns_no_items(tmp_path) -> Non
         content=build_flatlay_fixture(),
     )
 
-    assert record.analysis.category_query_hints["top"] == "화이트 셔츠"
-    assert record.analysis.category_query_hints["outer"] == "블랙 니트 베스트"
+    assert record.analysis.analysis_source == "vision"
+    assert record.analysis.query_source == "none"
+    assert record.analysis.fallback_reason is None
+    assert record.analysis.category_query_hints == {}
+    assert record.analysis.detected_items == ()
 
 
 def test_resolve_detected_items_prefers_vision_and_applies_correction_without_rule_fill() -> None:
-    detected_items = resolve_detected_items(
+    detected_items, analysis_source, fallback_reason = resolve_detected_items(
         b"fixture",
         vision_predictor=lambda _content: [
             DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
@@ -373,12 +369,13 @@ def test_resolve_detected_items_prefers_vision_and_applies_correction_without_ru
 
     assert [(item.category, item.query) for item in detected_items] == [
         ("top", "화이트 슬리브리스 탑"),
-        ("shoes", "그레이 스니커즈"),
     ]
+    assert analysis_source == "vision"
+    assert fallback_reason is None
 
 
-def test_resolve_detected_items_uses_rule_only_when_vision_is_empty() -> None:
-    detected_items = resolve_detected_items(
+def test_resolve_detected_items_keeps_empty_ai_result_without_rule_fallback() -> None:
+    detected_items, analysis_source, fallback_reason = resolve_detected_items(
         b"fixture",
         vision_predictor=lambda _content: [],
         rule_predictor=lambda _content: [
@@ -386,9 +383,26 @@ def test_resolve_detected_items_uses_rule_only_when_vision_is_empty() -> None:
         ],
     )
 
-    assert [(item.category, item.query) for item in detected_items] == [
-        ("outer", "블랙 자켓"),
-    ]
+    assert detected_items == ()
+    assert analysis_source == "vision"
+    assert fallback_reason is None
+
+
+def test_resolve_detected_items_uses_rule_only_when_ai_raises() -> None:
+    def broken_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        raise RuntimeError("provider crashed")
+
+    detected_items, analysis_source, fallback_reason = resolve_detected_items(
+        b"fixture",
+        vision_predictor=broken_predictor,
+        rule_predictor=lambda _content: [
+            DetectedOutfitItem(category="outer", color="black", item_label="자켓", query="블랙 자켓"),
+        ],
+    )
+
+    assert [(item.category, item.query) for item in detected_items] == [("outer", "블랙 자켓")]
+    assert analysis_source == "rule_fallback"
+    assert fallback_reason == "vision_error"
 
 
 def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:

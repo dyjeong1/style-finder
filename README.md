@@ -187,9 +187,10 @@
    - `/upload`는 현재 선택한 이미지 1건만 기준으로 분석과 추천 이동을 처리함
    - 업로드 ID/분석 결과/업로드 히스토리는 브라우저 localStorage에 저장하지 않음
 23. AI 우선 추천 기준 메모:
-   - 업로드 분석 응답은 `analysis_source`, `query_source` 메타를 포함해 AI 분석 기준과 보조 힌트 사용 여부를 함께 반환함
+   - 업로드 분석 응답은 `analysis_source`, `query_source`, `fallback_reason` 메타를 포함해 AI 분석 기준과 fallback 사용 여부를 함께 반환함
    - 추천 페이지는 `AI 분석 기준` 또는 `fallback 분석 기준`을 직접 표시해 현재 추천 근거를 드러냄
    - 감지 품목이 비어 있을 때는 digest 기반 임의 카테고리 fallback 을 더 이상 사용하지 않음
+   - AI가 빈 결과를 돌려준 경우에는 그대로 AI 결과를 사용하고, provider unavailable/error 시에만 규칙 fallback 을 사용함
 24. 단일 사용자 모드 메모:
    - 백엔드 업로드/추천/찜 API는 로그인 없이 바로 호출 가능
    - 위시리스트는 로컬 단일 사용자 기준으로 저장됨

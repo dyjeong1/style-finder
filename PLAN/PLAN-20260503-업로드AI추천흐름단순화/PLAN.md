@@ -54,3 +54,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-03: 업로드 단일 세션화, AI 우선 추천, fallback 최소화 기준으로 새 PLAN을 생성함.
 - 2026-05-03: TSK-0030에서 업로드 localStorage/최근 업로드 재사용 UI를 제거하고 현재 업로드 1건 흐름으로 정리함.
 - 2026-05-03: TSK-0031에서 추천 분석 메타에 AI/fallback 기준을 추가하고 임의 카테고리 fallback 을 제거함.
+- 2026-05-03: TSK-0032에서 AI empty 와 unavailable/error 를 분리하고 규칙 분석을 unavailable/error 시 최후 fallback 으로만 제한함.

@@ -12,7 +12,6 @@ from uuid import uuid4
 from src.core.config import get_settings, resolve_vision_outfit_analyzer_runtime_config
 from src.services.image_analysis import (
     DetectedOutfitItem,
-    analyze_outfit_category_query_hints,
     analyze_outfit_items,
     analyze_image_content,
     classify_rgb_color,
@@ -21,6 +20,7 @@ from src.services.image_analysis import (
     infer_color_from_text,
 )
 from src.services.vision_outfit_analyzer import (
+    VisionAnalyzerUnavailableError,
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
 )
@@ -43,6 +43,7 @@ class UploadAnalysis:
     detected_items: tuple[DetectedOutfitItem, ...] = ()
     analysis_source: str = "vision"
     query_source: str = "detected_items"
+    fallback_reason: str | None = None
 
 
 @dataclass
@@ -94,6 +95,7 @@ def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
         ],
         "analysis_source": analysis.analysis_source,
         "query_source": analysis.query_source,
+        "fallback_reason": analysis.fallback_reason,
     }
 
 
@@ -103,21 +105,28 @@ def resolve_detected_items(
     correction_predictor: Callable[[bytes], list[DetectedOutfitItem]] | None = None,
     enable_gemini_correction: bool = False,
     rule_predictor: Callable[[bytes], list[DetectedOutfitItem]] = analyze_outfit_items,
-) -> tuple[tuple[DetectedOutfitItem, ...], str]:
-    vision_detected_items = vision_predictor(content)
+) -> tuple[tuple[DetectedOutfitItem, ...], str, str | None]:
+    try:
+        vision_detected_items = vision_predictor(content)
+    except Exception as exc:
+        fallback_reason = exc.reason if isinstance(exc, VisionAnalyzerUnavailableError) else "vision_error"
+        detected_items = tuple(_sort_detected_items_for_display(tuple(rule_predictor(content))))
+        return detected_items, "rule_fallback", fallback_reason
+
     rule_detected_items: list[DetectedOutfitItem] = []
     detected_items = tuple(vision_detected_items)
     analysis_source = "vision"
 
     if detected_items and enable_gemini_correction and correction_predictor is not None:
-        rule_detected_items = rule_predictor(content)
         correction_categories = select_gemini_correction_categories(
             vision_items=vision_detected_items,
-            fallback_items=rule_detected_items,
             merged_items=detected_items,
         )
         if correction_categories:
-            correction_items = correction_predictor(content)
+            try:
+                correction_items = correction_predictor(content)
+            except Exception:
+                correction_items = []
             if correction_items:
                 detected_items = tuple(
                     apply_selective_category_corrections(
@@ -127,11 +136,7 @@ def resolve_detected_items(
                     )
                 )
 
-    if not detected_items:
-        detected_items = tuple(rule_predictor(content))
-        analysis_source = "rule_fallback"
-
-    return tuple(_sort_detected_items_for_display(detected_items)), analysis_source
+    return tuple(_sort_detected_items_for_display(detected_items)), analysis_source, None
 
 
 class InMemoryStore:
@@ -306,11 +311,11 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        detected_items, analysis_source = resolve_detected_items(
+        detected_items, analysis_source, fallback_reason = resolve_detected_items(
             content,
-            vision_predictor=self.vision_outfit_analyzer.analyze,
+            vision_predictor=self.vision_outfit_analyzer.analyze_or_raise,
             correction_predictor=(
-                self.gemini_correction_analyzer.analyze
+                self.gemini_correction_analyzer.analyze_or_raise
                 if self.enable_gemini_correction and self.gemini_correction_analyzer is not None
                 else None
             ),
@@ -321,11 +326,11 @@ class InMemoryStore:
         for item in detected_items:
             category_query_hints.setdefault(item.category, item.query)
 
-        query_source = "detected_items"
-        if not category_query_hints:
-            category_query_hints = analyze_outfit_category_query_hints(content)
-            query_source = "rule_hints" if category_query_hints else "none"
-        preferred_categories = detected_categories or tuple(category_query_hints)
+        if analysis_source == "rule_fallback":
+            query_source = "rule_fallback" if category_query_hints else "none"
+        else:
+            query_source = "detected_items" if category_query_hints else "none"
+        preferred_categories = detected_categories
 
         return UploadAnalysis(
             checksum=digest.hex()[:16],
@@ -339,6 +344,7 @@ class InMemoryStore:
             detected_items=detected_items,
             analysis_source=analysis_source,
             query_source=query_source,
+            fallback_reason=fallback_reason,
         )
 
     def _derive_tone(self, dominant_color: str) -> str:
@@ -545,7 +551,6 @@ class InMemoryStore:
 
 def select_gemini_correction_categories(
     vision_items: list[DetectedOutfitItem],
-    fallback_items: list[DetectedOutfitItem],
     merged_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
 ) -> tuple[str, ...]:
     target_order = ("top", "outer", "bottom", "shoes", "bag", "accessory")
@@ -558,7 +563,6 @@ def select_gemini_correction_categories(
         "accessory": {"안경", "양말", "목걸이", "귀걸이"},
     }
     vision_by_category = _first_item_by_category(vision_items)
-    fallback_by_category = _first_item_by_category(fallback_items)
     merged_categories = {item.category for item in merged_items}
     categories: list[str] = []
 
@@ -567,19 +571,7 @@ def select_gemini_correction_categories(
 
     for category in target_order:
         vision_item = vision_by_category.get(category)
-        fallback_item = fallback_by_category.get(category)
-
-        if vision_item and fallback_item:
-            if vision_item.color != fallback_item.color or vision_item.item_label != fallback_item.item_label:
-                categories.append(category)
-                continue
-
-        item_to_check = vision_item or fallback_item
-        if item_to_check and item_to_check.item_label in generic_labels.get(category, set()):
-            categories.append(category)
-            continue
-
-        if not vision_item and fallback_item and category in {"top", "outer", "shoes", "bag", "accessory"}:
+        if vision_item and vision_item.item_label in generic_labels.get(category, set()):
             categories.append(category)
 
     return tuple(dict.fromkeys(category for category in categories if category in target_order))

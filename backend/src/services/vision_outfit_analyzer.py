@@ -186,6 +186,12 @@ class VisionOutfitAnalyzerConfig:
     api_key: str | None = None
 
 
+class VisionAnalyzerUnavailableError(RuntimeError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
 @dataclass
 class VisionOutfitAnalyzer:
     config: VisionOutfitAnalyzerConfig
@@ -207,10 +213,12 @@ class VisionOutfitAnalyzer:
             return []
 
     def analyze_or_raise(self, content: bytes) -> list[DetectedOutfitItem]:
-        if not self.config.enabled or not content:
-            return []
+        if not self.config.enabled:
+            raise VisionAnalyzerUnavailableError("vision_disabled")
+        if not content:
+            raise VisionAnalyzerUnavailableError("missing_content")
         if len(content) > self.config.max_image_bytes:
-            return []
+            raise VisionAnalyzerUnavailableError("image_too_large")
 
         provider = (self.config.provider or "disabled").lower()
         if provider == "mock":
@@ -222,14 +230,14 @@ class VisionOutfitAnalyzer:
         if provider == "ollama":
             return self._analyze_with_ollama(content)
 
-        return []
+        raise VisionAnalyzerUnavailableError("unsupported_provider")
 
     def coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
         return self._coerce_detected_items(parsed_payload)
 
     def _analyze_with_openai(self, content: bytes) -> list[DetectedOutfitItem]:
         if not self.config.api_key:
-            return []
+            raise VisionAnalyzerUnavailableError("missing_api_key")
 
         payload = {
             "model": self.config.model_name or "gpt-4o",
@@ -279,7 +287,7 @@ class VisionOutfitAnalyzer:
 
     def _analyze_with_gemini(self, content: bytes) -> list[DetectedOutfitItem]:
         if not self.config.api_key:
-            return []
+            raise VisionAnalyzerUnavailableError("missing_api_key")
 
         model_name = self.config.model_name or "gemini-2.5-flash"
         url = self.config.api_base_url or GEMINI_GENERATE_CONTENT_URL.format(model=model_name)

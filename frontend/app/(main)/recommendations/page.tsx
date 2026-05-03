@@ -100,11 +100,10 @@ function getAnalysisSourceDescription(analysis: UploadAnalysis | null): string |
   }
 
   if (analysis.analysis_source === "rule_fallback") {
-    return "AI 분석 결과가 비어 규칙 기반 힌트로 추천을 이어가고 있습니다.";
-  }
-
-  if (analysis.query_source === "rule_hints") {
-    return "추천 검색어는 보조 힌트를 사용했지만, 현재 업로드 분석 기준으로 추천을 만들고 있습니다.";
+    if (analysis.fallback_reason) {
+      return `AI 분석 경로를 사용할 수 없어 규칙 fallback 으로 추천을 이어가고 있습니다. (${analysis.fallback_reason})`;
+    }
+    return "AI 분석 경로를 사용할 수 없어 규칙 fallback 으로 추천을 이어가고 있습니다.";
   }
 
   return "현재 업로드의 AI 감지 품목 기준으로 추천을 만들고 있습니다.";
