@@ -4,13 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import {
-  addWishlist,
-  getRecommendations,
-  getWishlist,
-  RecommendationItem,
-  UploadAnalysis,
-} from "@/lib/api";
+import { addWishlist, getRecommendations, getWishlist, RecommendationItem, UploadAnalysis } from "@/lib/api";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
 
@@ -22,6 +16,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   bag: "가방",
   accessory: "악세서리",
 };
+
+const CATEGORY_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "top", label: "상의" },
+  { value: "bottom", label: "하의" },
+  { value: "outer", label: "아우터" },
+  { value: "shoes", label: "신발" },
+  { value: "bag", label: "가방" },
+  { value: "accessory", label: "악세서리" },
+];
 
 const CATEGORY_ORDER = ["top", "bottom", "outer", "shoes", "bag", "accessory"] as const;
 const CATEGORY_ORDER_SET = new Set<string>(CATEGORY_ORDER);
@@ -246,8 +250,7 @@ function RecommendationPageContent() {
       }
       const message = error instanceof Error ? error.message : "추천 조회 중 오류가 발생했습니다.";
       const isStaleUpload =
-        message.includes("Recommendation result does not exist for uploaded_image_id") ||
-        message.includes("uploaded_image_id");
+        message.includes("Recommendation result does not exist for uploaded_image_id") || message.includes("uploaded_image_id");
 
       if (isStaleUpload) {
         setUploadedImageId(null);
@@ -307,6 +310,9 @@ function RecommendationPageContent() {
   }
 
   const recommendationSections = buildRecommendationSections(items);
+  const visibleCount = items.length;
+  const savedCount = savedProductIds.length;
+  const activeQueryLabel = appliedCustomQuery || searchQuery || "자동 생성";
 
   function renderProductCard(item: RecommendationItem) {
     const saved = savedProductIds.includes(item.product_id);
@@ -340,6 +346,7 @@ function RecommendationPageContent() {
           <h3>{item.product_name}</h3>
           <div className="product-price-row">
             <p className="product-price">{item.price.toLocaleString("ko-KR")}원</p>
+            <span className="product-source-inline">{SOURCE_LABELS[item.source] ?? item.source.toUpperCase()}</span>
           </div>
           <div className="product-actions">
             <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
@@ -404,237 +411,272 @@ function RecommendationPageContent() {
   }
 
   return (
-    <section className="card recommendations-shell" aria-labelledby="recommendations-title" aria-busy={loading}>
-      <div className="page-header page-header-secondary">
-        <p className="eyebrow">추천</p>
-        <div className="page-title-row">
-          <div>
-            <h1 id="recommendations-title">추천 상품</h1>
-            <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
+    <section className="recommendation-page" aria-labelledby="recommendations-title" aria-busy={loading}>
+      <div className="curation-hero">
+        <div className="curation-hero-copy">
+          <p className="eyebrow">Curated Feed</p>
+          <h1 id="recommendations-title">업로드 기반 추천 컬렉션</h1>
+          <p className="lead page-lead">
+            현재 업로드에서 읽은 스타일 신호를 바탕으로 비슷한 상품을 정렬했습니다. 필터를 조정하거나 검색어를 직접 입력해 바로 재탐색할 수 있습니다.
+          </p>
+          <div className="hero-pill-row">
+            <span className="hero-pill">검색어 {activeQueryLabel}</span>
+            <span className="hero-pill">추천 {visibleCount}개</span>
+            <span className="hero-pill">{category ? `${getCategoryLabel(category)} 필터` : "전체 카테고리"}</span>
+          </div>
+          {fallbackMessage ? (
+            <p className="warning-text" role="status">
+              {fallbackMessage}
+            </p>
+          ) : null}
+        </div>
+        <div className="hero-metrics-board" aria-label="추천 화면 요약">
+          <div className="metric-tile">
+            <span>Visible Items</span>
+            <strong>{visibleCount}</strong>
+            <small>현재 화면에 보이는 추천 수</small>
+          </div>
+          <div className="metric-tile">
+            <span>Saved Products</span>
+            <strong>{savedCount}</strong>
+            <small>위시리스트에 저장된 상품 수</small>
+          </div>
+          <div className="metric-tile">
+            <span>Curated Sections</span>
+            <strong>{recommendationSections.length}</strong>
+            <small>카테고리별 섹션 수</small>
           </div>
         </div>
       </div>
 
-      {searchQuery ? <p className="hint-text">검색어: {searchQuery}{appliedCustomQuery ? " (직접 입력 적용)" : ""}</p> : null}
-      {fallbackMessage ? (
-        <p className="warning-text" role="status">
-          {fallbackMessage}
-        </p>
-      ) : null}
-
-      <div className="filter-panel">
-        <div className="filter-row">
-          <label className="control-field" htmlFor="recommendation-category">
-            <span className="field-label">카테고리</span>
-            <select id="recommendation-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="">전체</option>
-              <option value="top">상의</option>
-              <option value="bottom">하의</option>
-              <option value="outer">아우터</option>
-              <option value="shoes">신발</option>
-              <option value="bag">가방</option>
-              <option value="accessory">악세서리</option>
-            </select>
-          </label>
-          <label className="control-field" htmlFor="recommendation-sort">
-            <span className="field-label">정렬</span>
-            <select id="recommendation-sort" value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
-              <option value="similarity_desc">유사도 높은 순</option>
-              <option value="price_asc">가격 낮은 순</option>
-              <option value="price_desc">가격 높은 순</option>
-            </select>
-          </label>
-          <label className="control-field" htmlFor="recommendation-min-price">
-            <span className="field-label">최소 가격</span>
-            <input
-              id="recommendation-min-price"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder="최소 가격"
-              value={minPrice}
-              onChange={(event) => setMinPrice(event.target.value)}
-            />
-          </label>
-          <label className="control-field" htmlFor="recommendation-max-price">
-            <span className="field-label">최대 가격</span>
-            <input
-              id="recommendation-max-price"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder="최대 가격"
-              value={maxPrice}
-              onChange={(event) => setMaxPrice(event.target.value)}
-            />
-          </label>
-        </div>
-        <div className="custom-query-row">
-          <label className="control-field" htmlFor="recommendation-custom-query">
-            <span className="field-label">추천 검색어 직접 입력</span>
-            <input
-              id="recommendation-custom-query"
-              type="search"
-              maxLength={80}
-              placeholder="예: 블랙 미니멀 재킷"
-              value={customQueryInput}
-              onChange={(event) => setCustomQueryInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyCustomQuery();
-                }
-              }}
-            />
-          </label>
-          <div className="custom-query-actions">
-            <button type="button" onClick={applyCustomQuery}>
-              검색어 적용
-            </button>
-            <button type="button" className="ghost-button" onClick={clearCustomQuery} disabled={!customQueryInput && !appliedCustomQuery}>
-              검색어 초기화
-            </button>
+      <div className="recommendation-layout">
+        <aside className="filter-sidebar">
+          <div className="filter-panel filter-panel-elevated">
+            <div className="support-panel-header">
+              <p className="eyebrow">Refine Feed</p>
+              <h2>추천 조건 조정</h2>
+            </div>
+            <div className="filter-row">
+              <label className="control-field" htmlFor="recommendation-category">
+                <span className="field-label">카테고리</span>
+                <select id="recommendation-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value || "all"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="control-field" htmlFor="recommendation-sort">
+                <span className="field-label">정렬</span>
+                <select id="recommendation-sort" value={sort} onChange={(event) => setSort(event.target.value as SortOption)}>
+                  <option value="similarity_desc">유사도 높은 순</option>
+                  <option value="price_asc">가격 낮은 순</option>
+                  <option value="price_desc">가격 높은 순</option>
+                </select>
+              </label>
+              <label className="control-field" htmlFor="recommendation-min-price">
+                <span className="field-label">최소 가격</span>
+                <input
+                  id="recommendation-min-price"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="최소 가격"
+                  value={minPrice}
+                  onChange={(event) => setMinPrice(event.target.value)}
+                />
+              </label>
+              <label className="control-field" htmlFor="recommendation-max-price">
+                <span className="field-label">최대 가격</span>
+                <input
+                  id="recommendation-max-price"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="최대 가격"
+                  value={maxPrice}
+                  onChange={(event) => setMaxPrice(event.target.value)}
+                />
+              </label>
+            </div>
+            <div className="custom-query-row">
+              <label className="control-field" htmlFor="recommendation-custom-query">
+                <span className="field-label">직접 검색어</span>
+                <input
+                  id="recommendation-custom-query"
+                  type="search"
+                  maxLength={80}
+                  placeholder="예: 블랙 미니멀 재킷"
+                  value={customQueryInput}
+                  onChange={(event) => setCustomQueryInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      applyCustomQuery();
+                    }
+                  }}
+                />
+              </label>
+              <div className="custom-query-actions">
+                <button type="button" onClick={applyCustomQuery}>
+                  검색어 적용
+                </button>
+                <button type="button" className="ghost-button" onClick={clearCustomQuery} disabled={!customQueryInput && !appliedCustomQuery}>
+                  초기화
+                </button>
+              </div>
+            </div>
+            <p className="hint-text">
+              {appliedCustomQuery ? `현재 직접 입력 검색어: ${appliedCustomQuery}` : "비워두면 현재 업로드 분석 결과로 검색어를 자동 생성합니다."}
+            </p>
+            <div className="action-row">
+              <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
+                새로고침
+              </button>
+              <button type="button" className="ghost-button" onClick={resetFilters}>
+                필터 초기화
+              </button>
+            </div>
           </div>
-        </div>
-        {appliedCustomQuery ? (
-          <p className="hint-text">현재 직접 입력 검색어: {appliedCustomQuery}</p>
-        ) : (
-          <p className="hint-text">비워두면 현재 업로드의 분석 결과로 검색어를 자동 생성합니다.</p>
-        )}
-        <div className="action-row">
-          <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
-            새로고침
-          </button>
-          <button type="button" className="ghost-button" onClick={resetFilters}>
-            필터 초기화
-          </button>
-        </div>
-      </div>
 
-      <div className="status-region" aria-live="polite" aria-atomic="true">
-        {loading ? (
-          <p className="lead" role="status">
-            추천 결과를 불러오는 중입니다...
-          </p>
-        ) : null}
-        {wishlistLoading ? (
-          <p className="hint-text" role="status">
-            저장 상태를 동기화하는 중입니다...
-          </p>
-        ) : null}
-        {errorMessage ? (
-          <p className="error-text" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-        {feedbackMessage ? (
-          <p className="success-text" role="status">
-            {feedbackMessage}
-          </p>
-        ) : null}
-      </div>
+          <div className="status-region recommendation-status" aria-live="polite" aria-atomic="true">
+            {loading ? (
+              <p className="lead" role="status">
+                추천 결과를 불러오는 중입니다...
+              </p>
+            ) : null}
+            {wishlistLoading ? (
+              <p className="hint-text" role="status">
+                저장 상태를 동기화하는 중입니다...
+              </p>
+            ) : null}
+            {errorMessage ? (
+              <p className="error-text" role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
+            {feedbackMessage ? (
+              <p className="success-text" role="status">
+                {feedbackMessage}
+              </p>
+            ) : null}
+          </div>
 
-      {uploadedImageAnalysis ? (
-        <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
-          <div className="panel-title-row">
-            <h2>업로드 분석</h2>
-            <span className="metric-chip">{getAnalysisSourceLabel(uploadedImageAnalysis)}</span>
-          </div>
-          <div className="analysis-chip-row">
-            <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
-            {uploadedImageAnalysis.dominant_color ? <span className="analysis-chip">색상 {uploadedImageAnalysis.dominant_color}</span> : null}
-            <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
-            <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
-          </div>
-          {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
-            <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
+          {uploadedImageAnalysis ? (
+            <section className="analysis-panel analysis-panel-elevated" aria-label="업로드 이미지 분석 요약">
+              <div className="panel-title-row">
+                <h2>업로드 분석</h2>
+                <span className="metric-chip">{getAnalysisSourceLabel(uploadedImageAnalysis)}</span>
+              </div>
+              <div className="analysis-chip-row">
+                <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
+                {uploadedImageAnalysis.dominant_color ? <span className="analysis-chip">색상 {uploadedImageAnalysis.dominant_color}</span> : null}
+                <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
+                <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
+              </div>
+              {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
+                <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
+              ) : null}
+              <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
+              {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
+                <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>
+              ) : null}
+              {uploadedImageAnalysis.category_query_hints ? (
+                <p className="hint-text">검색 힌트: {Object.values(uploadedImageAnalysis.category_query_hints).join(" / ")}</p>
+              ) : null}
+            </section>
           ) : null}
-          <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
-          {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
-            <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>
-          ) : null}
-          {uploadedImageAnalysis.category_query_hints ? (
-            <p className="hint-text">검색 힌트: {Object.values(uploadedImageAnalysis.category_query_hints).join(" / ")}</p>
-          ) : null}
-        </section>
-      ) : null}
 
-      {!loading && items.length > 0 && !category ? (
-        <nav className="category-jump-panel" aria-label="추천 카테고리 바로가기">
-          <div className="category-jump-copy">
-            <p className="eyebrow">바로가기</p>
-            <strong>원하는 제품군으로 빠르게 이동하세요.</strong>
-          </div>
-          <div className="category-jump-list">
-            {recommendationSections.map((section) => (
-              <a className="category-jump-card" href={`#${getRecommendationSectionId(section.key)}`} key={section.key}>
-                <span>{section.label}</span>
-                <strong>{section.items.length}개</strong>
-                <small>최고 매칭 {getTopMatchLabel(section.items)}</small>
-              </a>
-            ))}
-          </div>
-        </nav>
-      ) : null}
+          <section className="support-panel compact-support-panel">
+            <div className="support-panel-header">
+              <p className="eyebrow">Quick Reset</p>
+              <h2>새 이미지를 기준으로 다시 시작</h2>
+            </div>
+            <p className="hint-text">
+              현재 추천이 마음에 들지 않으면 <Link href="/upload">업로드 화면</Link>에서 새 코디 이미지를 넣어 바로 다른 컬렉션을 만들 수 있습니다.
+            </p>
+          </section>
+        </aside>
 
-      {loading ? (
-        <div className="card-grid product-grid" role="list" aria-label="추천 상품 로딩 목록">
-          {Array.from({ length: 4 }).map((_, idx) => (
-            <article className="product-card skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
-              <div className="product-visual skeleton-block" />
-              <div className="skeleton-line skeleton-title" />
-              <div className="skeleton-line" />
-              <div className="skeleton-line skeleton-short" />
-            </article>
-          ))}
-        </div>
-      ) : null}
-
-      {!loading && items.length > 0 && category ? (
-        <div className="card-grid product-grid" role="list" aria-label={`${getCategoryLabel(category)} 추천 상품 목록`}>
-          {items.map(renderProductCard)}
-        </div>
-      ) : null}
-
-      {!loading && items.length > 0 && !category ? (
-        <div className="recommendation-section-list" aria-label="카테고리별 추천 상품 목록">
-          {recommendationSections.map((section) => {
-            const sectionId = getRecommendationSectionId(section.key);
-            const sectionTitleId = `${sectionId}-title`;
-
-            return (
-              <section
-                className="recommendation-category-section"
-                id={sectionId}
-                key={section.key}
-                aria-labelledby={sectionTitleId}
-              >
-                <div className="recommendation-section-header">
-                  <div>
-                    <p className="eyebrow">카테고리 추천</p>
-                    <h2 id={sectionTitleId}>{section.label}</h2>
-                  </div>
-                  <div className="section-stat-row" aria-label={`${section.label} 추천 요약`}>
-                    <span>{section.items.length}개 상품</span>
-                    <span>최고 매칭 {getTopMatchLabel(section.items)}</span>
-                  </div>
+        <div className="recommendation-content">
+          {!loading && items.length > 0 && !category ? (
+            <nav className="category-jump-panel" aria-label="추천 카테고리 바로가기">
+              <div className="category-jump-copy">
+                <div>
+                  <p className="eyebrow">Section Jump</p>
+                  <strong>원하는 제품군으로 바로 이동하세요.</strong>
                 </div>
-                <div className="card-grid product-grid" role="list" aria-label={`${section.label} 추천 상품 목록`}>
-                  {section.items.map(renderProductCard)}
-                </div>
-              </section>
-            );
-          })}
+                <span className="workspace-chip">Curated by Category</span>
+              </div>
+              <div className="category-jump-list">
+                {recommendationSections.map((section) => (
+                  <a className="category-jump-card" href={`#${getRecommendationSectionId(section.key)}`} key={section.key}>
+                    <span>{section.label}</span>
+                    <strong>{section.items.length}개</strong>
+                    <small>최고 매칭 {getTopMatchLabel(section.items)}</small>
+                  </a>
+                ))}
+              </div>
+            </nav>
+          ) : null}
+
+          {loading ? (
+            <div className="card-grid product-grid" role="list" aria-label="추천 상품 로딩 목록">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <article className="product-card skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
+                  <div className="product-visual skeleton-block" />
+                  <div className="skeleton-line skeleton-title" />
+                  <div className="skeleton-line" />
+                  <div className="skeleton-line skeleton-short" />
+                </article>
+              ))}
+            </div>
+          ) : null}
+
+          {!loading && items.length > 0 && category ? (
+            <div className="card-grid product-grid" role="list" aria-label={`${getCategoryLabel(category)} 추천 상품 목록`}>
+              {items.map(renderProductCard)}
+            </div>
+          ) : null}
+
+          {!loading && items.length > 0 && !category ? (
+            <div className="recommendation-section-list" aria-label="카테고리별 추천 상품 목록">
+              {recommendationSections.map((section) => {
+                const sectionId = getRecommendationSectionId(section.key);
+                const sectionTitleId = `${sectionId}-title`;
+
+                return (
+                  <section className="recommendation-category-section" id={sectionId} key={section.key} aria-labelledby={sectionTitleId}>
+                    <div className="recommendation-section-header">
+                      <div>
+                        <p className="eyebrow">Category Edit</p>
+                        <h2 id={sectionTitleId}>{section.label}</h2>
+                      </div>
+                      <div className="section-stat-row" aria-label={`${section.label} 추천 요약`}>
+                        <span>{section.items.length}개 상품</span>
+                        <span>최고 매칭 {getTopMatchLabel(section.items)}</span>
+                      </div>
+                    </div>
+                    <div className="card-grid product-grid" role="list" aria-label={`${section.label} 추천 상품 목록`}>
+                      {section.items.map(renderProductCard)}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!loading && items.length === 0 && !errorMessage ? (
+            <div className="empty-box soft-empty-box large-empty-box">
+              <p className="lead">추천 결과가 없습니다.</p>
+              <p className="hint-text">
+                먼저 <Link href="/upload">업로드</Link>에서 다른 이미지를 올리거나 가격 필터를 완화해보세요.
+              </p>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {!loading && items.length === 0 && !errorMessage ? (
-        <div className="empty-box soft-empty-box">
-          <p className="lead">추천 결과가 없습니다.</p>
-          <p className="hint-text">
-            먼저 <Link href="/upload">업로드</Link>에서 다른 이미지를 올리거나 가격 필터를 완화해보세요.
-          </p>
-        </div>
-      ) : null}
+      </div>
     </section>
   );
 }
@@ -643,10 +685,12 @@ export default function RecommendationPage() {
   return (
     <Suspense
       fallback={
-        <section className="card recommendations-shell" aria-busy="true">
-          <p className="lead" role="status">
-            추천 결과를 불러오는 중입니다...
-          </p>
+        <section className="recommendation-page" aria-busy="true">
+          <div className="empty-box soft-empty-box large-empty-box">
+            <p className="lead" role="status">
+              추천 결과를 불러오는 중입니다...
+            </p>
+          </div>
         </section>
       }
     >

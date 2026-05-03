@@ -7,14 +7,15 @@ import { getWishlist, removeWishlist, WishlistItem } from "@/lib/api";
 
 type WishlistSortOption = "latest" | "oldest" | "price_asc" | "price_desc" | "name_asc";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  top: "상의",
-  bottom: "하의",
-  outer: "아우터",
-  shoes: "신발",
-  bag: "가방",
-  accessory: "악세서리",
-};
+const CATEGORY_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "top", label: "상의" },
+  { value: "bottom", label: "하의" },
+  { value: "outer", label: "아우터" },
+  { value: "shoes", label: "신발" },
+  { value: "bag", label: "가방" },
+  { value: "accessory", label: "악세서리" },
+];
 
 function buildWishlistFallbackImage(item: WishlistItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -80,6 +81,18 @@ export default function WishlistPage() {
     return nextItems;
   }, [items, sort]);
 
+  const stats = useMemo(() => {
+    const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+    const categoryCount = new Set(items.map((item) => item.category)).size;
+    const sourceCount = new Set(items.map((item) => item.source)).size;
+
+    return {
+      totalPrice,
+      categoryCount,
+      sourceCount,
+    };
+  }, [items]);
+
   async function loadWishlist() {
     setLoading(true);
     setErrorMessage(null);
@@ -112,97 +125,129 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="card wishlist-shell" aria-labelledby="wishlist-title" aria-busy={loading}>
-      <div className="page-header page-header-soft">
-        <p className="eyebrow">위시리스트</p>
-        <div className="page-title-row">
-          <div>
-            <h1 id="wishlist-title">찜 목록</h1>
-            <p className="lead page-lead">저장해둔 상품을 다시 확인하고 바로 쇼핑몰 링크로 이동할 수 있습니다.</p>
+    <section className="wishlist-page" aria-labelledby="wishlist-title" aria-busy={loading}>
+      <div className="collection-hero">
+        <div className="curation-hero-copy">
+          <p className="eyebrow">Saved Board</p>
+          <h1 id="wishlist-title">저장한 스타일 컬렉션</h1>
+          <p className="lead page-lead">
+            마음에 들었던 추천 상품을 모아두고 다시 비교해보세요. 가격, 저장 시점, 카테고리 기준으로 빠르게 정리할 수 있습니다.
+          </p>
+        </div>
+        <div className="hero-metrics-board" aria-label="위시리스트 요약">
+          <div className="metric-tile">
+            <span>Saved Items</span>
+            <strong>{items.length}</strong>
+            <small>현재 저장된 상품 수</small>
+          </div>
+          <div className="metric-tile">
+            <span>Categories</span>
+            <strong>{stats.categoryCount}</strong>
+            <small>저장된 카테고리 수</small>
+          </div>
+          <div className="metric-tile">
+            <span>Total Value</span>
+            <strong>{stats.totalPrice.toLocaleString("ko-KR")}원</strong>
+            <small>{stats.sourceCount}개 소스에서 수집</small>
           </div>
         </div>
       </div>
-      <div className="action-row wishlist-toolbar">
-        <label className="control-field" htmlFor="wishlist-category">
-          <span className="field-label">카테고리</span>
-          <select id="wishlist-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-            <option value="">전체</option>
-            <option value="top">상의</option>
-            <option value="bottom">하의</option>
-            <option value="outer">아우터</option>
-            <option value="shoes">신발</option>
-            <option value="bag">가방</option>
-            <option value="accessory">악세서리</option>
-          </select>
-        </label>
-        <label className="control-field" htmlFor="wishlist-sort">
-          <span className="field-label">정렬</span>
-          <select id="wishlist-sort" value={sort} onChange={(event) => setSort(event.target.value as WishlistSortOption)}>
-            <option value="latest">최신순</option>
-            <option value="oldest">오래된 순</option>
-            <option value="price_asc">가격 낮은 순</option>
-            <option value="price_desc">가격 높은 순</option>
-            <option value="name_asc">이름순</option>
-          </select>
-        </label>
-        <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
-          새로고침
-        </button>
-      </div>
-      <div className="status-region" aria-live="polite" aria-atomic="true">
-        {loading ? (
-          <p className="lead" role="status">
-            찜 목록을 불러오는 중입니다...
-          </p>
-        ) : null}
-        {errorMessage ? (
-          <p className="error-text" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-      </div>
-      <ul className="wishlist-list" aria-label="찜 목록">
-        {sortedItems.map((item) => (
-          <li key={item.id}>
-            <div className="wishlist-thumbnail-wrap">
-              <img
-                src={resolveWishlistImage(item)}
-                alt={`${item.product_name} 썸네일`}
-                className="wishlist-thumbnail"
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = buildWishlistFallbackImage(item);
-                }}
-              />
-            </div>
-            <div className="wishlist-card-body">
-              <div className="wishlist-meta">
-                <span className="badge">{item.category.toUpperCase()}</span>
-                <span className="wishlist-source">{item.source.toUpperCase()}</span>
-              </div>
-              <strong>{item.product_name}</strong>
-              <p className="wishlist-price">{item.price.toLocaleString("ko-KR")}원</p>
-              <p className="hint-text">저장 일시 {new Date(item.created_at).toLocaleString("ko-KR")}</p>
-              <div className="wishlist-right">
-                <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
-                  상품 보기
-                </a>
-                <button type="button" aria-label={`${item.product_id} 찜 해제`} onClick={() => handleRemove(item.product_id)}>
-                  삭제
-                </button>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {!loading && items.length === 0 && !errorMessage ? (
-        <div className="empty-box soft-empty-box">
-          <p className="lead">저장된 찜 상품이 없습니다.</p>
-          <p className="hint-text">
-            <Link href="/recommendations">추천 페이지</Link>에서 마음에 드는 상품을 추가해보세요.
-          </p>
+
+      <div className="wishlist-board">
+        <div className="filter-panel filter-panel-elevated wishlist-filter-panel">
+          <div className="support-panel-header">
+            <p className="eyebrow">Organize Board</p>
+            <h2>저장 컬렉션 정리</h2>
+          </div>
+          <div className="filter-row two-up">
+            <label className="control-field" htmlFor="wishlist-category">
+              <span className="field-label">카테고리</span>
+              <select id="wishlist-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="control-field" htmlFor="wishlist-sort">
+              <span className="field-label">정렬</span>
+              <select id="wishlist-sort" value={sort} onChange={(event) => setSort(event.target.value as WishlistSortOption)}>
+                <option value="latest">최신순</option>
+                <option value="oldest">오래된 순</option>
+                <option value="price_asc">가격 낮은 순</option>
+                <option value="price_desc">가격 높은 순</option>
+                <option value="name_asc">이름순</option>
+              </select>
+            </label>
+          </div>
+          <div className="action-row wishlist-toolbar">
+            <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
+              새로고침
+            </button>
+            <Link href="/recommendations" className="product-link board-link">
+              추천으로 돌아가기
+            </Link>
+          </div>
         </div>
-      ) : null}
+
+        <div className="status-region" aria-live="polite" aria-atomic="true">
+          {loading ? (
+            <p className="lead" role="status">
+              찜 목록을 불러오는 중입니다...
+            </p>
+          ) : null}
+          {errorMessage ? (
+            <p className="error-text" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+        </div>
+
+        <ul className="wishlist-list" aria-label="찜 목록">
+          {sortedItems.map((item) => (
+            <li key={item.id}>
+              <div className="wishlist-thumbnail-wrap">
+                <img
+                  src={resolveWishlistImage(item)}
+                  alt={`${item.product_name} 썸네일`}
+                  className="wishlist-thumbnail"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = buildWishlistFallbackImage(item);
+                  }}
+                />
+              </div>
+              <div className="wishlist-card-body">
+                <div className="wishlist-meta">
+                  <span className="badge">{item.category.toUpperCase()}</span>
+                  <span className="wishlist-source">{item.source.toUpperCase()}</span>
+                </div>
+                <strong>{item.product_name}</strong>
+                <p className="wishlist-price">{item.price.toLocaleString("ko-KR")}원</p>
+                <p className="hint-text">저장 일시 {new Date(item.created_at).toLocaleString("ko-KR")}</p>
+                <div className="wishlist-right">
+                  <a className="product-link" href={item.product_url} target="_blank" rel="noreferrer">
+                    상품 보기
+                  </a>
+                  <button type="button" aria-label={`${item.product_id} 찜 해제`} onClick={() => handleRemove(item.product_id)}>
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {!loading && items.length === 0 && !errorMessage ? (
+          <div className="empty-box soft-empty-box large-empty-box">
+            <p className="lead">저장된 찜 상품이 없습니다.</p>
+            <p className="hint-text">
+              <Link href="/recommendations">추천 페이지</Link>에서 마음에 드는 상품을 추가해보세요.
+            </p>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
