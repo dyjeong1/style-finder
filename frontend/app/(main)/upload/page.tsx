@@ -129,7 +129,11 @@ export default function UploadPage() {
       const uploaded = await uploadImage(selectedFile);
       setAnalysis(uploaded.analysis);
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
-      router.push(`/recommendations?uploaded_image_id=${encodeURIComponent(uploaded.id)}`);
+      const nextUrl = `/recommendations?uploaded_image_id=${encodeURIComponent(uploaded.id)}`;
+      router.push(nextUrl);
+      if (typeof window !== "undefined") {
+        window.location.assign(nextUrl);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "업로드 중 오류가 발생했습니다.";
       setErrorMessage(message);
