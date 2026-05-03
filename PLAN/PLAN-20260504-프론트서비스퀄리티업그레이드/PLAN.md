@@ -43,7 +43,7 @@ tags: [frontend, design, service, ux]
 - [x] 업로드/추천/위시리스트 첫 화면이 기존 대비 더 강한 브랜드/큐레이션 인상을 가짐
 - [x] 모바일과 데스크톱에서 핵심 CTA와 탐색 흐름이 유지됨
 - [x] `cd frontend && npm run build` 통과
-- [ ] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
+- [x] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
 
 ## 7. 변경 이력
 - 2026-05-04: PLAN 생성 및 서비스형 프론트 업그레이드 작업 시작
