@@ -38,6 +38,7 @@
   - 추가 메모: 추천 페이지는 production build에서도 `useSearchParams()`가 비어 있는 순간 현재 `window.location.search`를 함께 읽어 `uploaded_image_id`를 놓치지 않도록 보강함
   - 추가 메모: Playwright 회귀 테스트는 이제 dev 서버뿐 아니라 `next build + next start` 기반 local 모드로도 실행할 수 있고, 핵심 `uploaded_image_id` 동기화 회귀가 local 모드에서 통과함
   - 추가 메모: 업로드 핵심 흐름과 추천 URL 동기화는 `@smoke` 태그와 `npm run test:e2e:smoke`, `npm run test:e2e:local:smoke` 스크립트로 dev/local 모두 빠르게 재검증할 수 있고, local smoke 2개 시나리오가 통과함
+  - 추가 메모: `Frontend E2E` GitHub Actions 워크플로우에 `next start` 기반 local smoke job을 추가해 업로드/추천 핵심 회귀를 CI에서도 함께 검증하도록 정리 중임
 - `PLAN-20260423-검색어하드코딩제거`
 - 상세 문서: `PLAN/PLAN-20260423-검색어하드코딩제거/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260423-검색어하드코딩제거/SPEC.md`

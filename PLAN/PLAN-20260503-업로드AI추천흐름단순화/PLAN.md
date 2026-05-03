@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-05-03
 updated_at: 2026-05-03
 related:
-  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화, TSK-0039-로컬올라마지연fallback보정, TSK-0040-추천url쿼리동기화보정, TSK-0041-프로덕션스타트회귀검증경로추가, TSK-0042-업로드추천스모크경로정리]
+  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화, TSK-0039-로컬올라마지연fallback보정, TSK-0040-추천url쿼리동기화보정, TSK-0041-프로덕션스타트회귀검증경로추가, TSK-0042-업로드추천스모크경로정리, TSK-0043-로컬스모크CI연결]
 tags: [upload, ai, recommendation, simplification]
 ---
 
@@ -64,3 +64,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-04: TSK-0041에서 Playwright가 dev 서버뿐 아니라 `next build + next start` 기반 로컬 실행 경로도 같은 회귀 테스트 세트로 검증할 수 있도록 스크립트와 설정을 확장함.
 - 2026-05-04: TSK-0041에서 E2E mock API base를 `127.0.0.1:8000`으로 맞추고, local 모드에서 `uploaded_image_id` 상태 초기화 회귀 테스트 통과를 확인함.
 - 2026-05-04: TSK-0042에서 업로드 핵심 흐름과 `uploaded_image_id` 동기화 회귀를 `@smoke` 태그와 전용 npm 스크립트로 묶어 dev/local 모두 빠르게 재검증할 수 있게 정리함.
+- 2026-05-04: TSK-0043에서 GitHub Actions `Frontend E2E` 워크플로우에 `next start` 기반 local smoke job을 추가해 업로드/추천 핵심 회귀를 CI에서도 함께 검증하도록 연결함.
