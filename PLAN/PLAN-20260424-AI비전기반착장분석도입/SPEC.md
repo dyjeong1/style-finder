@@ -10,6 +10,7 @@ updated_at: 2026-05-03
 - 입력: 업로드 이미지 bytes
 - 출력: `DetectedOutfitItem[]` 형식의 표준 착장 분석 결과
 - accessory 후처리는 지원 family만 유지하고, 안경/귀걸이의 `메탈`, `뿔테`, `무테`, `진주`, `링`, `드롭` descriptor를 query에 보존한다.
+- OpenAI 비교 리포트 자동화 스크립트는 `reports/openai/` 아래에 JSON/TXT 결과를 저장하고, 데이터셋 루트에 라벨/이미지가 없으면 즉시 실패한다.
 - 현재 provider: `disabled`, `mock`, `openai`, `gemini`, `ollama`
 - 확장 예정 provider: `clip`, `custom_detector`
 - OpenAI provider는 `Responses API`의 이미지 입력과 `json_schema` 형식 응답을 사용한다.

@@ -144,14 +144,13 @@ def build_runtime_predictor(
         )
 
     def predictor(content: bytes):
-        return list(
-            resolve_detected_items(
-                content,
-                vision_predictor=primary_predictor,
-                correction_predictor=correction_predictor,
-                enable_gemini_correction=correction_predictor is not None,
-            )
+        detected_items, _analysis_source, _fallback_reason = resolve_detected_items(
+            content,
+            vision_predictor=primary_predictor,
+            correction_predictor=correction_predictor,
+            enable_gemini_correction=correction_predictor is not None,
         )
+        return list(detected_items)
 
     return predictor
 

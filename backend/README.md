@@ -222,11 +222,19 @@ cd backend
 PYTHONPATH=. python3 scripts/compare_vision_predictors.py --baseline rule --candidate runtime-ollama+gemini --format json --report-file /tmp/runtime-report.json
 ```
 
+OpenAI 비교 리포트 자동 생성 예시:
+```bash
+cd backend
+PYTHONPATH=. python3 scripts/generate_openai_vision_report.py
+```
+
 비교 스크립트 메모:
 - Gemini 비교는 `backend/data/vision_dataset/cache/gemini.json`에 샘플별 응답 캐시를 남긴다.
 - Ollama 비교는 `backend/data/vision_dataset/cache/ollama.json`에 샘플별 응답 캐시를 남긴다.
 - `runtime-ollama+gemini` 같은 이름은 실제 업로드 런타임과 같은 순서로 `1차 AI -> 선택적 보정 AI -> rule fallback` 경로를 재현한다.
 - `--report-file`을 주면 정답 라벨과 baseline/candidate의 샘플별 일치/누락/오탐 정보를 JSON으로 함께 저장한다.
+- `generate_openai_vision_report.py`는 정답 라벨/이미지가 있는 데이터셋인지 먼저 검증한 뒤, `backend/data/vision_dataset/reports/openai/` 아래에 JSON/TXT 리포트를 함께 생성한다.
+- OpenAI 응답 캐시가 없으면 `OPENAI_API_KEY`와 네트워크 호출이 가능한 환경이 필요하다.
 - 기본적으로 Gemini 무료 티어 제한을 고려해 요청 간 대기와 재시도를 적용한다.
 - Ollama는 로컬 서버라 기본적으로 추가 대기 없이 실행한다.
 - 2026-04-27 기준 무료 티어 일일 한도로 인해 3샘플 캐시까지만 확보되었다.

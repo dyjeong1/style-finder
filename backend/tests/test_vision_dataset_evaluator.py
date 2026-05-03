@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import hashlib
+from datetime import datetime, timezone
 
 from PIL import Image
 
 from scripts.compare_vision_predictors import build_comparison_report_payload, build_runtime_predictor
+from scripts.generate_openai_vision_report import build_report_stem, generate_openai_comparison_artifacts
 from src.services.image_analysis import DetectedOutfitItem
 from src.services.vision_dataset_evaluator import (
     compare_summaries,
@@ -175,6 +177,19 @@ def test_build_runtime_predictor_uses_cached_primary_and_correction_items(tmp_pa
     ]
 
 
+def test_build_report_stem_includes_scope_suffixes() -> None:
+    stem = build_report_stem(
+        baseline_name="rule",
+        candidate_name="openai",
+        sample_ids=("sample-001", "sample-002"),
+        offset=1,
+        limit=3,
+        generated_at=datetime(2026, 5, 3, 10, 15, 30, tzinfo=timezone.utc),
+    )
+
+    assert stem == "openai-vs-rule-20260503-101530-samples-sample-001-sample-002-offset-1-limit-3"
+
+
 def test_build_comparison_report_payload_includes_expected_and_sample_details(tmp_path: Path) -> None:
     dataset_root = _make_dataset(tmp_path)
 
@@ -199,3 +214,57 @@ def test_build_comparison_report_payload_includes_expected_and_sample_details(tm
     assert sample["expected_items"] == ["top:white:셔츠", "bottom:blue:데님 팬츠"]
     assert sample["baseline"]["matched_items"] == ["top:white:셔츠"]
     assert sample["candidate"]["matched_items"] == ["bottom:blue:데님 팬츠", "top:white:셔츠"]
+
+
+def test_generate_openai_comparison_artifacts_writes_json_and_text_reports(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    image_bytes = (dataset_root / "images" / "sample-001.png").read_bytes()
+    cache_key = hashlib.sha256(image_bytes).hexdigest()
+    cache_dir = dataset_root / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "openai.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "셔츠", "query": "화이트 셔츠"},
+                    {"category": "bottom", "color": "blue", "item_label": "데님 팬츠", "query": "블루 데님 팬츠"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = generate_openai_comparison_artifacts(
+        dataset_root=dataset_root,
+        generated_at=datetime(2026, 5, 3, 10, 15, 30, tzinfo=timezone.utc),
+    )
+
+    json_report_path = Path(payload["json_report_path"])
+    text_report_path = Path(payload["text_report_path"])
+
+    assert json_report_path.exists()
+    assert text_report_path.exists()
+    assert json_report_path.name == "openai-vs-rule-20260503-101530.json"
+    assert text_report_path.name == "openai-vs-rule-20260503-101530.txt"
+
+    report_payload = json.loads(json_report_path.read_text(encoding="utf-8"))
+    text_summary = text_report_path.read_text(encoding="utf-8")
+
+    assert payload["candidate_name"] == "openai"
+    assert report_payload["candidate_name"] == "openai"
+    assert report_payload["candidate"]["item_recall"] == 1.0
+    assert "비전 분석기 비교 결과" in text_summary
+
+
+def test_generate_openai_comparison_artifacts_requires_dataset_files(tmp_path: Path) -> None:
+    empty_root = tmp_path / "empty_dataset"
+    empty_root.mkdir()
+
+    try:
+        generate_openai_comparison_artifacts(dataset_root=empty_root)
+    except FileNotFoundError as exc:
+        assert "정답 라벨 파일" in str(exc)
+    else:
+        raise AssertionError("expected FileNotFoundError for missing dataset files")
