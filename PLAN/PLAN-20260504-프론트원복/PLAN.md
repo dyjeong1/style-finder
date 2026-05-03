@@ -41,7 +41,7 @@ tags: [frontend, rollback, recovery]
 - [x] 최근 프론트 변경 레이어가 제거됨
 - [x] `cd frontend && npm run build` 통과
 - [x] 브라우저에서 원복된 화면 확인 가능
-- [ ] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
+- [x] README/TODO/PLAN/TASK 갱신 및 TASK 커밋 완료
 
 ## 7. 변경 이력
 - 2026-05-04: PLAN 생성 및 최근 프론트 변경 원복 시작
