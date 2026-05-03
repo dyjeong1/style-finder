@@ -18,6 +18,7 @@ from src.services.vision_outfit_analyzer import (
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
     build_item_query,
+    ensure_local_provider_reachable,
     guess_mime_type,
     merge_detected_items,
 )
@@ -441,6 +442,54 @@ def test_resolve_detected_items_uses_rule_only_when_ai_raises() -> None:
     assert fallback_reason == "vision_error"
 
 
+def test_store_falls_back_immediately_when_local_ollama_is_unreachable(tmp_path, monkeypatch) -> None:
+    def fake_create_connection(*_args, **_kwargs):
+        raise ConnectionRefusedError("ollama is not running")
+
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.socket.create_connection", fake_create_connection)
+
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(
+                enabled=True,
+                provider="ollama",
+                model_name="gemma3:4b",
+                api_base_url="http://127.0.0.1:11434/api/chat",
+                timeout_seconds=120.0,
+            )
+        ),
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert record.analysis.analysis_source == "rule_fallback"
+    assert record.analysis.query_source == "rule_fallback"
+    assert record.analysis.fallback_reason == "provider_unreachable"
+    assert record.analysis.category_query_hints["top"] == "화이트 셔츠"
+
+
+def test_local_provider_reachability_probe_skips_remote_hosts(monkeypatch) -> None:
+    called = False
+
+    def fake_create_connection(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("remote host should not be probed")
+
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.socket.create_connection", fake_create_connection)
+
+    ensure_local_provider_reachable("https://api.openai.com/v1/responses")
+
+    assert called is False
+
+
 def test_openai_provider_uses_structured_response_and_normalizes_items(monkeypatch) -> None:
     analyzer = VisionOutfitAnalyzer(
         VisionOutfitAnalyzerConfig(
@@ -532,6 +581,8 @@ def test_ollama_provider_uses_chat_with_images_and_schema(monkeypatch) -> None:
     )
     captured: dict[str, object] = {}
 
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.ensure_local_provider_reachable", lambda *_args, **_kwargs: None)
+
     def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
         captured["url"] = url
         captured["payload"] = payload
@@ -564,6 +615,8 @@ def test_ollama_provider_normalizes_lightweight_model_item_labels(monkeypatch) -
             api_base_url="http://127.0.0.1:11434/api/chat",
         )
     )
+
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.ensure_local_provider_reachable", lambda *_args, **_kwargs: None)
 
     def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
         return {
@@ -614,6 +667,8 @@ def test_ollama_provider_normalizes_shoes_generic_label(monkeypatch) -> None:
         )
     )
 
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.ensure_local_provider_reachable", lambda *_args, **_kwargs: None)
+
     def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
         return {
             "message": {
@@ -649,6 +704,8 @@ def test_ollama_provider_normalizes_jewelry_labels_and_defaults_unknown_color_to
             api_base_url="http://127.0.0.1:11434/api/chat",
         )
     )
+
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.ensure_local_provider_reachable", lambda *_args, **_kwargs: None)
 
     def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
         return {
@@ -694,6 +751,8 @@ def test_model_output_normalizes_outer_variants_and_recategorizes_bag(monkeypatc
             api_base_url="http://127.0.0.1:11434/api/chat",
         )
     )
+
+    monkeypatch.setattr("src.services.vision_outfit_analyzer.ensure_local_provider_reachable", lambda *_args, **_kwargs: None)
 
     def fake_post_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
         return {

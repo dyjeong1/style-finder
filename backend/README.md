@@ -75,6 +75,7 @@ pip install -e ".[vision]"
 - OpenAI 호출이 실패하거나 응답이 비어 있으면 업로드 분석은 자동으로 기존 규칙 기반으로 fallback 합니다.
 - Gemini 호출이 실패하거나 응답이 비어 있어도 동일하게 규칙 기반으로 fallback 합니다.
 - Ollama 로컬 호출이 실패하거나 서버가 꺼져 있어도 동일하게 규칙 기반으로 fallback 합니다.
+- 특히 `127.0.0.1`, `localhost`, `::1` 같은 loopback Ollama 주소는 먼저 짧은 연결 확인을 거치므로, 서버가 꺼진 상태에서 긴 `OLLAMA_VISION_TIMEOUT_SECONDS`만큼 업로드가 멈추지 않습니다.
 
 주요 설정:
 - `VISION_OUTFIT_ANALYZER_ENABLED`

@@ -4,8 +4,10 @@ import base64
 from dataclasses import dataclass, field
 import json
 import logging
+import socket
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from src.services.image_analysis import (
@@ -21,6 +23,8 @@ OPENAI_ALLOWED_CATEGORIES = ("top", "outer", "bottom", "shoes", "bag", "accessor
 OPENAI_ALLOWED_COLORS = tuple(COLOR_QUERY_LABELS) + ("neutral", "unknown")
 GEMINI_GENERATE_CONTENT_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
+LOCAL_PROVIDER_HOSTS = {"127.0.0.1", "localhost", "::1"}
+LOCAL_PROVIDER_REACHABILITY_TIMEOUT_SECONDS = 0.35
 logger = logging.getLogger(__name__)
 OPENAI_RESPONSE_SCHEMA = {
     "name": "outfit_analysis",
@@ -323,6 +327,8 @@ class VisionOutfitAnalyzer:
 
     def _analyze_with_ollama(self, content: bytes) -> list[DetectedOutfitItem]:
         model_name = self.config.model_name or "qwen2.5vl:7b"
+        url = self.config.api_base_url or OLLAMA_CHAT_URL
+        ensure_local_provider_reachable(url)
         payload = {
             "model": model_name,
             "stream": False,
@@ -345,7 +351,7 @@ class VisionOutfitAnalyzer:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
 
         response_payload = self._post_json(
-            url=self.config.api_base_url or OLLAMA_CHAT_URL,
+            url=url,
             payload=payload,
             headers=headers,
         )
@@ -363,10 +369,12 @@ class VisionOutfitAnalyzer:
         try:
             with urlopen(request, timeout=self.config.timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
-        except HTTPError:
-            raise
-        except URLError:
-            raise
+        except HTTPError as exc:
+            raise VisionAnalyzerUnavailableError("provider_http_error") from exc
+        except TimeoutError as exc:
+            raise VisionAnalyzerUnavailableError("provider_timeout") from exc
+        except URLError as exc:
+            raise VisionAnalyzerUnavailableError("provider_unreachable") from exc
 
     def _extract_response_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(response_payload.get("output_text"), str):
@@ -451,6 +459,21 @@ class VisionOutfitAnalyzer:
         mime_type = guess_mime_type(content)
         encoded = base64.b64encode(content).decode("ascii")
         return f"data:{mime_type};base64,{encoded}"
+
+
+def ensure_local_provider_reachable(url: str, timeout_seconds: float = LOCAL_PROVIDER_REACHABILITY_TIMEOUT_SECONDS) -> None:
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").strip().lower()
+    if hostname not in LOCAL_PROVIDER_HOSTS:
+        return
+
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        connection = socket.create_connection((parsed.hostname or hostname, port), timeout=timeout_seconds)
+    except OSError as exc:
+        raise VisionAnalyzerUnavailableError("provider_unreachable") from exc
+
+    connection.close()
 
 
 def merge_detected_items(

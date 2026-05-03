@@ -30,6 +30,7 @@
   - 추가 메모: 추천 페이지가 새 `uploaded_image_id`로 바뀔 때 이전 검색어/필터/분석 요약이 남지 않도록 E2E 회귀 테스트를 보강함
   - 추가 메모: 로컬 Ollama 설치부터 `gemma3:4b` pull, `.env` 설정, 확인 명령까지 한 번에 따라갈 수 있는 운영 가이드를 추가함
   - 추가 메모: 프론트 기본 API 주소를 `http://127.0.0.1:8000`으로 정리하고 업로드 후 추천 이동을 하드 리다이렉트 fallback 으로 보강해 로컬 브라우저 테스트를 더 안정적으로 만듦
+  - 추가 메모: 로컬 Ollama 주소가 닫혀 있으면 업로드 분석이 긴 timeout 동안 멈추지 않도록 빠른 연결 확인 뒤 즉시 규칙 fallback 으로 전환함
 - `PLAN-20260423-검색어하드코딩제거`
 - 상세 문서: `PLAN/PLAN-20260423-검색어하드코딩제거/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260423-검색어하드코딩제거/SPEC.md`
@@ -76,6 +77,7 @@
   - 추가 메모: 비전 분석 설정은 이제 실행 디렉터리와 무관하게 `backend/.env`를 읽고, `ollama`/`gemini`/`openai` provider별 모델 설정을 런타임에서 우선 반영함
   - 추가 메모: 안경/귀걸이 query는 `메탈 안경`, `진주 귀걸이`, `링 귀걸이`처럼 descriptor를 더 보존하고, `칼라` 같은 unsupported accessory 노이즈와 단일 추가 jewelry 보정 오탐은 더 보수적으로 걸러냄
   - 추가 메모: `backend/scripts/generate_openai_vision_report.py`로 OpenAI 비교 리포트를 `backend/data/vision_dataset/reports/openai/` 아래에 자동 생성할 수 있게 했고, runtime predictor 반환 버그도 함께 정리함
+  - 추가 메모: 로컬 Ollama 미실행 시에는 `provider_unreachable`로 즉시 규칙 fallback 하도록 보강해 업로드 버튼이 오래 `이미지 분석 중...` 상태로 남는 흐름을 줄임
 - 상세 문서: `PLAN/PLAN-20260424-카테고리오탐억제및아우터정교화/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260424-카테고리오탐억제및아우터정교화/SPEC.md`
 - 상태: `done` (없는 카테고리 오탐 억제, 가디건 분리 정교화, 네이버 relevance 필터 보강, 실사 셀카 일반화 분석 개선 완료, 2026-04-24)

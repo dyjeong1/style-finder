@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-05-03
 updated_at: 2026-05-03
 related:
-  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화]
+  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화, TSK-0039-로컬올라마지연fallback보정]
 tags: [upload, ai, recommendation, simplification]
 ---
 
@@ -59,3 +59,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-03: TSK-0034에서 추천 페이지의 업로드 전환/느린 이전 응답 덮어쓰기 회귀를 Playwright 테스트로 고정함.
 - 2026-05-03: TSK-0035에서 로컬 Ollama 설치, `gemma3:4b` pull, `.env` 설정, 확인 명령을 한 번에 볼 수 있는 가이드를 추가함.
 - 2026-05-03: TSK-0038에서 프론트 기본 API 주소를 `127.0.0.1:8000`으로 고정하고, 업로드 후 추천 페이지 이동을 하드 리다이렉트 fallback 으로 보강해 로컬 테스트 흐름을 안정화함.
+- 2026-05-03: TSK-0039에서 로컬 Ollama가 꺼져 있을 때 업로드 분석이 긴 timeout 동안 멈추지 않도록 loopback reachability probe와 빠른 규칙 fallback 을 추가함.
