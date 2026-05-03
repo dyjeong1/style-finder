@@ -229,7 +229,6 @@ def test_apply_selective_category_corrections_replaces_only_targeted_categories(
         ("bottom", "블랙 데님 팬츠"),
         ("bag", "브라운 숄더백"),
         ("accessory", "블랙 안경"),
-        ("accessory", "그레이 귀걸이"),
     ]
 
 
@@ -323,7 +322,44 @@ def test_store_applies_optional_gemini_correction_for_ambiguous_ollama_output(tm
     assert record.analysis.category_query_hints["bottom"] == "블랙 와이드 데님 팬츠"
     assert [item.query for item in record.analysis.detected_items if item.category == "accessory"] == [
         "블랙 안경",
-        "블랙 귀걸이",
+    ]
+
+
+def test_store_keeps_multiple_new_jewelry_items_from_correction_when_they_appear_as_a_set(tmp_path) -> None:
+    primary_items = (
+        DetectedOutfitItem(category="top", color="white", item_label="티셔츠", query="화이트 티셔츠"),
+        DetectedOutfitItem(category="accessory", color="white", item_label="양말", query="화이트 양말"),
+    )
+    correction_items = (
+        DetectedOutfitItem(category="accessory", color="gray", item_label="목걸이", query="실버 목걸이"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="팔찌", query="실버 팔찌"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="반지", query="실버 반지"),
+    )
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        vision_outfit_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=primary_items,
+        ),
+        gemini_correction_analyzer=VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(enabled=True, provider="mock"),
+            mock_items=correction_items,
+        ),
+        enable_gemini_correction=True,
+    )
+
+    record = store.create_upload(
+        user_id="local-user",
+        filename="flatlay.png",
+        content_type="image/png",
+        size_bytes=0,
+        content=build_flatlay_fixture(),
+    )
+
+    assert [item.query for item in record.analysis.detected_items if item.category == "accessory"] == [
+        "실버 목걸이",
+        "실버 팔찌",
+        "실버 반지",
     ]
 
 
@@ -850,6 +886,8 @@ def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
     assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"
+    assert build_item_query(category="accessory", color="black", item_label="안경", query_hint="블랙 메탈 안경테") == "블랙 메탈 안경"
+    assert build_item_query(category="accessory", color="white", item_label="귀걸이", query_hint="화이트 진주 귀걸이") == "화이트 진주 귀걸이"
     assert build_item_query(category="outer", color="black", item_label="자켓", query_hint="가죽 재킷") == "블랙 레더 자켓"
     assert build_item_query(category="bottom", color="black", item_label="미니 스커트", query_hint="검은색 도트 미니 스커트") == "블랙 도트 미니 스커트"
 
@@ -893,4 +931,38 @@ def test_model_output_normalizes_denim_and_stripe_labels() -> None:
         ("bottom", "navy", "와이드 데님 팬츠", "네이비 와이드 데님 팬츠"),
         ("bottom", "blue", "와이드 데님 팬츠", "블루 와이드 데님 팬츠"),
         ("bottom", "black", "미니 스커트", "블랙 도트 미니 스커트"),
+    ]
+
+
+def test_model_output_preserves_accessory_descriptors_and_filters_noise_labels() -> None:
+    analyzer = VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig(enabled=True, provider="mock"))
+
+    items = analyzer.coerce_detected_items(
+        {
+            "items": [
+                {
+                    "category": "accessory",
+                    "color": "black",
+                    "item_label": "메탈 안경테",
+                    "query": "블랙 메탈 안경테",
+                },
+                {
+                    "category": "accessory",
+                    "color": "unknown",
+                    "item_label": "진주 귀걸이",
+                    "query": "진주 귀걸이",
+                },
+                {
+                    "category": "accessory",
+                    "color": "white",
+                    "item_label": "화이트 칼라",
+                    "query": "화이트 칼라",
+                },
+            ]
+        }
+    )
+
+    assert [(item.category, item.color, item.item_label, item.query) for item in items] == [
+        ("accessory", "black", "안경", "블랙 메탈 안경"),
+        ("accessory", "white", "귀걸이", "화이트 진주 귀걸이"),
     ]

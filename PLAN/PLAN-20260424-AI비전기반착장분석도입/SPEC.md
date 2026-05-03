@@ -3,12 +3,13 @@ id: PLAN-20260424-AI비전기반착장분석도입-SPEC
 plan_id: PLAN-20260424-AI비전기반착장분석도입
 status: doing
 created_at: 2026-04-24
-updated_at: 2026-04-29
+updated_at: 2026-05-03
 ---
 
 ## 기술 스펙
 - 입력: 업로드 이미지 bytes
 - 출력: `DetectedOutfitItem[]` 형식의 표준 착장 분석 결과
+- accessory 후처리는 지원 family만 유지하고, 안경/귀걸이의 `메탈`, `뿔테`, `무테`, `진주`, `링`, `드롭` descriptor를 query에 보존한다.
 - 현재 provider: `disabled`, `mock`, `openai`, `gemini`, `ollama`
 - 확장 예정 provider: `clip`, `custom_detector`
 - OpenAI provider는 `Responses API`의 이미지 입력과 `json_schema` 형식 응답을 사용한다.

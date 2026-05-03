@@ -590,6 +590,14 @@ def apply_selective_category_corrections(
         if item.category in categories:
             correction_by_category.setdefault(item.category, []).append(item)
 
+    if "accessory" in correction_by_category:
+        correction_by_category["accessory"] = _filter_accessory_correction_items(
+            base_items=base_items,
+            correction_items=correction_by_category["accessory"],
+        )
+        if not correction_by_category["accessory"]:
+            correction_by_category.pop("accessory", None)
+
     if not correction_by_category:
         return list(base_items)
 
@@ -620,6 +628,25 @@ def apply_selective_category_corrections(
             key=lambda pair: (order_map.get(pair[1].category, len(order_map)), pair[0]),
         )
     ]
+
+
+def _filter_accessory_correction_items(
+    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+    correction_items: list[DetectedOutfitItem],
+) -> list[DetectedOutfitItem]:
+    base_accessories = [item for item in base_items if item.category == "accessory"]
+    if not base_accessories:
+        return correction_items
+
+    base_labels = {item.item_label for item in base_accessories}
+    kept_items = [item for item in correction_items if item.item_label in base_labels]
+    new_items = [item for item in correction_items if item.item_label not in base_labels]
+    new_labels = {item.item_label for item in new_items}
+
+    if len(new_labels) >= 2:
+        kept_items.extend(new_items)
+
+    return kept_items
 
 
 def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> dict[str, DetectedOutfitItem]:

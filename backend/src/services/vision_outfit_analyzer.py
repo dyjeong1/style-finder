@@ -171,8 +171,9 @@ QUERY_DESCRIPTOR_ORDER = {
     "bottom": ("도트", "플리츠", "레이스", "와이드", "미니"),
     "shoes": ("플랫",),
     "bag": ("스웨이드", "체인", "미니"),
-    "accessory": ("체인",),
+    "accessory": ("메탈", "뿔테", "무테", "진주", "링", "드롭", "체인"),
 }
+SUPPORTED_ACCESSORY_FAMILIES = {"안경", "목걸이", "귀걸이", "팔찌", "반지", "머플러", "모자", "머리끈", "양말", "벨트"}
 
 
 @dataclass(frozen=True)
@@ -428,6 +429,8 @@ class VisionOutfitAnalyzer:
             color = _normalize_item_color(category=category, color=color, item_label=item_label, query=query)
             item_label = _normalize_item_label(category=category, color=color, item_label=item_label, query=query)
             category = _normalize_item_category(category=category, item_label=item_label, query=query)
+            if category == "accessory" and not _is_supported_accessory_item(item_label):
+                continue
             query = build_item_query(category=category, color=color, item_label=item_label, query_hint=query)
             normalized = DetectedOutfitItem(
                 category=category,
@@ -641,12 +644,15 @@ def _normalize_item_color(category: str, color: str, item_label: str, query: str
     if inferred_color != "unknown":
         return inferred_color
     if category == "accessory":
-        if any(keyword in combined_text for keyword in ("실버", "은", "실버톤", "메탈")):
-            return "gray"
-        if any(keyword in combined_text for keyword in ("골드", "금", "골드톤")):
-            return "yellow"
-        if any(keyword in combined_text for keyword in ("목걸이", "네크리스", "귀걸이", "이어링", "팔찌", "브레이슬릿", "반지", "링")) and color in {"unknown", "neutral"}:
-            return "gray"
+        if color in {"unknown", "neutral"}:
+            if any(keyword in combined_text for keyword in ("진주", "펄", "pearl")):
+                return "white"
+            if any(keyword in combined_text for keyword in ("실버", "은", "실버톤", "메탈")):
+                return "gray"
+            if any(keyword in combined_text for keyword in ("골드", "금", "골드톤")):
+                return "yellow"
+            if any(keyword in combined_text for keyword in ("목걸이", "네크리스", "귀걸이", "이어링", "팔찌", "브레이슬릿", "반지", "링")):
+                return "gray"
     if category == "bottom" and any(keyword in combined_text for keyword in ("청바지", "데님")) and color in {"unknown", "neutral"}:
         return "blue"
     if color == "neutral":
@@ -696,10 +702,34 @@ def _extract_query_descriptors(category: str, item_label: str, query_hint: str) 
         if any(alias in combined_text for alias in aliases):
             detected.append(normalized_keyword)
 
+    if category == "accessory":
+        detected.extend(_extract_accessory_descriptors(item_family=item_family, item_label=item_label, combined_text=combined_text))
+
     category_order = QUERY_DESCRIPTOR_ORDER.get(category, ())
     ordered = [keyword for keyword in category_order if keyword in detected]
     ordered.extend(keyword for keyword in detected if keyword not in ordered)
     return ordered
+
+
+def _extract_accessory_descriptors(item_family: str, item_label: str, combined_text: str) -> list[str]:
+    descriptors: list[str] = []
+    if item_family == "안경":
+        if "메탈" not in item_label and any(alias in combined_text for alias in ("메탈", "metal")):
+            descriptors.append("메탈")
+        if "뿔테" not in item_label and any(alias in combined_text for alias in ("뿔테", "아세테이트", "acetate")):
+            descriptors.append("뿔테")
+        if "무테" not in item_label and any(alias in combined_text for alias in ("무테", "rimless")):
+            descriptors.append("무테")
+    if item_family == "귀걸이":
+        if "진주" not in item_label and any(alias in combined_text for alias in ("진주", "펄", "pearl")):
+            descriptors.append("진주")
+        if "메탈" not in item_label and any(alias in combined_text for alias in ("메탈", "metal")):
+            descriptors.append("메탈")
+        if "링" not in item_label and any(alias in combined_text for alias in ("링 귀걸이", "링 이어링", "후프", "hoop")):
+            descriptors.append("링")
+        if "드롭" not in item_label and any(alias in combined_text for alias in ("드롭", "drop")):
+            descriptors.append("드롭")
+    return descriptors
 
 
 def _dedupe_preserve_order(values: list[str]) -> list[str]:
@@ -712,6 +742,10 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
         seen.add(normalized)
         deduped.append(normalized)
     return deduped
+
+
+def _is_supported_accessory_item(item_label: str) -> bool:
+    return _item_family(item_label) in SUPPORTED_ACCESSORY_FAMILIES
 
 
 def guess_mime_type(content: bytes) -> str:
