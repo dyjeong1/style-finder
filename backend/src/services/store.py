@@ -41,6 +41,8 @@ class UploadAnalysis:
     dominant_color: str = "unknown"
     category_query_hints: dict[str, str] = field(default_factory=dict)
     detected_items: tuple[DetectedOutfitItem, ...] = ()
+    analysis_source: str = "vision"
+    query_source: str = "detected_items"
 
 
 @dataclass
@@ -90,6 +92,8 @@ def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
             }
             for item in analysis.detected_items
         ],
+        "analysis_source": analysis.analysis_source,
+        "query_source": analysis.query_source,
     }
 
 
@@ -99,10 +103,11 @@ def resolve_detected_items(
     correction_predictor: Callable[[bytes], list[DetectedOutfitItem]] | None = None,
     enable_gemini_correction: bool = False,
     rule_predictor: Callable[[bytes], list[DetectedOutfitItem]] = analyze_outfit_items,
-) -> tuple[DetectedOutfitItem, ...]:
+) -> tuple[tuple[DetectedOutfitItem, ...], str]:
     vision_detected_items = vision_predictor(content)
     rule_detected_items: list[DetectedOutfitItem] = []
     detected_items = tuple(vision_detected_items)
+    analysis_source = "vision"
 
     if detected_items and enable_gemini_correction and correction_predictor is not None:
         rule_detected_items = rule_predictor(content)
@@ -124,8 +129,9 @@ def resolve_detected_items(
 
     if not detected_items:
         detected_items = tuple(rule_predictor(content))
+        analysis_source = "rule_fallback"
 
-    return tuple(_sort_detected_items_for_display(detected_items))
+    return tuple(_sort_detected_items_for_display(detected_items)), analysis_source
 
 
 class InMemoryStore:
@@ -300,7 +306,7 @@ class InMemoryStore:
             dominant_color = image_color_feature.dominant_color
             feature_vector = image_color_feature.feature_vector
 
-        detected_items = resolve_detected_items(
+        detected_items, analysis_source = resolve_detected_items(
             content,
             vision_predictor=self.vision_outfit_analyzer.analyze,
             correction_predictor=(
@@ -310,13 +316,16 @@ class InMemoryStore:
             ),
             enable_gemini_correction=self.enable_gemini_correction,
         )
+        detected_categories = tuple(dict.fromkeys(item.category for item in detected_items))
         category_query_hints: dict[str, str] = {}
         for item in detected_items:
             category_query_hints.setdefault(item.category, item.query)
 
+        query_source = "detected_items"
         if not category_query_hints:
             category_query_hints = analyze_outfit_category_query_hints(content)
-        preferred_categories = tuple(category_query_hints) or self._fallback_preferred_categories(digest)
+            query_source = "rule_hints" if category_query_hints else "none"
+        preferred_categories = detected_categories or tuple(category_query_hints)
 
         return UploadAnalysis(
             checksum=digest.hex()[:16],
@@ -328,17 +337,8 @@ class InMemoryStore:
             dominant_color=dominant_color,
             category_query_hints=category_query_hints,
             detected_items=detected_items,
-        )
-
-    def _fallback_preferred_categories(self, digest: bytes) -> tuple[str, ...]:
-        categories = ("top", "bottom", "outer", "shoes", "bag", "accessory")
-        return tuple(
-            dict.fromkeys(
-                (
-                    categories[digest[4] % len(categories)],
-                    categories[digest[5] % len(categories)],
-                )
-            )
+            analysis_source=analysis_source,
+            query_source=query_source,
         )
 
     def _derive_tone(self, dominant_color: str) -> str:

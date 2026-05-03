@@ -24,6 +24,8 @@ export type UploadAnalysis = {
   style_mood: string;
   silhouette: string;
   preferred_categories: string[];
+  analysis_source?: "vision" | "rule_fallback";
+  query_source?: "detected_items" | "rule_hints" | "none";
   category_query_hints?: Record<string, string>;
   detected_items?: Array<{
     category: string;

@@ -32,9 +32,11 @@ def test_core_e2e_flow() -> None:
         "unknown",
     }
     assert upload_data["analysis"]["style_mood"] in {"minimal", "casual", "street", "feminine"}
-    assert len(upload_data["analysis"]["preferred_categories"]) >= 1
+    assert isinstance(upload_data["analysis"]["preferred_categories"], list)
     assert isinstance(upload_data["analysis"]["category_query_hints"], dict)
     assert isinstance(upload_data["analysis"]["detected_items"], list)
+    assert upload_data["analysis"]["analysis_source"] in {"vision", "rule_fallback"}
+    assert upload_data["analysis"]["query_source"] in {"detected_items", "rule_hints", "none"}
 
     image_resp = client.get(upload_data["image_url"])
     assert image_resp.status_code == 200
@@ -51,6 +53,8 @@ def test_core_e2e_flow() -> None:
     assert len(rec_items) >= 1
     assert rec_data["analysis"]["checksum"] == upload_data["analysis"]["checksum"]
     assert rec_data["analysis"]["category_query_hints"] == upload_data["analysis"]["category_query_hints"]
+    assert rec_data["analysis"]["analysis_source"] == upload_data["analysis"]["analysis_source"]
+    assert rec_data["analysis"]["query_source"] == upload_data["analysis"]["query_source"]
     assert "score_breakdown" in rec_items[0]
     assert "color_bonus" in rec_items[0]["score_breakdown"]
     assert "product_image_color_bonus" in rec_items[0]["score_breakdown"]

@@ -86,6 +86,38 @@ function getTopMatchLabel(items: RecommendationItem[]): string {
   return Number.isFinite(topScore) ? formatSimilarity(topScore) : "0%";
 }
 
+function getAnalysisSourceLabel(analysis: UploadAnalysis | null): string {
+  if (analysis?.analysis_source === "rule_fallback") {
+    return "fallback 분석 기준";
+  }
+
+  return "AI 분석 기준";
+}
+
+function getAnalysisSourceDescription(analysis: UploadAnalysis | null): string | null {
+  if (!analysis) {
+    return null;
+  }
+
+  if (analysis.analysis_source === "rule_fallback") {
+    return "AI 분석 결과가 비어 규칙 기반 힌트로 추천을 이어가고 있습니다.";
+  }
+
+  if (analysis.query_source === "rule_hints") {
+    return "추천 검색어는 보조 힌트를 사용했지만, 현재 업로드 분석 기준으로 추천을 만들고 있습니다.";
+  }
+
+  return "현재 업로드의 AI 감지 품목 기준으로 추천을 만들고 있습니다.";
+}
+
+function getPreferredCategorySummary(analysis: UploadAnalysis): string {
+  if (analysis.preferred_categories.length === 0) {
+    return "없음";
+  }
+
+  return analysis.preferred_categories.map(getCategoryLabel).join(", ");
+}
+
 function buildRecommendationFallbackImage(item: RecommendationItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -420,12 +452,7 @@ function RecommendationPageContent() {
         </div>
       </div>
 
-      {searchQuery ? (
-        <p className="hint-text">
-          검색어: {searchQuery}
-          {appliedCustomQuery ? " (직접 입력 기준)" : ""}
-        </p>
-      ) : null}
+      {searchQuery ? <p className="hint-text">검색어: {searchQuery}{appliedCustomQuery ? " (직접 입력 적용)" : ""}</p> : null}
       {fallbackMessage ? (
         <p className="warning-text" role="status">
           {fallbackMessage}
@@ -509,7 +536,7 @@ function RecommendationPageContent() {
         {appliedCustomQuery ? (
           <p className="hint-text">현재 직접 입력 검색어: {appliedCustomQuery}</p>
         ) : (
-          <p className="hint-text">비워두면 업로드 이미지 분석값으로 검색어를 자동 생성합니다.</p>
+          <p className="hint-text">비워두면 현재 업로드의 분석 결과로 검색어를 자동 생성합니다.</p>
         )}
         <div className="action-row">
           <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
@@ -548,7 +575,7 @@ function RecommendationPageContent() {
         <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
           <div className="panel-title-row">
             <h2>업로드 분석</h2>
-            <span className="metric-chip">현재 업로드 기준</span>
+            <span className="metric-chip">{getAnalysisSourceLabel(uploadedImageAnalysis)}</span>
           </div>
           <div className="analysis-chip-row">
             <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
@@ -556,7 +583,10 @@ function RecommendationPageContent() {
             <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
             <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
           </div>
-          <p className="hint-text">감지 카테고리: {uploadedImageAnalysis.preferred_categories.map(getCategoryLabel).join(", ")}</p>
+          {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
+            <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
+          ) : null}
+          <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
           {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
             <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>
           ) : null}

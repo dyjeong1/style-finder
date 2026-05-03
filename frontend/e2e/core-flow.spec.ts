@@ -42,6 +42,8 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
             style_mood: "casual",
             silhouette: "relaxed",
             preferred_categories: ["top", "outer"],
+            analysis_source: "vision",
+            query_source: "detected_items",
           },
         }),
       ),
@@ -87,6 +89,8 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
             style_mood: "casual",
             silhouette: "relaxed",
             preferred_categories: ["top", "outer"],
+            analysis_source: "vision",
+            query_source: "detected_items",
           },
         }),
       ),
@@ -169,7 +173,7 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
 
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
   await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("현재 업로드 기준")).toBeVisible();
+  await expect(page.getByText("AI 분석 기준")).toBeVisible();
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
   const storedUploadState = await page.evaluate(() => ({
     uploadedImageId: window.localStorage.getItem("stylematch_uploaded_image_id"),
