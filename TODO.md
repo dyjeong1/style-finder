@@ -15,6 +15,7 @@
 - [x] [TSK-0041-프로덕션스타트회귀검증경로추가] Playwright가 `next build + next start` 경로에서도 같은 추천 회귀 테스트를 돌릴 수 있게 한다.
 - [x] [TSK-0042-업로드추천스모크경로정리] 업로드 핵심 흐름과 `uploaded_image_id` 회귀를 smoke 태그와 전용 스크립트로 빠르게 재검증할 수 있게 한다.
 - [x] [TSK-0043-로컬스모크CI연결] `next start` 기반 local smoke 회귀를 GitHub Actions에도 연결한다.
+- [x] [TSK-0044-플랜마감정리] local smoke 재검증과 문서 정합성 정리로 `PLAN-20260503-업로드AI추천흐름단순화`를 완료 상태로 마감한다.
 - [x] [TSK-0011-qwen운영최적화및부분실행지원] qwen 기준 timeout/부분 실행/단일 업로드 확인 CLI를 추가한다.
 - [x] [TSK-0010-올라마로컬비전프로바이더연결] Ollama 로컬 Vision provider와 `OLLAMA_*` 환경변수 호환을 연결한다.
 - [x] [TSK-0009-규칙기반대제미나이비교리포트] 규칙 기반과 Gemini 비교 스크립트 및 캐시/재시도 구조를 추가한다.

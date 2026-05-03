@@ -5,7 +5,7 @@
 
 ## Next
 - [x] 문서/체크리스트 정리
-- [ ] 커밋
+- [x] 커밋
 
 ## Later
 - [ ] 필요 시 local smoke job만 path filter로 더 좁힐지 검토

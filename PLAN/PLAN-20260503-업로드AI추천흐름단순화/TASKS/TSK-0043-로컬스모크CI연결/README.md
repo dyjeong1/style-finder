@@ -14,7 +14,7 @@ updated_at: 2026-05-04
 - [x] `Frontend E2E` 워크플로우에 local smoke job 추가
 - [x] smoke job 아티팩트 이름 분리
 - [x] 문서/README/TODO/PLAN/TASK 갱신
-- [ ] TASK 완료 직후 커밋
+- [x] TASK 완료 직후 커밋
 
 ## 산출물(Artifacts)
 - `.github/workflows/frontend-e2e.yml`
@@ -39,4 +39,4 @@ updated_at: 2026-05-04
 - [x] CI에서 local smoke 회귀를 별도 job으로 실행한다.
 - [x] 기존 dev 기반 E2E 체크 이름을 깨지 않는다.
 - [x] README/TODO/PLAN/TASK 문서가 갱신된다.
-- [ ] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
+- [x] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)

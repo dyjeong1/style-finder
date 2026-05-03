@@ -1,9 +1,9 @@
 ---
 id: PLAN-20260503-업로드AI추천흐름단순화-SPEC
 plan_id: PLAN-20260503-업로드AI추천흐름단순화
-status: doing
+status: done
 created_at: 2026-05-03
-updated_at: 2026-05-03
+updated_at: 2026-05-04
 ---
 
 ## 제품 동작 기준

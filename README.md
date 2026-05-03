@@ -20,7 +20,7 @@
 - 로컬 저장은 위시리스트처럼 사용자 의도가 있는 데이터에만 최소화하고, 업로드 분석 상태는 영속 저장하지 않습니다.
 - 업로드/추천/위시리스트 상단에는 중복 요약 배지보다 핵심 제목과 필터 조작에 집중합니다.
 
-### 현재 활성 PLAN
+### 최근 주요 PLAN
 - `PLAN-20260504-프론트원복`
 - 상세 문서: `PLAN/PLAN-20260504-프론트원복/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260504-프론트원복/SPEC.md`
@@ -28,7 +28,7 @@
 - `PLAN-20260503-업로드AI추천흐름단순화`
 - 상세 문서: `PLAN/PLAN-20260503-업로드AI추천흐름단순화/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260503-업로드AI추천흐름단순화/SPEC.md`
-- 상태: `doing` (업로드 단일 세션화, AI 우선 추천, fallback 최소화 기준으로 런타임/화면/문서를 단순화하는 작업 세팅, 2026-05-03)
+- 상태: `done` (업로드 단일 세션화, AI 우선 추천, fallback 최소화, local smoke/CI 검증, 문서 마감을 완료함, 2026-05-04)
   - 추가 메모: 브랜드 보조 문구를 `이미지 기반 스타일 추천`으로 정리하고 업로드 화면 메인 헤드라인을 제거함
   - 추가 메모: 추천/위시리스트 상단의 중복 요약 카드 묶음을 제거해 필터 UI와 정보 중복을 줄임
   - 추가 메모: 추천 페이지가 새 `uploaded_image_id`로 바뀔 때 이전 검색어/필터/분석 요약이 남지 않도록 E2E 회귀 테스트를 보강함
@@ -38,7 +38,7 @@
   - 추가 메모: 추천 페이지는 production build에서도 `useSearchParams()`가 비어 있는 순간 현재 `window.location.search`를 함께 읽어 `uploaded_image_id`를 놓치지 않도록 보강함
   - 추가 메모: Playwright 회귀 테스트는 이제 dev 서버뿐 아니라 `next build + next start` 기반 local 모드로도 실행할 수 있고, 핵심 `uploaded_image_id` 동기화 회귀가 local 모드에서 통과함
   - 추가 메모: 업로드 핵심 흐름과 추천 URL 동기화는 `@smoke` 태그와 `npm run test:e2e:smoke`, `npm run test:e2e:local:smoke` 스크립트로 dev/local 모두 빠르게 재검증할 수 있고, local smoke 2개 시나리오가 통과함
-  - 추가 메모: `Frontend E2E` GitHub Actions 워크플로우에 `next start` 기반 local smoke job을 추가해 업로드/추천 핵심 회귀를 CI에서도 함께 검증하도록 정리 중임
+  - 추가 메모: `Frontend E2E` GitHub Actions 워크플로우에 `next start` 기반 local smoke job을 추가해 업로드/추천 핵심 회귀를 CI에서도 함께 검증하도록 연결 완료함
 - `PLAN-20260423-검색어하드코딩제거`
 - 상세 문서: `PLAN/PLAN-20260423-검색어하드코딩제거/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260423-검색어하드코딩제거/SPEC.md`

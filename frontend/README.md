@@ -64,9 +64,9 @@ npm run test:e2e
 
 ## CI 자동화
 - 워크플로우: `.github/workflows/frontend-e2e.yml`
-- 트리거: `frontend/**` 또는 워크플로우 파일 변경 시
+- 트리거: `push`, `pull_request`
 - 실행 job: `e2e`(dev 서버 full E2E), `e2e-local-smoke`(`next start` 기반 smoke 회귀)
-- 업로드 아티팩트: `playwright-report`, `test-results`
+- 업로드 아티팩트: `frontend-playwright-report`, `frontend-playwright-results`, `frontend-playwright-report-local-smoke`, `frontend-playwright-results-local-smoke`
 
 ## 최근 비주얼 리프레시
 - 전역 폰트: Pretendard

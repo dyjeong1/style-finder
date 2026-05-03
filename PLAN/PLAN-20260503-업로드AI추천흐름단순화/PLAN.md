@@ -1,12 +1,12 @@
 ---
 id: PLAN-20260503-업로드AI추천흐름단순화
 title: 업로드 AI 추천 흐름 단순화
-status: doing
+status: done
 priority: P0
 created_at: 2026-05-03
-updated_at: 2026-05-03
+updated_at: 2026-05-04
 related:
-  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화, TSK-0039-로컬올라마지연fallback보정, TSK-0040-추천url쿼리동기화보정, TSK-0041-프로덕션스타트회귀검증경로추가, TSK-0042-업로드추천스모크경로정리, TSK-0043-로컬스모크CI연결]
+  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리, TSK-0038-업로드후추천이동안정화, TSK-0039-로컬올라마지연fallback보정, TSK-0040-추천url쿼리동기화보정, TSK-0041-프로덕션스타트회귀검증경로추가, TSK-0042-업로드추천스모크경로정리, TSK-0043-로컬스모크CI연결, TSK-0044-플랜마감정리]
 tags: [upload, ai, recommendation, simplification]
 ---
 
@@ -44,11 +44,11 @@ tags: [upload, ai, recommendation, simplification]
 - 네이버 추천과 직접 검색어 기능은 핵심 흐름과 충돌하지 않는 범위에서만 유지한다.
 
 ## 6. 검증/수용 기준(DoD)
-- [ ] 새 업로드 시 이전 업로드 분석 상태가 로컬에 남지 않는다.
-- [ ] 추천은 현재 업로드의 AI 분석 기준으로 생성된다.
-- [ ] 규칙 분석기는 AI 실패 시에만 마지막 fallback 으로 동작한다.
-- [ ] 업로드/추천 상태 관련 회귀 테스트가 정리된다.
-- [ ] README/TODO/PLAN/TASK 문서가 현재 제품 원칙 기준으로 갱신된다.
+- [x] 새 업로드 시 이전 업로드 분석 상태가 로컬에 남지 않는다.
+- [x] 추천은 현재 업로드의 AI 분석 기준으로 생성된다.
+- [x] 규칙 분석기는 AI 실패 시에만 마지막 fallback 으로 동작한다.
+- [x] 업로드/추천 상태 관련 회귀 테스트가 정리된다.
+- [x] README/TODO/PLAN/TASK 문서가 현재 제품 원칙 기준으로 갱신된다.
 
 ## 7. 변경 이력
 - 2026-05-03: 업로드 단일 세션화, AI 우선 추천, fallback 최소화 기준으로 새 PLAN을 생성함.
@@ -65,3 +65,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-04: TSK-0041에서 E2E mock API base를 `127.0.0.1:8000`으로 맞추고, local 모드에서 `uploaded_image_id` 상태 초기화 회귀 테스트 통과를 확인함.
 - 2026-05-04: TSK-0042에서 업로드 핵심 흐름과 `uploaded_image_id` 동기화 회귀를 `@smoke` 태그와 전용 npm 스크립트로 묶어 dev/local 모두 빠르게 재검증할 수 있게 정리함.
 - 2026-05-04: TSK-0043에서 GitHub Actions `Frontend E2E` 워크플로우에 `next start` 기반 local smoke job을 추가해 업로드/추천 핵심 회귀를 CI에서도 함께 검증하도록 연결함.
+- 2026-05-04: TSK-0044에서 local smoke 2개 시나리오 재검증과 문서 정합성 마감을 마치고 PLAN 상태를 `done`으로 종료함.
