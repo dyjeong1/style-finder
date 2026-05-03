@@ -47,6 +47,7 @@ npm run test:e2e
 - `/recommendations`: `GET /recommendations` 조회 및 `POST /wishlist` 찜 추가
 - `/wishlist`: `GET /wishlist` 조회 시 상품명/가격/쇼핑몰/카테고리/링크를 함께 노출하고 `DELETE /wishlist/{product_id}`로 찜 삭제
 - 업로드 후 추천 이동 시 `/recommendations?uploaded_image_id=...` 형태의 현재 업로드 ID만 URL로 전달합니다.
+- 추천 페이지는 `useSearchParams()` 값이 늦게 들어오는 경우에도 현재 브라우저 URL의 `uploaded_image_id`를 다시 읽어 업로드 기준 상태를 복구합니다.
 
 ## UI 개선 사항 (TSK-0003)
 - 추천 페이지: 카테고리/정렬/가격 필터, 재조회/필터 초기화, 스켈레톤 로딩, 빈 상태 안내

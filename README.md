@@ -31,6 +31,7 @@
   - 추가 메모: 로컬 Ollama 설치부터 `gemma3:4b` pull, `.env` 설정, 확인 명령까지 한 번에 따라갈 수 있는 운영 가이드를 추가함
   - 추가 메모: 프론트 기본 API 주소를 `http://127.0.0.1:8000`으로 정리하고 업로드 후 추천 이동을 하드 리다이렉트 fallback 으로 보강해 로컬 브라우저 테스트를 더 안정적으로 만듦
   - 추가 메모: 로컬 Ollama 주소가 닫혀 있으면 업로드 분석이 긴 timeout 동안 멈추지 않도록 빠른 연결 확인 뒤 즉시 규칙 fallback 으로 전환함
+  - 추가 메모: 추천 페이지는 production build에서도 `useSearchParams()`가 비어 있는 순간 현재 `window.location.search`를 함께 읽어 `uploaded_image_id`를 놓치지 않도록 보강함
 - `PLAN-20260423-검색어하드코딩제거`
 - 상세 문서: `PLAN/PLAN-20260423-검색어하드코딩제거/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260423-검색어하드코딩제거/SPEC.md`

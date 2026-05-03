@@ -136,9 +136,17 @@ function resolveRecommendationImage(item: RecommendationItem): string {
   return item.image_url;
 }
 
+function readUploadedImageIdFromLocation(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return new URLSearchParams(window.location.search).get("uploaded_image_id");
+}
+
 function RecommendationPageContent() {
   const searchParams = useSearchParams();
-  const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id");
+  const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id") ?? readUploadedImageIdFromLocation();
   const lastResolvedUploadIdRef = useRef<string | null>(null);
   const latestRequestKeyRef = useRef(0);
   const [items, setItems] = useState<RecommendationItem[]>([]);
@@ -163,7 +171,7 @@ function RecommendationPageContent() {
   }, []);
 
   useEffect(() => {
-    const nextUploadedImageId = uploadedImageIdFromUrl;
+    const nextUploadedImageId = uploadedImageIdFromUrl ?? readUploadedImageIdFromLocation();
     const uploadChanged = lastResolvedUploadIdRef.current !== nextUploadedImageId;
 
     if (uploadChanged) {
