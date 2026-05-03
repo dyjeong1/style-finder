@@ -20,6 +20,7 @@ const STUDIO_SIGNALS = [
   "감지 품목별 검색어를 만들어 추천으로 연결합니다.",
 ];
 
+const CURATION_STEPS = ["이미지 업로드", "AI 스타일 분석", "카테고리별 검색어 생성", "추천 피드 큐레이션"];
 const DEFAULT_CURATION_HINTS = ["미니멀 재킷", "와이드 팬츠", "메리제인 슈즈", "숄더백", "실버 주얼리"];
 
 function getCategoryLabel(category: string): string {
@@ -150,46 +151,40 @@ export default function UploadPage() {
 
   return (
     <section className="upload-page" aria-label="코디 이미지 업로드">
-      <article className="upload-hero-panel" aria-busy={uploading}>
+      <article className="upload-hero-panel upload-hero-panel-luxe" aria-busy={uploading}>
         <div className="upload-hero-copy">
           <p className="eyebrow">Upload Studio</p>
-          <h1>한 장의 코디를 올리면 바로 쇼핑 가능한 스타일 흐름으로 연결됩니다.</h1>
+          <h1 className="display-title">A single look, turned into a shoppable edit.</h1>
           <p className="lead page-lead">
-            StyleMatch는 현재 업로드한 이미지 1장을 기준으로 톤, 무드, 실루엣, 감지 품목을 읽고 바로 추천 컬렉션을 만들어줍니다.
+            지금 올리는 코디 한 장을 기준으로 톤, 무드, 실루엣, 감지 품목을 읽고 바로 쇼핑 가능한 스타일 피드로 연결합니다.
           </p>
-          <div className="upload-hero-strip">
-            <div className="hero-stat-tile">
-              <span>기준 이미지</span>
-              <strong>1장 집중 분석</strong>
-            </div>
-            <div className="hero-stat-tile">
-              <span>추천 연결</span>
-              <strong>업로드 후 즉시 이동</strong>
-            </div>
-            <div className="hero-stat-tile">
-              <span>탐색 방식</span>
-              <strong>품목별 검색어 생성</strong>
-            </div>
+          <div className="hero-signal-row">
+            <span className="hero-pill">AI 스타일 분석</span>
+            <span className="hero-pill">1장 기준 추천</span>
+            <span className="hero-pill">카테고리별 큐레이션</span>
           </div>
-          <div className="studio-note-block">
-            <div className="support-panel-header">
-              <p className="eyebrow">What We Read</p>
-              <h2>분석 포인트</h2>
+          <div className="upload-hero-rail">
+            <div className="editorial-note">
+              <span>Studio Mood</span>
+              <strong>Warm minimal, structured silhouette, curated shopping flow.</strong>
             </div>
-            <ul className="bullet-data-list">
-              {STUDIO_SIGNALS.map((signal) => (
-                <li key={signal}>{signal}</li>
+            <ol className="step-rail">
+              {CURATION_STEPS.map((step, index) => (
+                <li key={step}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{step}</strong>
+                </li>
               ))}
-            </ul>
+            </ol>
           </div>
         </div>
 
-        <div className="upload-stage-shell">
+        <div className="upload-stage-shell upload-stage-shell-luxe">
           <div className="upload-stage-frame">
             <div className="upload-stage-heading">
               <span className="workspace-chip">Ready to Upload</span>
               <strong>{fileName || "코디 이미지 업로드"}</strong>
-              <p>클릭하거나 이미지를 끌어다 놓아 주세요. 분석이 끝나면 바로 추천 페이지로 이어집니다.</p>
+              <p>클릭하거나 이미지를 끌어다 놓아 주세요. 분석이 끝나면 바로 추천 화면으로 이어집니다.</p>
             </div>
             <div
               className={`upload-stage-unified-zone${isDragActive ? " is-drag-active" : ""}${filePreviewUrl ? " has-preview" : ""}`}
@@ -218,8 +213,9 @@ export default function UploadPage() {
                   <img src={filePreviewUrl} alt={`선택한 이미지 미리보기: ${fileName}`} className="upload-stage-image" />
                 </div>
               ) : (
-                <div className="upload-stage-placeholder" aria-hidden="true">
+                <div className="upload-stage-placeholder upload-stage-placeholder-rich" aria-hidden="true">
                   <span>Preview</span>
+                  <small>Curated visual anchor</small>
                 </div>
               )}
               {selectedFile ? (
@@ -265,10 +261,10 @@ export default function UploadPage() {
       </article>
 
       <div className="upload-support-grid">
-        <section className="support-panel">
+        <section className="support-panel support-panel-luxe">
           <div className="support-panel-header">
             <p className="eyebrow">Detected Focus</p>
-            <h2>추천이 우선적으로 보는 항목</h2>
+            <h2>추천이 집중해서 읽는 포인트</h2>
           </div>
           {analysis ? (
             <>
@@ -285,22 +281,19 @@ export default function UploadPage() {
             </>
           ) : (
             <>
-              <div className="keyword-chip-row">
-                {DEFAULT_CURATION_HINTS.map((hint) => (
-                  <span key={hint} className="keyword-chip">
-                    {hint}
-                  </span>
+              <ul className="bullet-data-list">
+                {STUDIO_SIGNALS.map((signal) => (
+                  <li key={signal}>{signal}</li>
                 ))}
-              </div>
-              <p className="hint-text">이미지를 올리면 감지된 품목과 색감이 여기에 정리됩니다.</p>
+              </ul>
             </>
           )}
         </section>
 
-        <section className="support-panel">
+        <section className="support-panel support-panel-luxe">
           <div className="support-panel-header">
             <p className="eyebrow">Search Hints</p>
-            <h2>추천 검색에 반영되는 힌트</h2>
+            <h2>생성될 검색 힌트의 분위기</h2>
           </div>
           {Object.keys(analysisQueryHints).length > 0 ? (
             <div className="keyword-chip-row">
@@ -311,9 +304,15 @@ export default function UploadPage() {
               ))}
             </div>
           ) : (
-            <p className="hint-text">업로드 전에는 자동 검색 힌트가 비어 있습니다. 분석 후 카테고리별 검색어가 여기에 채워집니다.</p>
+            <div className="keyword-chip-row">
+              {DEFAULT_CURATION_HINTS.map((hint) => (
+                <span key={hint} className="keyword-chip">
+                  {hint}
+                </span>
+              ))}
+            </div>
           )}
-          {analysis ? <p className="hint-text">분석 코드: {analysis.checksum}</p> : null}
+          {analysis ? <p className="hint-text">분석 코드: {analysis.checksum}</p> : <p className="hint-text">업로드 후 카테고리별 검색어가 여기에 채워집니다.</p>}
         </section>
       </div>
     </section>

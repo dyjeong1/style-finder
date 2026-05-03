@@ -75,7 +75,6 @@ function buildRecommendationSections(items: RecommendationItem[]): Recommendatio
 
 function getTopMatchLabel(items: RecommendationItem[]): string {
   const topScore = Math.max(...items.map((item) => item.similarity_score));
-
   return Number.isFinite(topScore) ? formatSimilarity(topScore) : "0%";
 }
 
@@ -83,7 +82,6 @@ function getAnalysisSourceLabel(analysis: UploadAnalysis | null): string {
   if (analysis?.analysis_source === "rule_fallback") {
     return "fallback 분석 기준";
   }
-
   return "AI 분석 기준";
 }
 
@@ -144,7 +142,6 @@ function readUploadedImageIdFromLocation(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-
   return new URLSearchParams(window.location.search).get("uploaded_image_id");
 }
 
@@ -313,6 +310,8 @@ function RecommendationPageContent() {
   const visibleCount = items.length;
   const savedCount = savedProductIds.length;
   const activeQueryLabel = appliedCustomQuery || searchQuery || "자동 생성";
+  const featuredItem = items[0] ?? null;
+  const supportingItems = items.slice(1, 4);
 
   function renderProductCard(item: RecommendationItem) {
     const saved = savedProductIds.includes(item.product_id);
@@ -412,12 +411,12 @@ function RecommendationPageContent() {
 
   return (
     <section className="recommendation-page" aria-labelledby="recommendations-title" aria-busy={loading}>
-      <div className="curation-hero">
+      <div className="curation-hero curation-hero-luxe">
         <div className="curation-hero-copy">
           <p className="eyebrow">Curated Feed</p>
-          <h1 id="recommendations-title">업로드 기반 추천 컬렉션</h1>
+          <h1 id="recommendations-title" className="display-title">AI가 읽은 분위기를 실제 쇼핑 가능한 스타일 에디트로 정리했습니다.</h1>
           <p className="lead page-lead">
-            현재 업로드에서 읽은 스타일 신호를 바탕으로 비슷한 상품을 정렬했습니다. 필터를 조정하거나 검색어를 직접 입력해 바로 재탐색할 수 있습니다.
+            현재 업로드에서 읽은 스타일 신호를 바탕으로 비슷한 상품을 정렬했습니다. 필터를 조정하거나 검색어를 직접 입력해 더 정교하게 다시 볼 수 있습니다.
           </p>
           <div className="hero-pill-row">
             <span className="hero-pill">검색어 {activeQueryLabel}</span>
@@ -430,24 +429,67 @@ function RecommendationPageContent() {
             </p>
           ) : null}
         </div>
-        <div className="hero-metrics-board" aria-label="추천 화면 요약">
-          <div className="metric-tile">
-            <span>Visible Items</span>
-            <strong>{visibleCount}</strong>
-            <small>현재 화면에 보이는 추천 수</small>
-          </div>
-          <div className="metric-tile">
-            <span>Saved Products</span>
-            <strong>{savedCount}</strong>
-            <small>위시리스트에 저장된 상품 수</small>
-          </div>
-          <div className="metric-tile">
-            <span>Curated Sections</span>
-            <strong>{recommendationSections.length}</strong>
-            <small>카테고리별 섹션 수</small>
+        <div className="hero-spotlight-shell">
+          {featuredItem ? (
+            <article className="hero-spotlight-card">
+              <div className="hero-spotlight-visual">
+                <img
+                  src={resolveRecommendationImage(featuredItem)}
+                  alt={`${featuredItem.product_name} 하이라이트 이미지`}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = buildRecommendationFallbackImage(featuredItem);
+                  }}
+                />
+              </div>
+              <div className="hero-spotlight-copy">
+                <span className="workspace-chip">Top Match</span>
+                <strong>{featuredItem.product_name}</strong>
+                <p>{SOURCE_LABELS[featuredItem.source] ?? featuredItem.source.toUpperCase()} · {getCategoryLabel(featuredItem.category)} · 매칭 {formatSimilarity(featuredItem.similarity_score)}</p>
+                <div className="hero-spotlight-actions">
+                  <a className="product-link" href={featuredItem.product_url} target="_blank" rel="noreferrer">
+                    대표 상품 보기
+                  </a>
+                </div>
+              </div>
+            </article>
+          ) : (
+            <div className="hero-spotlight-placeholder" aria-hidden="true">
+              <span>Curated Spotlight</span>
+              <small>업로드 후 대표 매칭 상품이 여기에 표시됩니다.</small>
+            </div>
+          )}
+          <div className="hero-metrics-board hero-metrics-board-compact" aria-label="추천 화면 요약">
+            <div className="metric-tile">
+              <span>Visible Items</span>
+              <strong>{visibleCount}</strong>
+              <small>현재 화면에 보이는 추천 수</small>
+            </div>
+            <div className="metric-tile">
+              <span>Saved Products</span>
+              <strong>{savedCount}</strong>
+              <small>위시리스트에 저장된 상품 수</small>
+            </div>
+            <div className="metric-tile">
+              <span>Curated Sections</span>
+              <strong>{recommendationSections.length}</strong>
+              <small>카테고리별 섹션 수</small>
+            </div>
           </div>
         </div>
       </div>
+
+      {supportingItems.length > 0 ? (
+        <section className="featured-strip" aria-label="하이라이트 추천 요약">
+          {supportingItems.map((item) => (
+            <article className="featured-mini-card" key={`featured-${item.product_id}`}>
+              <span>{getCategoryLabel(item.category)}</span>
+              <strong>{item.product_name}</strong>
+              <small>{item.price.toLocaleString("ko-KR")}원</small>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       <div className="recommendation-layout">
         <aside className="filter-sidebar">
@@ -477,27 +519,11 @@ function RecommendationPageContent() {
               </label>
               <label className="control-field" htmlFor="recommendation-min-price">
                 <span className="field-label">최소 가격</span>
-                <input
-                  id="recommendation-min-price"
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  placeholder="최소 가격"
-                  value={minPrice}
-                  onChange={(event) => setMinPrice(event.target.value)}
-                />
+                <input id="recommendation-min-price" type="number" min={0} inputMode="numeric" placeholder="최소 가격" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} />
               </label>
               <label className="control-field" htmlFor="recommendation-max-price">
                 <span className="field-label">최대 가격</span>
-                <input
-                  id="recommendation-max-price"
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  placeholder="최대 가격"
-                  value={maxPrice}
-                  onChange={(event) => setMaxPrice(event.target.value)}
-                />
+                <input id="recommendation-max-price" type="number" min={0} inputMode="numeric" placeholder="최대 가격" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} />
               </label>
             </div>
             <div className="custom-query-row">
@@ -575,9 +601,7 @@ function RecommendationPageContent() {
                 <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
                 <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
               </div>
-              {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
-                <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
-              ) : null}
+              {getAnalysisSourceDescription(uploadedImageAnalysis) ? <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p> : null}
               <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
               {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
                 <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>

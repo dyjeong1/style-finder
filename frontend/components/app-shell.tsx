@@ -13,18 +13,18 @@ const navItems = [
 const pageMeta: Record<string, { label: string; title: string; description: string }> = {
   "/upload": {
     label: "Upload Studio",
-    title: "스타일을 올리고 바로 분석하세요",
-    description: "한 장의 코디 이미지를 기준으로 AI 추천 흐름을 바로 시작합니다.",
+    title: "Look to Curation",
+    description: "코디 한 장을 편집된 추천 흐름으로 바꾸는 AI 스타일 스튜디오",
   },
   "/recommendations": {
     label: "Curated Feed",
-    title: "업로드 기반 추천 컬렉션",
-    description: "분석 신호와 쇼핑 흐름을 한 화면에서 이어보는 큐레이션 영역입니다.",
+    title: "Editorial Match Edit",
+    description: "업로드에서 읽은 감성을 쇼핑 가능한 상품 컬렉션으로 정리하는 화면",
   },
   "/wishlist": {
     label: "Saved Board",
-    title: "저장한 스타일을 다시 비교하세요",
-    description: "찜한 상품을 재정렬하고 다시 쇼핑으로 이어갈 수 있는 개인 보드입니다.",
+    title: "Personal Style Archive",
+    description: "저장한 상품을 다시 비교하고 다음 쇼핑으로 이어가는 개인 컬렉션 보드",
   },
 };
 
@@ -50,8 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Image src="/brand/stylefinder_logo.png" alt="StyleMatch 로고" width={44} height={44} className="brand-logo-image" priority />
               </span>
               <span className="brand-copy">
-                <strong>StyleMatch</strong>
-                <small>이미지 기반 스타일 추천</small>
+                <small className="brand-label">Style Commerce Studio</small>
+                <strong className="brand-wordmark">StyleMatch</strong>
               </span>
             </Link>
             <div className="brand-context">
@@ -78,6 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="nav-utility">
               <span className="nav-utility-label">Current Flow</span>
               <strong>{currentMeta.label}</strong>
+              <small>{currentMeta.title}</small>
             </div>
           </div>
         </div>

@@ -86,12 +86,11 @@ export default function WishlistPage() {
     const categoryCount = new Set(items.map((item) => item.category)).size;
     const sourceCount = new Set(items.map((item) => item.source)).size;
 
-    return {
-      totalPrice,
-      categoryCount,
-      sourceCount,
-    };
+    return { totalPrice, categoryCount, sourceCount };
   }, [items]);
+
+  const spotlightItem = sortedItems[0] ?? null;
+  const collageItems = sortedItems.slice(1, 3);
 
   async function loadWishlist() {
     setLoading(true);
@@ -126,29 +125,68 @@ export default function WishlistPage() {
 
   return (
     <section className="wishlist-page" aria-labelledby="wishlist-title" aria-busy={loading}>
-      <div className="collection-hero">
+      <div className="collection-hero collection-hero-luxe">
         <div className="curation-hero-copy">
           <p className="eyebrow">Saved Board</p>
-          <h1 id="wishlist-title">저장한 스타일 컬렉션</h1>
+          <h1 id="wishlist-title" className="display-title">기억해두고 싶은 스타일을 개인 컬렉션처럼 쌓아두세요.</h1>
           <p className="lead page-lead">
-            마음에 들었던 추천 상품을 모아두고 다시 비교해보세요. 가격, 저장 시점, 카테고리 기준으로 빠르게 정리할 수 있습니다.
+            마음에 들었던 추천 상품을 모아두고 다시 비교해보세요. 가격, 저장 시점, 카테고리 기준으로 바로 정리할 수 있습니다.
           </p>
+          <div className="hero-signal-row">
+            <span className="hero-pill">저장 상품 {items.length}개</span>
+            <span className="hero-pill">카테고리 {stats.categoryCount}개</span>
+            <span className="hero-pill">소스 {stats.sourceCount}개</span>
+          </div>
         </div>
-        <div className="hero-metrics-board" aria-label="위시리스트 요약">
-          <div className="metric-tile">
-            <span>Saved Items</span>
-            <strong>{items.length}</strong>
-            <small>현재 저장된 상품 수</small>
-          </div>
-          <div className="metric-tile">
-            <span>Categories</span>
-            <strong>{stats.categoryCount}</strong>
-            <small>저장된 카테고리 수</small>
-          </div>
-          <div className="metric-tile">
-            <span>Total Value</span>
-            <strong>{stats.totalPrice.toLocaleString("ko-KR")}원</strong>
-            <small>{stats.sourceCount}개 소스에서 수집</small>
+        <div className="wishlist-visual-board">
+          {spotlightItem ? (
+            <div className="wishlist-collage">
+              <div className="wishlist-collage-main">
+                <img
+                  src={resolveWishlistImage(spotlightItem)}
+                  alt={`${spotlightItem.product_name} 대표 저장 이미지`}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = buildWishlistFallbackImage(spotlightItem);
+                  }}
+                />
+                <div className="wishlist-collage-overlay">
+                  <span className="workspace-chip">Collection Highlight</span>
+                  <strong>{spotlightItem.product_name}</strong>
+                </div>
+              </div>
+              <div className="wishlist-collage-side">
+                {collageItems.map((item) => (
+                  <div className="wishlist-collage-thumb" key={`collage-${item.id}`}>
+                    <img
+                      src={resolveWishlistImage(item)}
+                      alt={`${item.product_name} 보조 저장 이미지`}
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = buildWishlistFallbackImage(item);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="hero-spotlight-placeholder" aria-hidden="true">
+              <span>Saved Collection</span>
+              <small>저장한 상품이 생기면 컬렉션 보드가 여기에 채워집니다.</small>
+            </div>
+          )}
+          <div className="hero-metrics-board hero-metrics-board-compact" aria-label="위시리스트 요약">
+            <div className="metric-tile">
+              <span>Saved Items</span>
+              <strong>{items.length}</strong>
+              <small>현재 저장된 상품 수</small>
+            </div>
+            <div className="metric-tile">
+              <span>Total Value</span>
+              <strong>{stats.totalPrice.toLocaleString("ko-KR")}원</strong>
+              <small>현재 저장 보드 총합</small>
+            </div>
           </div>
         </div>
       </div>
