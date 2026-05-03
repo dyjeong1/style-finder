@@ -81,6 +81,13 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
             },
           ],
           total_count: 1,
+          analysis: {
+            checksum: "abc123def4567890",
+            dominant_tone: "cool",
+            style_mood: "casual",
+            silhouette: "relaxed",
+            preferred_categories: ["top", "outer"],
+          },
         }),
       ),
     });
@@ -141,14 +148,14 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
   });
 
   await page.goto("/recommendations");
-  await expect(page.getByRole("heading", { name: "Recommendations" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 20_000 });
 
   await page.goto("/wishlist");
-  await expect(page.getByRole("heading", { name: "Wishlist" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "찜 목록" })).toBeVisible({ timeout: 20_000 });
 
   await page.goto("/upload");
   await expect(page).toHaveURL(/\/upload$/);
-  await expect(page.getByRole("heading", { name: "Upload Outfit Image" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "코디 이미지를 올려보세요" })).toBeVisible();
 
   await page.locator("#image-input").setInputFiles({
     name: "look.png",
@@ -158,19 +165,31 @@ test("업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 동작한
       "base64",
     ),
   });
-  await page.getByRole("button", { name: "Upload & Analyze" }).click();
+  await page.getByRole("button", { name: "이미지 분석하기" }).click();
 
-  await expect(page).toHaveURL(/\/recommendations$/);
-  await expect(page.getByRole("heading", { name: "Recommendations" })).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
+  await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("현재 업로드 기준")).toBeVisible();
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
+  const storedUploadState = await page.evaluate(() => ({
+    uploadedImageId: window.localStorage.getItem("stylematch_uploaded_image_id"),
+    uploadedImageAnalysis: window.localStorage.getItem("stylematch_uploaded_image_analysis"),
+    uploadHistory: window.localStorage.getItem("stylematch_upload_history"),
+  }));
+  expect(storedUploadState).toEqual({
+    uploadedImageId: null,
+    uploadedImageAnalysis: null,
+    uploadHistory: null,
+  });
 
   await page.getByRole("button", { name: "오버핏 스트라이프 셔츠 찜 추가" }).click();
-  await expect(page.getByText(`상품이 찜 목록에 추가되었습니다: ${productId}`)).toBeVisible();
+  await expect(page.getByText("상품이 찜 목록에 추가되었습니다: 오버핏 스트라이프 셔츠")).toBeVisible();
 
   await page.goto("/wishlist");
-  await expect(page.getByRole("heading", { name: "Wishlist" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "찜 목록" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
-  await expect(page.getByText("ZIGZAG · TOP · 39,000원")).toBeVisible();
+  await expect(page.getByText("ZIGZAG")).toBeVisible();
+  await expect(page.getByText("39,000원")).toBeVisible();
 
   await page.getByRole("button", { name: `${productId} 찜 해제` }).click();
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();

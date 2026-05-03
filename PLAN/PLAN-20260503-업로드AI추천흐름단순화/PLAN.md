@@ -52,3 +52,4 @@ tags: [upload, ai, recommendation, simplification]
 
 ## 7. 변경 이력
 - 2026-05-03: 업로드 단일 세션화, AI 우선 추천, fallback 최소화 기준으로 새 PLAN을 생성함.
+- 2026-05-03: TSK-0030에서 업로드 localStorage/최근 업로드 재사용 UI를 제거하고 현재 업로드 1건 흐름으로 정리함.

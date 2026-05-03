@@ -1,9 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-const UPLOADED_IMAGE_ID_KEY = "stylematch_uploaded_image_id";
-const UPLOADED_IMAGE_ANALYSIS_KEY = "stylematch_uploaded_image_analysis";
-const UPLOAD_HISTORY_KEY = "stylematch_upload_history";
-
 type ApiMeta = {
   request_id: string;
   timestamp: string;
@@ -41,15 +37,6 @@ export type UploadedImage = {
   id: string;
   image_url: string;
   created_at: string;
-  analysis: UploadAnalysis;
-};
-
-export type UploadHistoryItem = {
-  id: string;
-  image_url: string;
-  thumbnail_url?: string;
-  created_at: string;
-  file_name: string;
   analysis: UploadAnalysis;
 };
 
@@ -179,131 +166,6 @@ async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return payload.data;
-}
-
-export function getStoredUploadedImageId(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return window.localStorage.getItem(UPLOADED_IMAGE_ID_KEY);
-}
-
-export function setStoredUploadedImageId(uploadedImageId: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(UPLOADED_IMAGE_ID_KEY, uploadedImageId);
-}
-
-export function clearStoredUploadedImageId(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(UPLOADED_IMAGE_ID_KEY);
-}
-
-export function getStoredUploadedImageAnalysis(): UploadAnalysis | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(UPLOADED_IMAGE_ANALYSIS_KEY);
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(rawValue) as UploadAnalysis;
-  } catch {
-    return null;
-  }
-}
-
-export function setStoredUploadedImageAnalysis(analysis: UploadAnalysis): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(UPLOADED_IMAGE_ANALYSIS_KEY, JSON.stringify(analysis));
-}
-
-export function clearStoredUploadedImageAnalysis(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(UPLOADED_IMAGE_ANALYSIS_KEY);
-}
-
-export function getUploadHistory(): UploadHistoryItem[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const rawValue = window.localStorage.getItem(UPLOAD_HISTORY_KEY);
-  if (!rawValue) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(rawValue) as UploadHistoryItem[];
-  } catch {
-    return [];
-  }
-}
-
-export function prependUploadHistory(item: UploadHistoryItem): UploadHistoryItem[] {
-  if (typeof window === "undefined") {
-    return [item];
-  }
-
-  const nextItems = [
-    item,
-    ...getUploadHistory().filter((existingItem) => existingItem.id !== item.id),
-  ].slice(0, 6);
-
-  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
-  return nextItems;
-}
-
-export function updateUploadHistoryAnalysis(uploadHistoryId: string, analysis: UploadAnalysis): UploadHistoryItem[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const nextItems = getUploadHistory().map((item) =>
-    item.id === uploadHistoryId
-      ? {
-          ...item,
-          analysis,
-        }
-      : item,
-  );
-  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
-  return nextItems;
-}
-
-export function removeUploadHistoryItem(uploadHistoryId: string): UploadHistoryItem[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const nextItems = getUploadHistory().filter((item) => item.id !== uploadHistoryId);
-  window.localStorage.setItem(UPLOAD_HISTORY_KEY, JSON.stringify(nextItems));
-
-  if (getStoredUploadedImageId() === uploadHistoryId) {
-    clearStoredUploadedImageId();
-    clearStoredUploadedImageAnalysis();
-  }
-
-  return nextItems;
-}
-
-export function resolveApiAssetUrl(url: string): string {
-  if (!url || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) {
-    return url;
-  }
-
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${API_BASE_URL}${normalizedPath}`;
 }
 
 export async function uploadImage(image: File): Promise<UploadedImage> {

@@ -4,18 +4,9 @@ import { ChangeEvent, DragEvent, MouseEvent, useEffect, useMemo, useRef, useStat
 import { useRouter } from "next/navigation";
 
 import {
-  getUploadHistory,
-  prependUploadHistory,
-  removeUploadHistoryItem,
-  resolveApiAssetUrl,
-  setStoredUploadedImageAnalysis,
-  setStoredUploadedImageId,
   UploadAnalysis,
-  UploadHistoryItem,
   uploadImage,
 } from "@/lib/api";
-
-const RECENT_UPLOAD_THUMBNAIL_SIZE = 360;
 const CATEGORY_LABELS: Record<string, string> = {
   top: "상의",
   bottom: "하의",
@@ -29,80 +20,6 @@ function getCategoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
 
-function buildRecentFallbackImage(item: UploadHistoryItem): string {
-  const label = item.file_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const signals = [item.analysis.dominant_color, item.analysis.dominant_tone, item.analysis.style_mood, item.analysis.silhouette]
-    .filter(Boolean)
-    .join(" / ");
-  const subtitle = signals || "분석 완료";
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
-      <defs>
-        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="#f5ead6" />
-          <stop offset="100%" stop-color="#ead8bb" />
-        </linearGradient>
-      </defs>
-      <rect width="240" height="240" rx="28" fill="url(#g)" />
-      <rect x="18" y="18" width="204" height="204" rx="22" fill="rgba(255,255,255,0.45)" />
-      <text x="30" y="78" fill="#111827" font-family="Pretendard, Arial, sans-serif" font-size="22" font-weight="700">${label}</text>
-      <text x="30" y="118" fill="#6b7280" font-family="Pretendard, Arial, sans-serif" font-size="14">${subtitle}</text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function createRecentUploadThumbnail(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = RECENT_UPLOAD_THUMBNAIL_SIZE;
-      canvas.height = RECENT_UPLOAD_THUMBNAIL_SIZE;
-
-      const context = canvas.getContext("2d");
-      if (!context) {
-        reject(new Error("Canvas context is not available."));
-        return;
-      }
-
-      const naturalWidth = image.naturalWidth || image.width;
-      const naturalHeight = image.naturalHeight || image.height;
-      const sourceSize = Math.min(naturalWidth, naturalHeight);
-      const sourceX = Math.max(0, (naturalWidth - sourceSize) / 2);
-      const sourceY = Math.max(0, (naturalHeight - sourceSize) / 2);
-
-      context.fillStyle = "#f7f0e6";
-      context.fillRect(0, 0, RECENT_UPLOAD_THUMBNAIL_SIZE, RECENT_UPLOAD_THUMBNAIL_SIZE);
-      context.drawImage(
-        image,
-        sourceX,
-        sourceY,
-        sourceSize,
-        sourceSize,
-        0,
-        0,
-        RECENT_UPLOAD_THUMBNAIL_SIZE,
-        RECENT_UPLOAD_THUMBNAIL_SIZE,
-      );
-
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Failed to load image for thumbnail."));
-    };
-
-    image.src = objectUrl;
-  });
-}
-
 export default function UploadPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -112,7 +29,6 @@ export default function UploadPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [analysis, setAnalysis] = useState<UploadAnalysis | null>(null);
-  const [recentUploads, setRecentUploads] = useState<UploadHistoryItem[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
@@ -120,7 +36,6 @@ export default function UploadPage() {
 
   useEffect(() => {
     document.title = "스타일매치 | 업로드";
-    setRecentUploads(getUploadHistory());
   }, []);
 
   useEffect(() => {
@@ -212,20 +127,7 @@ export default function UploadPage() {
 
     try {
       const uploaded = await uploadImage(selectedFile);
-      const thumbnailUrl = await createRecentUploadThumbnail(selectedFile).catch(() => "");
-      setStoredUploadedImageId(uploaded.id);
-      setStoredUploadedImageAnalysis(uploaded.analysis);
       setAnalysis(uploaded.analysis);
-      setRecentUploads(
-        prependUploadHistory({
-          id: uploaded.id,
-          image_url: resolveApiAssetUrl(uploaded.image_url),
-          thumbnail_url: thumbnailUrl || undefined,
-          created_at: uploaded.created_at,
-          file_name: selectedFile.name,
-          analysis: uploaded.analysis,
-        }),
-      );
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
       router.push(`/recommendations?uploaded_image_id=${encodeURIComponent(uploaded.id)}`);
     } catch (error) {
@@ -236,19 +138,8 @@ export default function UploadPage() {
     }
   }
 
-  function handleReuseUpload(item: UploadHistoryItem) {
-    setStoredUploadedImageId(item.id);
-    setStoredUploadedImageAnalysis(item.analysis);
-    router.push(`/recommendations?uploaded_image_id=${encodeURIComponent(item.id)}`);
-  }
-
-  function handleDeleteRecentUpload(itemId: string, event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    setRecentUploads(removeUploadHistoryItem(itemId));
-  }
-
   return (
-    <section className="split-grid upload-reference-grid" aria-labelledby="upload-title">
+    <section className="upload-reference-grid" aria-labelledby="upload-title">
       <article className="card upload-reference-shell" aria-busy={uploading}>
         <div className="upload-stage-card">
           <div className="upload-stage-frame">
@@ -345,56 +236,6 @@ export default function UploadPage() {
             </p>
           ) : null}
         </div>
-      </article>
-
-      <article className="card side-panel upload-recent-panel" aria-labelledby="recent-upload-title">
-        <div className="section-heading-row">
-          <div>
-            <h2 id="recent-upload-title">최근 업로드</h2>
-          </div>
-        </div>
-        {recentUploads.length > 0 ? (
-          <ul className="simple-list recent-upload-list">
-            {recentUploads.map((item) => (
-              <li key={item.id} className="recent-upload-card">
-                <div className="recent-upload-card-shell">
-                  <button
-                    type="button"
-                    className="recent-upload-delete-icon"
-                    aria-label={`${item.file_name} 최근 업로드 삭제`}
-                    onClick={(event) => handleDeleteRecentUpload(item.id, event)}
-                  >
-                    ×
-                  </button>
-                  <button type="button" className="recent-upload-card-button" onClick={() => handleReuseUpload(item)}>
-                    <img
-                      src={item.thumbnail_url || resolveApiAssetUrl(item.image_url)}
-                      alt={`${item.file_name} 썸네일`}
-                      className="recent-upload-thumb"
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = buildRecentFallbackImage(item);
-                      }}
-                    />
-                    <div className="recent-upload-body">
-                      <strong>{item.file_name}</strong>
-                      <p className="hint-text">
-                        {[item.analysis.dominant_color, item.analysis.dominant_tone, item.analysis.style_mood, item.analysis.silhouette]
-                          .filter(Boolean)
-                          .join(" / ")}
-                      </p>
-                      <p className="hint-text">{new Date(item.created_at).toLocaleString("ko-KR")}</p>
-                    </div>
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="empty-box soft-empty-box">
-            <p className="lead">아직 최근 업로드가 없습니다.</p>
-          </div>
-        )}
       </article>
     </section>
   );

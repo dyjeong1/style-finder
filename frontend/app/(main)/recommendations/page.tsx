@@ -6,17 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 import {
   addWishlist,
-  clearStoredUploadedImageAnalysis,
-  clearStoredUploadedImageId,
   getRecommendations,
-  getStoredUploadedImageAnalysis,
-  getStoredUploadedImageId,
-  getUploadHistory,
   getWishlist,
   RecommendationItem,
-  setStoredUploadedImageAnalysis,
-  setStoredUploadedImageId,
-  updateUploadHistoryAnalysis,
+  UploadAnalysis,
 } from "@/lib/api";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
@@ -123,23 +116,6 @@ function resolveRecommendationImage(item: RecommendationItem): string {
   return item.image_url;
 }
 
-function getAnalysisForUpload(uploadedImageId: string | null): ReturnType<typeof getStoredUploadedImageAnalysis> {
-  if (!uploadedImageId) {
-    return null;
-  }
-
-  const historyItem = getUploadHistory().find((item) => item.id === uploadedImageId);
-  if (historyItem) {
-    return historyItem.analysis;
-  }
-
-  if (getStoredUploadedImageId() === uploadedImageId) {
-    return getStoredUploadedImageAnalysis();
-  }
-
-  return null;
-}
-
 function RecommendationPageContent() {
   const searchParams = useSearchParams();
   const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id");
@@ -155,8 +131,7 @@ function RecommendationPageContent() {
   const [savedProductIds, setSavedProductIds] = useState<string[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
-  const [uploadedImageAnalysis, setUploadedImageAnalysis] = useState<ReturnType<typeof getStoredUploadedImageAnalysis>>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [uploadedImageAnalysis, setUploadedImageAnalysis] = useState<UploadAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState("mock");
@@ -170,9 +145,8 @@ function RecommendationPageContent() {
   }, []);
 
   useEffect(() => {
-    const nextUploadedImageId = uploadedImageIdFromUrl || getStoredUploadedImageId();
+    const nextUploadedImageId = uploadedImageIdFromUrl;
     const uploadChanged = lastResolvedUploadIdRef.current !== nextUploadedImageId;
-    const nextAnalysis = getAnalysisForUpload(nextUploadedImageId);
 
     if (uploadChanged) {
       setItems([]);
@@ -186,19 +160,11 @@ function RecommendationPageContent() {
       setMaxPrice("");
       setCustomQueryInput("");
       setAppliedCustomQuery("");
-    }
-
-    if (uploadedImageIdFromUrl) {
-      setStoredUploadedImageId(uploadedImageIdFromUrl);
-    }
-    if (nextUploadedImageId && nextAnalysis) {
-      setStoredUploadedImageAnalysis(nextAnalysis);
+      setUploadedImageAnalysis(null);
     }
 
     lastResolvedUploadIdRef.current = nextUploadedImageId;
     setUploadedImageId(nextUploadedImageId);
-    setUploadedImageAnalysis(nextAnalysis);
-    setIsClientReady(true);
   }, [uploadedImageIdFromUrl]);
 
   async function loadSavedWishlistState() {
@@ -215,10 +181,6 @@ function RecommendationPageContent() {
   }
 
   async function loadRecommendations() {
-    if (!isClientReady) {
-      return;
-    }
-
     if (!uploadedImageId) {
       setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
       setItems([]);
@@ -226,6 +188,7 @@ function RecommendationPageContent() {
       setDataSource("mock");
       setSearchQuery("");
       setFallbackMessage(null);
+      setUploadedImageAnalysis(null);
       return;
     }
 
@@ -255,10 +218,6 @@ function RecommendationPageContent() {
       setFallbackMessage(result.fallback_message ?? null);
       if (result.analysis) {
         setUploadedImageAnalysis(result.analysis);
-        if (requestUploadedImageId === getStoredUploadedImageId()) {
-          setStoredUploadedImageAnalysis(result.analysis);
-        }
-        updateUploadHistoryAnalysis(requestUploadedImageId, result.analysis);
       }
     } catch (error) {
       if (latestRequestKeyRef.current !== requestKey || lastResolvedUploadIdRef.current !== requestUploadedImageId) {
@@ -270,8 +229,6 @@ function RecommendationPageContent() {
         message.includes("uploaded_image_id");
 
       if (isStaleUpload) {
-        clearStoredUploadedImageId();
-        clearStoredUploadedImageAnalysis();
         setUploadedImageId(null);
         setUploadedImageAnalysis(null);
         setErrorMessage("이전 업로드 정보가 만료되었습니다. /upload에서 이미지를 다시 올려주세요.");
@@ -297,20 +254,12 @@ function RecommendationPageContent() {
   }
 
   useEffect(() => {
-    if (!isClientReady) {
-      return;
-    }
-
     void loadRecommendations();
-  }, [category, sort, minPrice, maxPrice, appliedCustomQuery, isClientReady, uploadedImageId]);
+  }, [category, sort, minPrice, maxPrice, appliedCustomQuery, uploadedImageId]);
 
   useEffect(() => {
-    if (!isClientReady) {
-      return;
-    }
-
     void loadSavedWishlistState();
-  }, [isClientReady]);
+  }, []);
 
   function resetFilters() {
     setCategory("");
@@ -599,7 +548,7 @@ function RecommendationPageContent() {
         <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
           <div className="panel-title-row">
             <h2>업로드 분석</h2>
-            <span className="metric-chip">최근 업로드 기준</span>
+            <span className="metric-chip">현재 업로드 기준</span>
           </div>
           <div className="analysis-chip-row">
             <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
