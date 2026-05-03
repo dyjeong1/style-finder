@@ -26,17 +26,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_ORDER = ["top", "bottom", "outer", "shoes", "bag", "accessory"] as const;
 const CATEGORY_ORDER_SET = new Set<string>(CATEGORY_ORDER);
 
-const SORT_LABELS: Record<SortOption, string> = {
-  similarity_desc: "유사도 높은 순",
-  price_asc: "가격 낮은 순",
-  price_desc: "가격 높은 순",
-};
-
-const DATA_SOURCE_LABELS: Record<string, string> = {
-  naver_shopping: "네이버 쇼핑",
-  mock: "샘플 데이터",
-};
-
 const SOURCE_LABELS: Record<string, string> = {
   naver: "네이버 쇼핑",
   zigzag: "지그재그",
@@ -153,7 +142,6 @@ function RecommendationPageContent() {
   const lastResolvedUploadIdRef = useRef<string | null>(null);
   const latestRequestKeyRef = useRef(0);
   const [items, setItems] = useState<RecommendationItem[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<SortOption>("similarity_desc");
   const [minPrice, setMinPrice] = useState("");
@@ -165,7 +153,6 @@ function RecommendationPageContent() {
   const [uploadedImageAnalysis, setUploadedImageAnalysis] = useState<UploadAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState("mock");
   const [searchQuery, setSearchQuery] = useState("");
   const [customQueryInput, setCustomQueryInput] = useState("");
   const [appliedCustomQuery, setAppliedCustomQuery] = useState("");
@@ -181,7 +168,6 @@ function RecommendationPageContent() {
 
     if (uploadChanged) {
       setItems([]);
-      setTotalCount(0);
       setSearchQuery("");
       setFallbackMessage(null);
       setFeedbackMessage(null);
@@ -215,8 +201,6 @@ function RecommendationPageContent() {
     if (!uploadedImageId) {
       setErrorMessage("업로드된 이미지가 없습니다. /upload에서 이미지를 먼저 올려주세요.");
       setItems([]);
-      setTotalCount(0);
-      setDataSource("mock");
       setSearchQuery("");
       setFallbackMessage(null);
       setUploadedImageAnalysis(null);
@@ -243,8 +227,6 @@ function RecommendationPageContent() {
         return;
       }
       setItems(result.items);
-      setTotalCount(result.total_count);
-      setDataSource(result.source ?? "mock");
       setSearchQuery(result.query ?? "");
       setFallbackMessage(result.fallback_message ?? null);
       if (result.analysis) {
@@ -264,8 +246,6 @@ function RecommendationPageContent() {
         setUploadedImageAnalysis(null);
         setErrorMessage("이전 업로드 정보가 만료되었습니다. /upload에서 이미지를 다시 올려주세요.");
         setItems([]);
-        setTotalCount(0);
-        setDataSource("mock");
         setSearchQuery("");
         setFallbackMessage(null);
         return;
@@ -273,8 +253,6 @@ function RecommendationPageContent() {
 
       setErrorMessage(message);
       setItems([]);
-      setTotalCount(0);
-      setDataSource("mock");
       setSearchQuery("");
       setFallbackMessage(null);
     } finally {
@@ -425,28 +403,6 @@ function RecommendationPageContent() {
           <div>
             <h1 id="recommendations-title">추천 상품</h1>
             <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
-          </div>
-          <div className="page-summary-grid compact-summary-grid">
-            <div className="summary-pill">
-              <span className="summary-label">추천 수</span>
-              <strong>{totalCount}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">정렬</span>
-              <strong>{SORT_LABELS[sort]}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">카테고리</span>
-              <strong>{category ? CATEGORY_LABELS[category] ?? category : "전체"}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">저장됨</span>
-              <strong>{savedProductIds.length}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">데이터</span>
-              <strong>{DATA_SOURCE_LABELS[dataSource] ?? dataSource}</strong>
-            </div>
           </div>
         </div>
       </div>

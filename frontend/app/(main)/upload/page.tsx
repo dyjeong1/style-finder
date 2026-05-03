@@ -139,12 +139,11 @@ export default function UploadPage() {
   }
 
   return (
-    <section className="upload-reference-grid" aria-labelledby="upload-title">
+    <section className="upload-reference-grid" aria-label="코디 이미지 업로드">
       <article className="card upload-reference-shell" aria-busy={uploading}>
         <div className="upload-stage-card">
           <div className="upload-stage-frame">
             <div className="upload-stage-copy">
-              <h1 id="upload-title">코디 이미지를 올려보세요</h1>
               <p className="lead page-lead">이미지를 넣으면 유사한 상품을 추천해드립니다.</p>
             </div>
             <div

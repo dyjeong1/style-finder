@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-05-03
 updated_at: 2026-05-03
 related:
-  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리]
+  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리]
 tags: [upload, ai, recommendation, simplification]
 ---
 
@@ -55,3 +55,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-03: TSK-0030에서 업로드 localStorage/최근 업로드 재사용 UI를 제거하고 현재 업로드 1건 흐름으로 정리함.
 - 2026-05-03: TSK-0031에서 추천 분석 메타에 AI/fallback 기준을 추가하고 임의 카테고리 fallback 을 제거함.
 - 2026-05-03: TSK-0032에서 AI empty 와 unavailable/error 를 분리하고 규칙 분석을 unavailable/error 시 최후 fallback 으로만 제한함.
+- 2026-05-03: TSK-0033에서 브랜드 보조 문구를 정리하고 업로드/추천/위시리스트 상단 중복 요약 카드를 제거함.

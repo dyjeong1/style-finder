@@ -16,14 +16,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessory: "악세서리",
 };
 
-const SORT_LABELS: Record<WishlistSortOption, string> = {
-  latest: "최신순",
-  oldest: "오래된 순",
-  price_asc: "가격 낮은 순",
-  price_desc: "가격 높은 순",
-  name_asc: "이름순",
-};
-
 function buildWishlistFallbackImage(item: WishlistItem): string {
   const title = item.product_name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const subtitle = `${item.source.toUpperCase()} / ${item.category.toUpperCase()}`;
@@ -56,7 +48,6 @@ function resolveWishlistImage(item: WishlistItem): string {
 
 export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<WishlistSortOption>("latest");
   const [loading, setLoading] = useState(false);
@@ -96,12 +87,10 @@ export default function WishlistPage() {
     try {
       const result = await getWishlist(category || undefined);
       setItems(result.items);
-      setTotalCount(result.total_count);
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 목록 조회 중 오류가 발생했습니다.";
       setErrorMessage(message);
       setItems([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -116,7 +105,6 @@ export default function WishlistPage() {
     try {
       await removeWishlist(productId);
       setItems((prev) => prev.filter((item) => item.product_id !== productId));
-      setTotalCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       const message = error instanceof Error ? error.message : "찜 해제 중 오류가 발생했습니다.";
       setErrorMessage(message);
@@ -131,20 +119,6 @@ export default function WishlistPage() {
           <div>
             <h1 id="wishlist-title">찜 목록</h1>
             <p className="lead page-lead">저장해둔 상품을 다시 확인하고 바로 쇼핑몰 링크로 이동할 수 있습니다.</p>
-          </div>
-          <div className="page-summary-grid compact-summary-grid">
-            <div className="summary-pill">
-              <span className="summary-label">상품 수</span>
-              <strong>{totalCount}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">필터</span>
-              <strong>{category ? CATEGORY_LABELS[category] ?? category : "전체"}</strong>
-            </div>
-            <div className="summary-pill">
-              <span className="summary-label">정렬</span>
-              <strong>{SORT_LABELS[sort]}</strong>
-            </div>
           </div>
         </div>
       </div>
