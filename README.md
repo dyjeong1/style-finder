@@ -28,6 +28,7 @@
   - 추가 메모: 브랜드 보조 문구를 `이미지 기반 스타일 추천`으로 정리하고 업로드 화면 메인 헤드라인을 제거함
   - 추가 메모: 추천/위시리스트 상단의 중복 요약 카드 묶음을 제거해 필터 UI와 정보 중복을 줄임
   - 추가 메모: 추천 페이지가 새 `uploaded_image_id`로 바뀔 때 이전 검색어/필터/분석 요약이 남지 않도록 E2E 회귀 테스트를 보강함
+  - 추가 메모: 로컬 Ollama 설치부터 `gemma3:4b` pull, `.env` 설정, 확인 명령까지 한 번에 따라갈 수 있는 운영 가이드를 추가함
 - `PLAN-20260423-검색어하드코딩제거`
 - 상세 문서: `PLAN/PLAN-20260423-검색어하드코딩제거/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260423-검색어하드코딩제거/SPEC.md`
@@ -148,18 +149,28 @@
    - `frontend/app/(main)/wishlist/page.tsx`
    - `frontend/components/app-shell.tsx`
    - 권장 실행: `cd frontend && npm run local`
-10. 프론트 API 연동 확인:
+10. 로컬 Ollama 빠른 시작:
+   - 상세 가이드: `docs/ollama-local-setup.md`
+   - 권장 기본 모델: `gemma3:4b`
+   - 최소 절차:
+     - `brew install --cask ollama` 또는 공식 앱 설치
+     - `ollama pull gemma3:4b`
+     - `ollama serve`
+     - `cd backend && cp .env.example .env`
+     - `.env`에 `OLLAMA_VISION_ENABLED=true`, `OLLAMA_VISION_PROVIDER=ollama`, `OLLAMA_VISION_MODEL=gemma3:4b` 설정
+     - `cd backend && PYTHONPATH=. python3 scripts/check_upload_analysis.py --image data/vision_dataset/images/codytest_2.jpg --provider ollama`
+11. 프론트 API 연동 확인:
    - `frontend/lib/api.ts`
    - 업로드 직후 `/recommendations?uploaded_image_id=...`로 현재 업로드 ID만 전달
-11. 프론트 보안 업그레이드 확인:
+12. 프론트 보안 업그레이드 확인:
    - `frontend/package.json`
    - `frontend/package-lock.json`
    - `next@15.5.15`
-12. 프론트 E2E 테스트 확인:
+13. 프론트 E2E 테스트 확인:
    - `frontend/playwright.config.ts`
    - `frontend/e2e/core-flow.spec.ts`
    - 실행: `cd frontend && npm run test:e2e`
-13. 프론트 E2E CI 확인:
+14. 프론트 E2E CI 확인:
    - `.github/workflows/frontend-e2e.yml`
 14. 브랜치 보호 준비 확인:
    - `.github/branch-protection/main.json`

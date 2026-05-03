@@ -154,9 +154,9 @@ cp .env.example .env
 ```
 
 Ollama 실행 메모:
-- 먼저 로컬에 Ollama를 설치한 뒤 `ollama pull gemma3:4b`를 실행합니다.
-- 그 다음 `ollama serve` 또는 데스크톱 앱으로 로컬 서버를 켭니다.
 - 이 저장소 기준 기본 권장 로컬 무료 경로는 `Ollama + gemma3:4b`입니다.
+- 설치, 모델 pull, 서버 실행, `.env` 설정, 점검 명령은 `../docs/ollama-local-setup.md`를 우선 참고하세요.
+- 가장 짧은 확인 순서는 `ollama pull gemma3:4b` -> `ollama serve` -> `PYTHONPATH=. python3 scripts/check_upload_analysis.py --image data/vision_dataset/images/codytest_2.jpg --provider ollama` 입니다.
 
 실호출 메모:
 - Gemini `generateContent`는 구조화 출력 시 `responseJsonSchema` 형식을 사용한다.

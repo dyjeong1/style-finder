@@ -6,7 +6,7 @@ priority: P0
 created_at: 2026-05-03
 updated_at: 2026-05-03
 related:
-  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리]
+  tasks: [TSK-0029-작업세팅및흐름정리, TSK-0030-업로드상태비영속화, TSK-0031-AI우선추천경로단순화, TSK-0032-최후fallback검증및정리, TSK-0033-상단카피및요약정리, TSK-0034-추천상태회귀테스트정리, TSK-0035-로컬올라마설치가이드정리]
 tags: [upload, ai, recommendation, simplification]
 ---
 
@@ -57,3 +57,4 @@ tags: [upload, ai, recommendation, simplification]
 - 2026-05-03: TSK-0032에서 AI empty 와 unavailable/error 를 분리하고 규칙 분석을 unavailable/error 시 최후 fallback 으로만 제한함.
 - 2026-05-03: TSK-0033에서 브랜드 보조 문구를 정리하고 업로드/추천/위시리스트 상단 중복 요약 카드를 제거함.
 - 2026-05-03: TSK-0034에서 추천 페이지의 업로드 전환/느린 이전 응답 덮어쓰기 회귀를 Playwright 테스트로 고정함.
+- 2026-05-03: TSK-0035에서 로컬 Ollama 설치, `gemma3:4b` pull, `.env` 설정, 확인 명령을 한 번에 볼 수 있는 가이드를 추가함.
