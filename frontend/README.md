@@ -46,6 +46,7 @@ npm run test:e2e
 - `/upload`: `POST /images/upload` 호출 후 현재 업로드를 바로 분석하고 추천 페이지로 이동
 - `/upload`: 최근 업로드 이미지는 브라우저 `IndexedDB`에 저장하고, 카드 클릭 시 같은 이미지를 다시 업로드해 새 분석을 시작
 - `/recommendations`: `GET /recommendations` 조회 및 `POST /wishlist` 찜 추가
+- `/recommendations`: 상단의 현재 업로드 썸네일을 눌러 추천 기준 이미지를 모달로 확대해 다시 확인 가능
 - `/wishlist`: `GET /wishlist` 조회 시 상품명/가격/쇼핑몰/카테고리/링크를 함께 노출하고 `DELETE /wishlist/{product_id}`로 찜 삭제
 - 업로드 후 추천 이동 시 `/recommendations?uploaded_image_id=...` 형태의 현재 업로드 ID만 URL로 전달합니다.
 - 추천 페이지는 `useSearchParams()` 값이 늦게 들어오는 경우에도 현재 브라우저 URL의 `uploaded_image_id`를 다시 읽어 업로드 기준 상태를 복구합니다.

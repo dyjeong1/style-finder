@@ -188,11 +188,29 @@ function RecommendationPageContent() {
   const [customQueryInput, setCustomQueryInput] = useState("");
   const [appliedCustomQuery, setAppliedCustomQuery] = useState("");
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
+  const [isUploadedImageModalOpen, setIsUploadedImageModalOpen] = useState(false);
   const uploadedImagePreviewUrl = uploadedImageId ? getUploadedImageFileUrl(uploadedImageId) : buildUploadedImageFallback(null);
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
   }, []);
+
+  useEffect(() => {
+    if (!isUploadedImageModalOpen) {
+      return;
+    }
+
+    function handleEscapeKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsUploadedImageModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleEscapeKey);
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isUploadedImageModalOpen]);
 
   useEffect(() => {
     const nextUploadedImageId = uploadedImageIdFromUrl ?? readUploadedImageIdFromLocation();
@@ -210,6 +228,7 @@ function RecommendationPageContent() {
       setCustomQueryInput("");
       setAppliedCustomQuery("");
       setUploadedImageAnalysis(null);
+      setIsUploadedImageModalOpen(false);
     }
 
     lastResolvedUploadIdRef.current = nextUploadedImageId;
@@ -436,7 +455,12 @@ function RecommendationPageContent() {
             <h1 id="recommendations-title">추천 상품</h1>
             <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
           </div>
-          <div className="uploaded-image-preview-card" aria-label="현재 추천 기준 업로드 이미지">
+          <button
+            type="button"
+            className="uploaded-image-preview-card uploaded-image-preview-button"
+            aria-label="현재 추천 기준 업로드 이미지 크게 보기"
+            onClick={() => setIsUploadedImageModalOpen(true)}
+          >
             <img
               src={uploadedImagePreviewUrl}
               alt="현재 추천 기준 업로드 이미지"
@@ -446,7 +470,8 @@ function RecommendationPageContent() {
                 event.currentTarget.src = buildUploadedImageFallback(uploadedImageId);
               }}
             />
-          </div>
+            <span className="uploaded-image-preview-hint">크게 보기</span>
+          </button>
         </div>
       </div>
 
@@ -668,6 +693,38 @@ function RecommendationPageContent() {
           <p className="hint-text">
             먼저 <Link href="/upload">업로드</Link>에서 다른 이미지를 올리거나 가격 필터를 완화해보세요.
           </p>
+        </div>
+      ) : null}
+
+      {isUploadedImageModalOpen ? (
+        <div
+          className="image-preview-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="추천 기준 업로드 이미지 확대 보기"
+          onClick={() => setIsUploadedImageModalOpen(false)}
+        >
+          <div className="image-preview-modal-sheet" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="image-preview-modal-close"
+              aria-label="업로드 이미지 확대 보기 닫기"
+              onClick={() => setIsUploadedImageModalOpen(false)}
+            >
+              닫기
+            </button>
+            <div className="image-preview-modal-frame">
+              <img
+                src={uploadedImagePreviewUrl}
+                alt="현재 추천 기준 업로드 이미지 확대 보기"
+                className="image-preview-modal-image"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = buildUploadedImageFallback(uploadedImageId);
+                }}
+              />
+            </div>
+          </div>
         </div>
       ) : null}
     </section>
