@@ -428,7 +428,6 @@ export default function UploadPage() {
             <h2>최근 업로드</h2>
             <span className="metric-chip">{recentUploads.length}개</span>
           </div>
-          <p className="hint-text">이미지 파일만 이 브라우저에 저장되고, 카드를 누르면 새 분석이 시작됩니다.</p>
         </div>
         {recentUploads.length > 0 ? (
           <ul className="simple-list recent-upload-list">
@@ -464,7 +463,6 @@ export default function UploadPage() {
         ) : (
           <div className="recent-upload-empty">
             <strong>최근 업로드가 없습니다.</strong>
-            <span>새 이미지를 한 번 분석하면 이 브라우저에만 저장됩니다.</span>
           </div>
         )}
       </aside>
