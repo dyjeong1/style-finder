@@ -8,7 +8,12 @@ import {
   UploadAnalysis,
   uploadImage,
 } from "@/lib/api";
-import { saveStoredUploadImage } from "@/lib/recent-upload-store";
+import {
+  deleteStoredUploadImage,
+  getStoredUploadImage,
+  listStoredUploadImages,
+  saveStoredUploadImage,
+} from "@/lib/recent-upload-store";
 const CATEGORY_LABELS: Record<string, string> = {
   top: "상의",
   bottom: "하의",
@@ -24,6 +29,14 @@ function getCategoryLabel(category: string): string {
 
 const MIN_UPLOAD_LOADING_VISIBLE_MS = 800;
 
+type RecentUploadCard = {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  createdAt: string;
+  previewUrl: string;
+};
+
 function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -36,9 +49,32 @@ function sleep(delayMs: number): Promise<void> {
   });
 }
 
+function formatRecentUploadDate(createdAt: string): string {
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) {
+    return "업로드 시각 정보 없음";
+  }
+
+  return createdDate.toLocaleString("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatFileSize(sizeBytes: number): string {
+  if (sizeBytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(sizeBytes / 1024))}KB`;
+  }
+
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const recentUploadPreviewUrlsRef = useRef<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStartedAt, setUploadStartedAt] = useState<number | null>(null);
@@ -48,12 +84,49 @@ export default function UploadPage() {
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [analysis, setAnalysis] = useState<UploadAnalysis | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [recentUploads, setRecentUploads] = useState<RecentUploadCard[]>([]);
 
   const fileName = useMemo(() => selectedFile?.name ?? "", [selectedFile]);
   const analysisQueryHints = analysis?.category_query_hints ?? {};
 
+  function revokeRecentUploadPreviewUrls() {
+    for (const previewUrl of recentUploadPreviewUrlsRef.current) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    recentUploadPreviewUrlsRef.current = [];
+  }
+
+  async function refreshRecentUploads() {
+    try {
+      const storedUploads = await listStoredUploadImages();
+      const nextRecentUploads = storedUploads.map((storedUpload) => ({
+        id: storedUpload.id,
+        name: storedUpload.name,
+        sizeBytes: storedUpload.sizeBytes,
+        createdAt: storedUpload.createdAt,
+        previewUrl: URL.createObjectURL(storedUpload.blob),
+      }));
+
+      revokeRecentUploadPreviewUrls();
+      recentUploadPreviewUrlsRef.current = nextRecentUploads.map((item) => item.previewUrl);
+      setRecentUploads(nextRecentUploads);
+    } catch (storageError) {
+      console.warn("최근 업로드 이미지를 불러오지 못했습니다.", storageError);
+      revokeRecentUploadPreviewUrls();
+      setRecentUploads([]);
+    }
+  }
+
   useEffect(() => {
     document.title = "스타일매치 | 업로드";
+  }, []);
+
+  useEffect(() => {
+    void refreshRecentUploads();
+
+    return () => {
+      revokeRecentUploadPreviewUrls();
+    };
   }, []);
 
   useEffect(() => {
@@ -162,14 +235,18 @@ export default function UploadPage() {
 
     try {
       const uploaded = await uploadImage(fileToUpload);
+      let savedRecentUploadId: string | null = historyRecordId ?? null;
       try {
-        await saveStoredUploadImage(fileToUpload, {
+        savedRecentUploadId = await saveStoredUploadImage(fileToUpload, {
           id: historyRecordId,
           name: fileToUpload.name,
           type: fileToUpload.type || "image/jpeg",
         });
       } catch (storageError) {
         console.warn("최근 업로드 이미지 저장에 실패했습니다.", storageError);
+      }
+      if (savedRecentUploadId) {
+        await refreshRecentUploads();
       }
       const elapsedMs = Date.now() - uploadStartedAt;
       if (elapsedMs < MIN_UPLOAD_LOADING_VISIBLE_MS) {
@@ -199,6 +276,35 @@ export default function UploadPage() {
     }
 
     await runUpload(selectedFile);
+  }
+
+  async function handleReuseRecentUpload(recentUploadId: string) {
+    if (uploading) {
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const storedUpload = await getStoredUploadImage(recentUploadId);
+    if (!storedUpload) {
+      setErrorMessage("저장된 최근 업로드 이미지를 찾지 못했습니다. 목록을 다시 불러옵니다.");
+      await refreshRecentUploads();
+      return;
+    }
+
+    const reusableFile = new File([storedUpload.blob], storedUpload.name, {
+      type: storedUpload.type || "image/jpeg",
+      lastModified: Date.parse(storedUpload.createdAt) || Date.now(),
+    });
+    applySelectedFile(reusableFile);
+    await runUpload(reusableFile, recentUploadId);
+  }
+
+  async function handleDeleteRecentUpload(recentUploadId: string, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    await deleteStoredUploadImage(recentUploadId);
+    await refreshRecentUploads();
   }
 
   const elapsedMinutes = Math.floor(uploadElapsedMs / 60_000);
@@ -303,6 +409,50 @@ export default function UploadPage() {
             <p className="hint-text">분석 코드: {analysis.checksum}</p>
           </div>
         ) : null}
+        <div className="upload-recent-panel">
+          <div className="panel-title-row">
+            <h2>최근 업로드</h2>
+            <span className="metric-chip">{recentUploads.length}개</span>
+          </div>
+          <p className="hint-text">이미지 파일만 이 브라우저에 저장되고, 카드를 누르면 새 분석이 시작됩니다.</p>
+          {recentUploads.length > 0 ? (
+            <ul className="simple-list recent-upload-list">
+              {recentUploads.map((recentUpload) => (
+                <li key={recentUpload.id} className="recent-upload-card-shell">
+                  <button
+                    type="button"
+                    className="recent-upload-card-button"
+                    onClick={() => void handleReuseRecentUpload(recentUpload.id)}
+                    disabled={uploading}
+                  >
+                    <img src={recentUpload.previewUrl} alt={`${recentUpload.name} 최근 업로드 미리보기`} className="recent-upload-thumb" />
+                    <div className="recent-upload-body">
+                      <strong>{recentUpload.name}</strong>
+                      <span className="recent-upload-caption">다시 분석하면 최신 추천을 새로 생성합니다.</span>
+                      <span className="recent-upload-meta">
+                        {formatRecentUploadDate(recentUpload.createdAt)} · {formatFileSize(recentUpload.sizeBytes)}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="recent-upload-delete-icon"
+                    onClick={(event) => void handleDeleteRecentUpload(recentUpload.id, event)}
+                    aria-label={`${recentUpload.name} 최근 업로드 삭제`}
+                    disabled={uploading}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="recent-upload-empty">
+              <strong>최근 업로드가 없습니다.</strong>
+              <span>새 이미지를 한 번 분석하면 이 브라우저에만 저장됩니다.</span>
+            </div>
+          )}
+        </div>
         <div className="status-region" aria-live="polite" aria-atomic="true">
           {errorMessage ? (
             <p className="error-text" role="alert">

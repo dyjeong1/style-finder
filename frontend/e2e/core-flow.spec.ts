@@ -538,6 +538,71 @@ test("업로드 분석 중 버튼 상태와 진행 시간을 보여준다", asyn
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
 });
 
+test("최근 업로드 이미지를 다시 눌러 새 분석을 시작할 수 있다", async ({ page }) => {
+  const fixtures = createRecommendationFixtures();
+  const uploadedFixture = fixtures["upload-e2e-001"];
+  const uploadedImageIds = ["upload-recent-001", "upload-recent-002"];
+  let uploadRequestCount = 0;
+
+  await page.route(`${API_BASE}/images/upload`, async (route) => {
+    const uploadedImageId = uploadedImageIds[uploadRequestCount] ?? `upload-recent-${uploadRequestCount + 1}`;
+    uploadRequestCount += 1;
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        okResponse({
+          id: uploadedImageId,
+          image_url: `/mock-storage/${uploadedImageId}.png`,
+          created_at: "2026-05-04T00:00:00Z",
+          analysis: uploadedFixture.analysis,
+        }),
+      ),
+    });
+  });
+
+  await page.route(`${API_BASE}/recommendations**`, async (route) => {
+    const uploadedImageId = new URL(route.request().url()).searchParams.get("uploaded_image_id");
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        okResponse({
+          items: uploadedFixture.items,
+          total_count: uploadedFixture.items.length,
+          analysis: uploadedFixture.analysis,
+          query: `${uploadedFixture.query} ${uploadedImageId ?? ""}`.trim(),
+        }),
+      ),
+    });
+  });
+
+  await page.goto("/upload");
+  await page.locator("#image-input").setInputFiles({
+    name: "look.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlAbwAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await page.getByRole("button", { name: "이미지 분석하기" }).click();
+
+  await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-recent-001$/);
+
+  await page.goto("/upload");
+  await expect(page.getByRole("heading", { name: "최근 업로드" })).toBeVisible();
+  await expect(page.locator(".recent-upload-card-button")).toHaveCount(1);
+  await expect(page.getByText("look.png")).toBeVisible();
+
+  await page.locator(".recent-upload-card-button").first().click();
+
+  await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-recent-002$/);
+  expect(uploadRequestCount).toBe(2);
+});
+
 test("@smoke 추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어와 필터, 분석 요약을 초기화한다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const wishlist = createWishlistRoutes();
