@@ -8,6 +8,7 @@ import {
   UploadAnalysis,
   uploadImage,
 } from "@/lib/api";
+import { saveStoredUploadImage } from "@/lib/recent-upload-store";
 const CATEGORY_LABELS: Record<string, string> = {
   top: "상의",
   bottom: "하의",
@@ -148,12 +149,7 @@ export default function UploadPage() {
     applySelectedFile(nextFile);
   }
 
-  async function handleUpload() {
-    if (!selectedFile) {
-      setErrorMessage("업로드할 이미지 파일을 선택해주세요.");
-      return;
-    }
-
+  async function runUpload(fileToUpload: File, historyRecordId?: string) {
     const uploadStartedAt = Date.now();
     flushSync(() => {
       setUploading(true);
@@ -165,7 +161,16 @@ export default function UploadPage() {
     await waitForNextPaint();
 
     try {
-      const uploaded = await uploadImage(selectedFile);
+      const uploaded = await uploadImage(fileToUpload);
+      try {
+        await saveStoredUploadImage(fileToUpload, {
+          id: historyRecordId,
+          name: fileToUpload.name,
+          type: fileToUpload.type || "image/jpeg",
+        });
+      } catch (storageError) {
+        console.warn("최근 업로드 이미지 저장에 실패했습니다.", storageError);
+      }
       const elapsedMs = Date.now() - uploadStartedAt;
       if (elapsedMs < MIN_UPLOAD_LOADING_VISIBLE_MS) {
         await sleep(MIN_UPLOAD_LOADING_VISIBLE_MS - elapsedMs);
@@ -185,6 +190,15 @@ export default function UploadPage() {
       setUploadStartedAt(null);
       setUploadElapsedMs(0);
     }
+  }
+
+  async function handleUpload() {
+    if (!selectedFile) {
+      setErrorMessage("업로드할 이미지 파일을 선택해주세요.");
+      return;
+    }
+
+    await runUpload(selectedFile);
   }
 
   const elapsedMinutes = Math.floor(uploadElapsedMs / 60_000);
