@@ -332,6 +332,26 @@ small {
   gap: 18px;
 }
 
+.uploaded-image-preview-card {
+  width: 92px;
+  min-width: 92px;
+  height: 92px;
+  padding: 6px;
+  border-radius: 24px;
+  border: 1px solid rgba(24, 34, 50, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.uploaded-image-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+  background: #f1e6d3;
+}
+
 .page-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

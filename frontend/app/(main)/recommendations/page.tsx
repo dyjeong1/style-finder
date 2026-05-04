@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import {
   addWishlist,
   getRecommendations,
+  getUploadedImageFileUrl,
   getWishlist,
   RecommendationItem,
   UploadAnalysis,
@@ -144,6 +145,28 @@ function readUploadedImageIdFromLocation(): string | null {
   return new URLSearchParams(window.location.search).get("uploaded_image_id");
 }
 
+function buildUploadedImageFallback(uploadedImageId: string | null): string {
+  const label = uploadedImageId ? "현재 업로드 이미지" : "업로드 이미지 없음";
+  const subtitle = uploadedImageId ? "Recommendation Source" : "No Upload";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+      <defs>
+        <linearGradient id="uploadThumb" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#f6d6a7" />
+          <stop offset="100%" stop-color="#e5b16a" />
+        </linearGradient>
+      </defs>
+      <rect width="240" height="240" rx="36" fill="url(#uploadThumb)" />
+      <rect x="22" y="22" width="196" height="196" rx="28" fill="rgba(255,255,255,0.55)" />
+      <text x="40" y="88" fill="#9a3412" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="700">${subtitle}</text>
+      <text x="40" y="128" fill="#111827" font-family="Pretendard, Arial, sans-serif" font-size="20" font-weight="800">${label}</text>
+      <text x="40" y="164" fill="#4b5563" font-family="Pretendard, Arial, sans-serif" font-size="14">StyleMatch</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function RecommendationPageContent() {
   const searchParams = useSearchParams();
   const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id") ?? readUploadedImageIdFromLocation();
@@ -165,6 +188,7 @@ function RecommendationPageContent() {
   const [customQueryInput, setCustomQueryInput] = useState("");
   const [appliedCustomQuery, setAppliedCustomQuery] = useState("");
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
+  const uploadedImagePreviewUrl = uploadedImageId ? getUploadedImageFileUrl(uploadedImageId) : buildUploadedImageFallback(null);
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
@@ -411,6 +435,17 @@ function RecommendationPageContent() {
           <div>
             <h1 id="recommendations-title">추천 상품</h1>
             <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
+          </div>
+          <div className="uploaded-image-preview-card" aria-label="현재 추천 기준 업로드 이미지">
+            <img
+              src={uploadedImagePreviewUrl}
+              alt="현재 추천 기준 업로드 이미지"
+              className="uploaded-image-preview"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = buildUploadedImageFallback(uploadedImageId);
+              }}
+            />
           </div>
         </div>
       </div>

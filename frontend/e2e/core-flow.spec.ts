@@ -457,6 +457,7 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
   await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("AI 분석 기준")).toBeVisible();
+  await expect(page.locator(".uploaded-image-preview")).toBeVisible();
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
   await expect(page.getByText("검색어: 쿨톤 스트라이프 셔츠")).toBeVisible();
   const storedUploadState = await page.evaluate(() => ({
