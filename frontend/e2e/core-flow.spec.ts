@@ -483,6 +483,59 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();
 });
 
+test("업로드 분석이 지연되면 스피너와 진행 안내를 보여준다", async ({ page }) => {
+  const fixtures = createRecommendationFixtures();
+  const uploadedImageId = "upload-e2e-001";
+  const uploadedFixture = fixtures[uploadedImageId];
+
+  await page.route(`${API_BASE}/images/upload`, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 4_000));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        okResponse({
+          id: uploadedImageId,
+          image_url: "/mock-storage/upload-e2e-001-look.png",
+          created_at: "2026-05-03T00:00:00Z",
+          analysis: uploadedFixture.analysis,
+        }),
+      ),
+    });
+  });
+
+  await page.route(`${API_BASE}/recommendations**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        okResponse({
+          items: uploadedFixture.items,
+          total_count: uploadedFixture.items.length,
+          analysis: uploadedFixture.analysis,
+          query: uploadedFixture.query,
+        }),
+      ),
+    });
+  });
+
+  await page.goto("/upload");
+  await page.locator("#image-input").setInputFiles({
+    name: "slow-look.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlAbwAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+
+  await page.getByRole("button", { name: "이미지 분석하기" }).click({ noWaitAfter: true });
+
+  await expect(page.getByRole("button", { name: "이미지 분석 중..." })).toBeVisible();
+
+  await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
+});
+
 test("@smoke 추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어와 필터, 분석 요약을 초기화한다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const wishlist = createWishlistRoutes();

@@ -155,7 +155,12 @@ export default function UploadPage() {
               role="button"
               tabIndex={0}
               aria-label="코디 이미지 업로드 영역"
-              onClick={handleOpenFilePicker}
+              aria-busy={uploading}
+              onClick={() => {
+                if (!uploading) {
+                  handleOpenFilePicker();
+                }
+              }}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -190,6 +195,13 @@ export default function UploadPage() {
                   <span>{analysis.silhouette}</span>
                 </div>
               ) : null}
+              {uploading ? (
+                <div className="upload-stage-loading" role="status" aria-live="polite" aria-label="이미지 분석 진행 표시">
+                  <span className="loading-spinner" aria-hidden="true" />
+                  <strong>AI가 이미지를 분석하고 있습니다</strong>
+                  <span>분석이 끝나면 추천 페이지로 자동 이동합니다.</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -202,8 +214,14 @@ export default function UploadPage() {
         />
         <div className="upload-primary-row">
           <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading || !selectedFile} aria-busy={uploading}>
-            {uploading ? "이미지 분석 중..." : "이미지 분석하기"}
+            {uploading ? (
+              <>
+                <span className="loading-spinner button-loading-spinner" aria-hidden="true" />
+                이미지 분석 중...
+              </>
+            ) : "이미지 분석하기"}
           </button>
+          {uploading ? <p className="upload-progress-text">조금만 기다려 주세요. 업로드한 코디를 기반으로 추천을 준비하고 있습니다.</p> : null}
         </div>
         {analysis ? (
           <div className="analysis-panel upload-inline-analysis">
