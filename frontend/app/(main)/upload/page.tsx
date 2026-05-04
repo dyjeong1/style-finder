@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { flushSync } from "react-dom";
 
 import {
   UploadAnalysis,
@@ -18,6 +19,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function getCategoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
+}
+
+const MIN_UPLOAD_LOADING_VISIBLE_MS = 800;
+
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
 }
 
 export default function UploadPage() {
@@ -121,12 +136,20 @@ export default function UploadPage() {
       return;
     }
 
-    setUploading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
+    const uploadStartedAt = Date.now();
+    flushSync(() => {
+      setUploading(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    });
+    await waitForNextPaint();
 
     try {
       const uploaded = await uploadImage(selectedFile);
+      const elapsedMs = Date.now() - uploadStartedAt;
+      if (elapsedMs < MIN_UPLOAD_LOADING_VISIBLE_MS) {
+        await sleep(MIN_UPLOAD_LOADING_VISIBLE_MS - elapsedMs);
+      }
       setAnalysis(uploaded.analysis);
       setSuccessMessage("업로드가 완료되었습니다. 추천 페이지로 이동합니다.");
       const nextUrl = `/recommendations?uploaded_image_id=${encodeURIComponent(uploaded.id)}`;

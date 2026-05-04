@@ -483,13 +483,13 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();
 });
 
-test("업로드 분석이 지연되면 스피너와 진행 안내를 보여준다", async ({ page }) => {
+test("업로드 분석 중 스피너와 진행 안내를 보여준다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const uploadedImageId = "upload-e2e-001";
   const uploadedFixture = fixtures[uploadedImageId];
 
   await page.route(`${API_BASE}/images/upload`, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 4_000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -531,7 +531,7 @@ test("업로드 분석이 지연되면 스피너와 진행 안내를 보여준�
 
   await page.getByRole("button", { name: "이미지 분석하기" }).click({ noWaitAfter: true });
 
-  await expect(page.getByRole("button", { name: "이미지 분석 중..." })).toBeVisible();
+  await expect(page.locator(".upload-primary-button[aria-busy='true']")).toBeVisible();
 
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
 });
