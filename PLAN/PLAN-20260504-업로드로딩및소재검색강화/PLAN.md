@@ -1,12 +1,12 @@
 ---
 id: PLAN-20260504-업로드로딩및소재검색강화
 title: 업로드 로딩 및 소재 검색 강화
-status: done
+status: doing
 priority: P1
 created_at: 2026-05-04
 updated_at: 2026-05-04
 related:
-  tasks: [TSK-0001-업로드분석로딩스피너, TSK-0002-소재검색어반영, TSK-0003-스피너가시성보정]
+  tasks: [TSK-0001-업로드분석로딩스피너, TSK-0002-소재검색어반영, TSK-0003-스피너가시성보정, TSK-0004-업로드진행시간노출, TSK-0005-추천상단업로드썸네일표시]
 tags: [frontend, upload, recommendation, query]
 ---
 
@@ -49,3 +49,4 @@ tags: [frontend, upload, recommendation, query]
 - 2026-05-04: TSK-0001에서 업로드 지연 시 버튼 스피너와 진행 안내 문구를 추가하고 Playwright 회귀 테스트를 보강함.
 - 2026-05-04: TSK-0002에서 검색어 생성 규칙에 소재 descriptor 우선순위를 확장하고 backend pytest 38건을 통과함.
 - 2026-05-04: TSK-0003에서 빠른 응답 경로에서도 업로드 상태가 먼저 그려지도록 flushSync, 다음 페인트 대기, 최소 노출 시간을 추가함.
+- 2026-05-04: TSK-0004에서 버튼 내부 스피너를 제거하고 버튼 아래에 실시간 분석 진행 시간을 노출함.

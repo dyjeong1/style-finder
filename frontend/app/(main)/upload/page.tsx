@@ -40,6 +40,8 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadStartedAt, setUploadStartedAt] = useState<number | null>(null);
+  const [uploadElapsedMs, setUploadElapsedMs] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState("");
@@ -65,6 +67,22 @@ export default function UploadPage() {
       URL.revokeObjectURL(objectUrl);
     };
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!uploading || uploadStartedAt === null) {
+      setUploadElapsedMs(0);
+      return;
+    }
+
+    setUploadElapsedMs(Date.now() - uploadStartedAt);
+    const timer = window.setInterval(() => {
+      setUploadElapsedMs(Date.now() - uploadStartedAt);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [uploadStartedAt, uploading]);
 
   function applySelectedFile(nextFile: File | null) {
     setSelectedFile(nextFile);
@@ -139,6 +157,8 @@ export default function UploadPage() {
     const uploadStartedAt = Date.now();
     flushSync(() => {
       setUploading(true);
+      setUploadStartedAt(uploadStartedAt);
+      setUploadElapsedMs(0);
       setErrorMessage(null);
       setSuccessMessage(null);
     });
@@ -162,8 +182,14 @@ export default function UploadPage() {
       setErrorMessage(message);
     } finally {
       setUploading(false);
+      setUploadStartedAt(null);
+      setUploadElapsedMs(0);
     }
   }
+
+  const elapsedMinutes = Math.floor(uploadElapsedMs / 60_000);
+  const elapsedSeconds = Math.floor((uploadElapsedMs % 60_000) / 1000);
+  const uploadElapsedLabel = `분석 진행 시간 : ${elapsedMinutes}분 ${elapsedSeconds}초`;
 
   return (
     <section className="upload-reference-grid" aria-label="코디 이미지 업로드">
@@ -237,14 +263,9 @@ export default function UploadPage() {
         />
         <div className="upload-primary-row">
           <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading || !selectedFile} aria-busy={uploading}>
-            {uploading ? (
-              <>
-                <span className="loading-spinner button-loading-spinner" aria-hidden="true" />
-                이미지 분석 중...
-              </>
-            ) : "이미지 분석하기"}
+            {uploading ? "이미지 분석 중..." : "이미지 분석하기"}
           </button>
-          {uploading ? <p className="upload-progress-text">조금만 기다려 주세요. 업로드한 코디를 기반으로 추천을 준비하고 있습니다.</p> : null}
+          {uploading ? <p className="upload-progress-text">{uploadElapsedLabel}</p> : null}
         </div>
         {analysis ? (
           <div className="analysis-panel upload-inline-analysis">

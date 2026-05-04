@@ -483,7 +483,7 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page.getByText("저장된 찜 상품이 없습니다.")).toBeVisible();
 });
 
-test("업로드 분석 중 스피너와 진행 안내를 보여준다", async ({ page }) => {
+test("업로드 분석 중 버튼 상태와 진행 시간을 보여준다", async ({ page }) => {
   const fixtures = createRecommendationFixtures();
   const uploadedImageId = "upload-e2e-001";
   const uploadedFixture = fixtures[uploadedImageId];
@@ -532,6 +532,7 @@ test("업로드 분석 중 스피너와 진행 안내를 보여준다", async ({
   await page.getByRole("button", { name: "이미지 분석하기" }).click({ noWaitAfter: true });
 
   await expect(page.locator(".upload-primary-button[aria-busy='true']")).toBeVisible();
+  await expect(page.locator(".upload-progress-text")).toContainText("분석 진행 시간 :");
 
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
 });
