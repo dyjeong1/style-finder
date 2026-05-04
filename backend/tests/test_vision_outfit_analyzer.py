@@ -944,10 +944,13 @@ def test_runtime_config_prefers_provider_specific_model_for_current_ollama_provi
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
+    assert build_item_query(category="shoes", color="black", item_label="부츠", query_hint="블랙 가죽 부츠") == "블랙 가죽 부츠"
+    assert build_item_query(category="bag", color="brown", item_label="숄더백", query_hint="브라운 스웨이드 숄더백") == "브라운 스웨이드 숄더백"
     assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"
     assert build_item_query(category="accessory", color="black", item_label="안경", query_hint="블랙 메탈 안경테") == "블랙 메탈 안경"
     assert build_item_query(category="accessory", color="white", item_label="귀걸이", query_hint="화이트 진주 귀걸이") == "화이트 진주 귀걸이"
-    assert build_item_query(category="outer", color="black", item_label="자켓", query_hint="가죽 재킷") == "블랙 레더 자켓"
+    assert build_item_query(category="outer", color="black", item_label="자켓", query_hint="가죽 재킷") == "블랙 가죽 자켓"
+    assert build_item_query(category="outer", color="black", item_label="레더 자켓", query_hint="블랙 가죽 재킷") == "블랙 레더 자켓"
     assert build_item_query(category="bottom", color="black", item_label="미니 스커트", query_hint="검은색 도트 미니 스커트") == "블랙 도트 미니 스커트"
 
 

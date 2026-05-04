@@ -66,7 +66,7 @@ OPENAI_SYSTEM_PROMPT = """당신은 패션 코디 이미지를 분석하는 한�
 출력 규칙:
 - color는 enum 안에서 가장 가까운 값 하나만 사용한다.
 - item_label은 한국어 세부 품목명으로 작성한다.
-- query는 가능하면 '색상 + 품목명' 형태로 작성한다.
+- query는 가능하면 '색상 + 소재 + 품목명' 형태로 작성하고, 소재가 불명확할 때만 '색상 + 품목명' 형태를 사용한다.
 """
 GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 
@@ -152,7 +152,7 @@ ALL_KEYWORD_NORMALIZATION_LABELS = {
     "와이드 팬츠",
 }
 QUERY_DESCRIPTOR_RULES = (
-    ("레더", ("레더", "가죽", "라이더")),
+    ("가죽", ("레더", "가죽", "라이더", "leather")),
     ("스웨이드", ("스웨이드",)),
     ("데님", ("데님", "청바지", "흑청")),
     ("스트라이프", ("스트라이프",)),
@@ -171,10 +171,10 @@ QUERY_DESCRIPTOR_RULES = (
 )
 QUERY_DESCRIPTOR_ORDER = {
     "top": ("오버핏", "크롭", "스트라이프", "브이넥", "골지", "앙고라"),
-    "outer": ("레더", "스웨이드", "오버핏", "크롭"),
+    "outer": ("가죽", "스웨이드", "오버핏", "크롭"),
     "bottom": ("도트", "플리츠", "레이스", "와이드", "미니"),
-    "shoes": ("플랫",),
-    "bag": ("스웨이드", "체인", "미니"),
+    "shoes": ("가죽", "스웨이드", "플랫"),
+    "bag": ("가죽", "스웨이드", "체인", "미니"),
     "accessory": ("메탈", "뿔테", "무테", "진주", "링", "드롭", "체인"),
 }
 SUPPORTED_ACCESSORY_FAMILIES = {"안경", "목걸이", "귀걸이", "팔찌", "반지", "머플러", "모자", "머리끈", "양말", "벨트"}
@@ -720,7 +720,7 @@ def _extract_query_descriptors(category: str, item_label: str, query_hint: str) 
         if category == "accessory" and item_family in {"목걸이", "귀걸이", "팔찌", "반지"}:
             if normalized_keyword == "체인":
                 continue
-        if normalized_keyword in item_label:
+        if normalized_keyword in item_label or any(alias in item_label for alias in aliases):
             continue
         if any(alias in combined_text for alias in aliases):
             detected.append(normalized_keyword)

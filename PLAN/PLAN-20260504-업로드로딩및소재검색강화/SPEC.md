@@ -1,7 +1,7 @@
 ---
 id: PLAN-20260504-업로드로딩및소재검색강화-SPEC
 plan_id: PLAN-20260504-업로드로딩및소재검색강화
-status: doing
+status: done
 created_at: 2026-05-04
 updated_at: 2026-05-04
 ---
