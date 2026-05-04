@@ -312,7 +312,7 @@ export default function UploadPage() {
   const uploadElapsedLabel = `분석 진행 시간 : ${elapsedMinutes}분 ${elapsedSeconds}초`;
 
   return (
-    <section className="upload-reference-grid" aria-label="코디 이미지 업로드">
+    <section className="split-grid upload-reference-grid" aria-label="코디 이미지 업로드">
       <article className="card upload-reference-shell" aria-busy={uploading}>
         <div className="upload-stage-card">
           <div className="upload-stage-frame">
@@ -409,50 +409,6 @@ export default function UploadPage() {
             <p className="hint-text">분석 코드: {analysis.checksum}</p>
           </div>
         ) : null}
-        <div className="upload-recent-panel">
-          <div className="panel-title-row">
-            <h2>최근 업로드</h2>
-            <span className="metric-chip">{recentUploads.length}개</span>
-          </div>
-          <p className="hint-text">이미지 파일만 이 브라우저에 저장되고, 카드를 누르면 새 분석이 시작됩니다.</p>
-          {recentUploads.length > 0 ? (
-            <ul className="simple-list recent-upload-list">
-              {recentUploads.map((recentUpload) => (
-                <li key={recentUpload.id} className="recent-upload-card-shell">
-                  <button
-                    type="button"
-                    className="recent-upload-card-button"
-                    onClick={() => void handleReuseRecentUpload(recentUpload.id)}
-                    disabled={uploading}
-                  >
-                    <img src={recentUpload.previewUrl} alt={`${recentUpload.name} 최근 업로드 미리보기`} className="recent-upload-thumb" />
-                    <div className="recent-upload-body">
-                      <strong>{recentUpload.name}</strong>
-                      <span className="recent-upload-caption">다시 분석하면 최신 추천을 새로 생성합니다.</span>
-                      <span className="recent-upload-meta">
-                        {formatRecentUploadDate(recentUpload.createdAt)} · {formatFileSize(recentUpload.sizeBytes)}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="recent-upload-delete-icon"
-                    onClick={(event) => void handleDeleteRecentUpload(recentUpload.id, event)}
-                    aria-label={`${recentUpload.name} 최근 업로드 삭제`}
-                    disabled={uploading}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="recent-upload-empty">
-              <strong>최근 업로드가 없습니다.</strong>
-              <span>새 이미지를 한 번 분석하면 이 브라우저에만 저장됩니다.</span>
-            </div>
-          )}
-        </div>
         <div className="status-region" aria-live="polite" aria-atomic="true">
           {errorMessage ? (
             <p className="error-text" role="alert">
@@ -466,6 +422,52 @@ export default function UploadPage() {
           ) : null}
         </div>
       </article>
+      <aside className="card side-panel upload-recent-panel" aria-label="최근 업로드">
+        <div className="upload-recent-panel-head">
+          <div className="panel-title-row">
+            <h2>최근 업로드</h2>
+            <span className="metric-chip">{recentUploads.length}개</span>
+          </div>
+          <p className="hint-text">이미지 파일만 이 브라우저에 저장되고, 카드를 누르면 새 분석이 시작됩니다.</p>
+        </div>
+        {recentUploads.length > 0 ? (
+          <ul className="simple-list recent-upload-list">
+            {recentUploads.map((recentUpload) => (
+              <li key={recentUpload.id} className="recent-upload-card-shell">
+                <button
+                  type="button"
+                  className="recent-upload-card-button"
+                  onClick={() => void handleReuseRecentUpload(recentUpload.id)}
+                  disabled={uploading}
+                >
+                  <img src={recentUpload.previewUrl} alt={`${recentUpload.name} 최근 업로드 미리보기`} className="recent-upload-thumb" />
+                  <div className="recent-upload-body">
+                    <strong>{recentUpload.name}</strong>
+                    <span className="recent-upload-caption">다시 분석하면 최신 추천을 새로 생성합니다.</span>
+                    <span className="recent-upload-meta">
+                      {formatRecentUploadDate(recentUpload.createdAt)} · {formatFileSize(recentUpload.sizeBytes)}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="recent-upload-delete-icon"
+                  onClick={(event) => void handleDeleteRecentUpload(recentUpload.id, event)}
+                  aria-label={`${recentUpload.name} 최근 업로드 삭제`}
+                  disabled={uploading}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="recent-upload-empty">
+            <strong>최근 업로드가 없습니다.</strong>
+            <span>새 이미지를 한 번 분석하면 이 브라우저에만 저장됩니다.</span>
+          </div>
+        )}
+      </aside>
     </section>
   );
 }
