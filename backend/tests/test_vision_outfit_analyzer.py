@@ -966,6 +966,7 @@ def test_runtime_config_prefers_provider_specific_model_for_current_ollama_provi
 def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert guess_mime_type(build_flatlay_fixture()) == "image/png"
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
+    assert build_item_query(category="shoes", color="gray", item_label="스니커즈", brand_hint="뉴발란스") == "뉴발란스 그레이 스니커즈"
     assert build_item_query(category="shoes", color="black", item_label="부츠", query_hint="블랙 가죽 부츠") == "블랙 가죽 부츠"
     assert build_item_query(category="bag", color="brown", item_label="숄더백", query_hint="브라운 스웨이드 숄더백") == "브라운 스웨이드 숄더백"
     assert build_item_query(category="top", color="brown", item_label="셔츠", query_hint="브라운 스트라이프 실크 셔츠") == "브라운 스트라이프 실크 셔츠"
@@ -1030,6 +1031,13 @@ def test_model_output_preserves_pattern_and_material_descriptor_order() -> None:
         {
             "items": [
                 {
+                    "category": "shoes",
+                    "color": "gray",
+                    "item_label": "운동화",
+                    "query": "뉴발란스 그레이 운동화",
+                    "brand": "new balance",
+                },
+                {
                     "category": "top",
                     "color": "brown",
                     "item_label": "실크 블라우스",
@@ -1064,12 +1072,14 @@ def test_model_output_preserves_pattern_and_material_descriptor_order() -> None:
     )
 
     assert [(item.category, item.color, item.item_label, item.query) for item in items] == [
+        ("shoes", "gray", "스니커즈", "뉴발란스 그레이 스니커즈"),
         ("top", "brown", "블라우스", "브라운 스트라이프 실크 블라우스"),
         ("bag", "brown", "가방", "브라운 체크 가죽 가방"),
         ("top", "white", "블라우스", "화이트 민무늬 실크 블라우스"),
         ("top", "white", "블라우스", "화이트 레이스 쉬폰 블라우스"),
         ("outer", "brown", "자켓", "브라운 트위드 자켓"),
     ]
+    assert items[0].brand == "뉴발란스"
 
 
 def test_model_output_preserves_accessory_descriptors_and_filters_noise_labels() -> None:

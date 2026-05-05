@@ -43,6 +43,7 @@ OPENAI_RESPONSE_SCHEMA = {
                         "color": {"type": "string", "enum": list(OPENAI_ALLOWED_COLORS)},
                         "item_label": {"type": "string"},
                         "query": {"type": "string"},
+                        "brand": {"type": "string"},
                     },
                     "required": ["category", "color", "item_label", "query"],
                 },
@@ -62,11 +63,13 @@ OPENAI_SYSTEM_PROMPT = """당신은 패션 코디 이미지를 분석하는 한�
 - outer와 top이 동시에 보이면 분리한다. 예: 가디건 + 나시.
 - 어깨에 걸친 가디건이나 니트도 outer로 본다.
 - query는 쇼핑 검색에 바로 쓸 수 있는 간결한 한국어 검색어여야 한다.
+- 로고나 브랜드 텍스트가 매우 명확히 보일 때만 brand에 넣고, 불명확하면 빈 문자열로 둔다.
 
 출력 규칙:
 - color는 enum 안에서 가장 가까운 값 하나만 사용한다.
 - item_label은 한국어 세부 품목명으로 작성한다.
-- query는 가능하면 '색상 + 패턴 + 소재 + 품목명' 순서를 우선 사용하고, 없는 정보만 생략한다.
+- brand는 가능하면 한국 서비스에서 많이 쓰는 표기(`뉴발란스`, `나이키`, `아디다스`)를 사용한다.
+- query는 가능하면 '브랜드 + 색상 + 패턴 + 소재 + 품목명' 순서를 우선 사용하고, 없는 정보만 생략한다.
 """
 GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 
@@ -152,6 +155,19 @@ ALL_KEYWORD_NORMALIZATION_LABELS = {
     "와이드 데님 팬츠",
     "와이드 팬츠",
 }
+BRAND_NORMALIZATION_RULES = (
+    ("뉴발란스", ("뉴발란스", "new balance", "newbalance")),
+    ("나이키", ("나이키", "nike")),
+    ("아디다스", ("아디다스", "adidas")),
+    ("컨버스", ("컨버스", "converse")),
+    ("반스", ("반스", "vans")),
+    ("아식스", ("아식스", "asics")),
+    ("푸마", ("푸마", "puma")),
+    ("리복", ("리복", "reebok")),
+    ("살로몬", ("살로몬", "salomon")),
+    ("크록스", ("크록스", "crocs")),
+    ("닥터마틴", ("닥터마틴", "dr. martens", "dr martens", "doc martens")),
+)
 QUERY_DESCRIPTOR_RULES = (
     ("material", "가죽", ("레더", "가죽", "라이더", "leather")),
     ("material", "스웨이드", ("스웨이드", "suede")),
@@ -450,17 +466,20 @@ class VisionOutfitAnalyzer:
                 item_label = DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
 
             query = str(raw_item.get("query", "")).strip()
+            brand = _normalize_brand_name(str(raw_item.get("brand", "")).strip())
             color = _normalize_item_color(category=category, color=color, item_label=item_label, query=query)
             item_label = _normalize_item_label(category=category, color=color, item_label=item_label, query=query)
             category = _normalize_item_category(category=category, item_label=item_label, query=query)
             if category == "accessory" and not _is_supported_accessory_item(item_label):
                 continue
-            query = build_item_query(category=category, color=color, item_label=item_label, query_hint=query)
+            brand = _extract_query_brand(brand_hint=brand, item_label=item_label, query_hint=query)
+            query = build_item_query(category=category, color=color, item_label=item_label, query_hint=query, brand_hint=brand)
             normalized = DetectedOutfitItem(
                 category=category,
                 color=color,
                 item_label=item_label,
                 query=query,
+                brand=brand,
             )
             dedupe_key = (normalized.category, normalized.color, normalized.item_label, normalized.query)
             if dedupe_key in seen:
@@ -509,7 +528,8 @@ def merge_detected_items(
             category=category,
             color=item.color,
             item_label=item.item_label,
-            query=build_item_query(category=category, color=item.color, item_label=item.item_label),
+            query=build_item_query(category=category, color=item.color, item_label=item.item_label, brand_hint=item.brand),
+            brand=item.brand,
         )
         vision_by_category.setdefault(category, []).append(normalized_item)
 
@@ -544,7 +564,7 @@ def merge_detected_items(
     ]
 
 
-def build_item_query(category: str, color: str, item_label: str, query_hint: str = "") -> str:
+def build_item_query(category: str, color: str, item_label: str, query_hint: str = "", brand_hint: str = "") -> str:
     color_prefix = COLOR_QUERY_LABELS.get(color, "")
     category_label = CATEGORY_QUERY_LABELS.get(category, category)
     normalized_label = item_label.strip() or category_label
@@ -555,8 +575,11 @@ def build_item_query(category: str, color: str, item_label: str, query_hint: str
                 color_prefix = "실버"
             elif color == "yellow":
                 color_prefix = "골드"
+    brand_prefix = _extract_query_brand(brand_hint=brand_hint, item_label=normalized_label, query_hint=query_hint)
     descriptors = _extract_query_descriptors(category, normalized_label, query_hint)
     query_parts: list[str] = []
+    if brand_prefix and brand_prefix not in normalized_label:
+        query_parts.append(brand_prefix)
     if color_prefix and color_prefix not in normalized_label:
         query_parts.append(color_prefix)
     query_parts.extend(descriptors)
@@ -748,6 +771,36 @@ def _extract_query_descriptors(category: str, item_label: str, query_hint: str) 
     ordered = [keyword for keyword in category_order if keyword in detected]
     ordered.extend(keyword for keyword in detected if keyword not in ordered)
     return ordered
+
+
+def _normalize_brand_name(value: str) -> str:
+    normalized = " ".join(value.split()).strip()
+    if not normalized:
+        return ""
+
+    lowered = normalized.lower()
+    for canonical, aliases in BRAND_NORMALIZATION_RULES:
+        alias_values = tuple(alias.lower() for alias in aliases)
+        if lowered == canonical.lower() or lowered in alias_values:
+            return canonical
+    return normalized
+
+
+def _extract_query_brand(brand_hint: str, item_label: str, query_hint: str) -> str:
+    explicit_brand = _normalize_brand_name(brand_hint)
+    if explicit_brand and explicit_brand not in item_label:
+        return explicit_brand
+
+    combined_text = " ".join(part for part in (query_hint, item_label) if part).strip().lower()
+    if not combined_text:
+        return ""
+
+    for canonical, aliases in BRAND_NORMALIZATION_RULES:
+        alias_values = tuple(alias.lower() for alias in aliases)
+        if canonical.lower() in combined_text or any(alias in combined_text for alias in alias_values):
+            if canonical not in item_label:
+                return canonical
+    return ""
 
 
 def _extract_accessory_descriptors(item_family: str, item_label: str, combined_text: str) -> list[str]:

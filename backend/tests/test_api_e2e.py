@@ -35,6 +35,7 @@ def test_core_e2e_flow() -> None:
     assert isinstance(upload_data["analysis"]["preferred_categories"], list)
     assert isinstance(upload_data["analysis"]["category_query_hints"], dict)
     assert isinstance(upload_data["analysis"]["detected_items"], list)
+    assert all("brand" in item for item in upload_data["analysis"]["detected_items"])
     assert upload_data["analysis"]["analysis_source"] in {"vision", "rule_fallback"}
     assert upload_data["analysis"]["query_source"] in {"detected_items", "rule_fallback", "none"}
     assert "fallback_reason" in upload_data["analysis"]

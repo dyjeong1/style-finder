@@ -24,6 +24,7 @@ class DetectedOutfitItem:
     color: str
     item_label: str
     query: str
+    brand: str = ""
 
 
 @dataclass(frozen=True)

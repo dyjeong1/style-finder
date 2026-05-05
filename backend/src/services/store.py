@@ -127,6 +127,7 @@ def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
                 "color": item.color,
                 "item_label": item.item_label,
                 "query": item.query,
+                "brand": item.brand,
             }
             for item in analysis.detected_items
         ],
