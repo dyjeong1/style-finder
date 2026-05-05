@@ -436,6 +436,7 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
 
   await page.goto("/recommendations");
   await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "현재 추천 기준 업로드 이미지 크게 보기" })).toHaveCount(0);
 
   await page.goto("/wishlist");
   await expect(page.getByRole("heading", { name: "찜 목록" })).toBeVisible({ timeout: 20_000 });
@@ -457,6 +458,7 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page).toHaveURL(/\/recommendations\?uploaded_image_id=upload-e2e-001$/);
   await expect(page.getByRole("heading", { name: "추천 상품" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("AI 분석 기준")).toBeVisible();
+  await expect(page.getByRole("button", { name: "현재 추천 기준 업로드 이미지 크게 보기" })).toHaveCount(1);
   await expect(page.locator(".uploaded-image-preview")).toBeVisible();
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
   await expect(page.getByText("검색어: 쿨톤 스트라이프 셔츠")).toBeVisible();

@@ -192,6 +192,7 @@ function RecommendationPageContent() {
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [isUploadedImageModalOpen, setIsUploadedImageModalOpen] = useState(false);
   const [uploadedImagePreviewUrl, setUploadedImagePreviewUrl] = useState(() => buildUploadedImageFallback(null));
+  const shouldShowUploadedImagePreview = Boolean(uploadedImageId && uploadedImageAnalysis);
 
   function revokeUploadedImagePreviewObjectUrl() {
     if (!uploadedImagePreviewObjectUrlRef.current) {
@@ -511,23 +512,25 @@ function RecommendationPageContent() {
             <h1 id="recommendations-title">추천 상품</h1>
             <p className="lead page-lead">분석 결과와 유사도 점수를 함께 보면서 바로 찜할 수 있습니다.</p>
           </div>
-          <button
-            type="button"
-            className="uploaded-image-preview-card uploaded-image-preview-button"
-            aria-label="현재 추천 기준 업로드 이미지 크게 보기"
-            onClick={() => setIsUploadedImageModalOpen(true)}
-          >
-            <img
-              src={uploadedImagePreviewUrl}
-              alt="현재 추천 기준 업로드 이미지"
-              className="uploaded-image-preview"
-              onError={(event) => {
-                event.currentTarget.onerror = null;
-                event.currentTarget.src = buildUploadedImageFallback(uploadedImageId);
-              }}
-            />
-            <span className="uploaded-image-preview-hint">크게 보기</span>
-          </button>
+          {shouldShowUploadedImagePreview ? (
+            <button
+              type="button"
+              className="uploaded-image-preview-card uploaded-image-preview-button"
+              aria-label="현재 추천 기준 업로드 이미지 크게 보기"
+              onClick={() => setIsUploadedImageModalOpen(true)}
+            >
+              <img
+                src={uploadedImagePreviewUrl}
+                alt="현재 추천 기준 업로드 이미지"
+                className="uploaded-image-preview"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = buildUploadedImageFallback(uploadedImageId);
+                }}
+              />
+              <span className="uploaded-image-preview-hint">크게 보기</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -752,7 +755,7 @@ function RecommendationPageContent() {
         </div>
       ) : null}
 
-      {isUploadedImageModalOpen ? (
+      {isUploadedImageModalOpen && shouldShowUploadedImagePreview ? (
         <div
           className="image-preview-modal-backdrop"
           role="dialog"
