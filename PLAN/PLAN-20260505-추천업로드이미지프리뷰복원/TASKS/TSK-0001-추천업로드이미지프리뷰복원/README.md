@@ -38,5 +38,5 @@ updated_at: 2026-05-05
 - [x] 상단 `추천` 메뉴가 마지막 `uploaded_image_id`를 유지한다.
 - [x] 확대 모달에서도 같은 업로드 이미지가 보인다.
 - [x] 유닛/통합 또는 E2E 검증 통과
-- [ ] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
+- [x] TASK 완료 직후 커밋 완료 (커밋 메시지에 TASK ID 포함)
 - [x] README/TODO 갱신
