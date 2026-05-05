@@ -75,6 +75,23 @@ class ProductRecord:
     dominant_color: str = "unknown"
 
 
+@dataclass(frozen=True)
+class RecommendationScoringConfig:
+    base_score: float = 0.35
+    vector_similarity_weight: float = 0.45
+    tone_bonus: float = 0.08
+    mood_bonus: float = 0.06
+    silhouette_bonus: float = 0.05
+    category_bonus: float = 0.04
+    color_bonus: float = 0.08
+    product_image_color_bonus: float = 0.12
+    item_label_match_bonus: float = 0.1
+    vision_similarity_weight: float = 0.18
+
+
+ITEM_LABEL_BONUS_EXCLUDED_LABELS = {"상의", "탑", "팬츠", "바지", "가방", "신발", "슈즈", "악세서리"}
+
+
 def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
     return {
         "checksum": analysis.checksum,
@@ -146,6 +163,7 @@ class InMemoryStore:
         vision_outfit_analyzer: VisionOutfitAnalyzer | None = None,
         gemini_correction_analyzer: VisionOutfitAnalyzer | None = None,
         enable_gemini_correction: bool = False,
+        recommendation_scoring: RecommendationScoringConfig | None = None,
     ) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
         self.seeded_products: dict[str, ProductRecord] = self._seed_products()
@@ -156,6 +174,7 @@ class InMemoryStore:
         self.vision_outfit_analyzer = vision_outfit_analyzer or VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig())
         self.gemini_correction_analyzer = gemini_correction_analyzer
         self.enable_gemini_correction = enable_gemini_correction and gemini_correction_analyzer is not None
+        self.recommendation_scoring = recommendation_scoring or RecommendationScoringConfig()
 
     def _load_wishlist(self) -> dict[str, dict[str, str]]:
         if not self.wishlist_store_path.exists():
@@ -410,33 +429,42 @@ class InMemoryStore:
             items = [item for item in items if item.price <= max_price]
 
         scored: list[dict] = []
+        scoring = self.recommendation_scoring
+        detected_items_by_category = _first_item_by_category(upload.analysis.detected_items)
         for item in items:
             vector_similarity = self._cosine_similarity(upload.analysis.feature_vector, item.feature_vector)
-            tone_bonus = 0.08 if upload.analysis.dominant_tone == item.dominant_tone else 0.0
-            mood_bonus = 0.06 if upload.analysis.style_mood == item.style_mood else 0.0
-            silhouette_bonus = 0.05 if upload.analysis.silhouette == item.silhouette else 0.0
-            category_bonus = 0.04 if item.category in upload.analysis.preferred_categories else 0.0
+            tone_bonus = scoring.tone_bonus if upload.analysis.dominant_tone == item.dominant_tone else 0.0
+            mood_bonus = scoring.mood_bonus if upload.analysis.style_mood == item.style_mood else 0.0
+            silhouette_bonus = scoring.silhouette_bonus if upload.analysis.silhouette == item.silhouette else 0.0
+            category_bonus = scoring.category_bonus if item.category in upload.analysis.preferred_categories else 0.0
             category_target_color = infer_color_from_text(upload.analysis.category_query_hints.get(item.category, ""))
             target_color = category_target_color if category_target_color != "unknown" else upload.analysis.dominant_color
-            color_bonus = 0.08 if has_color_keyword(item.product_name, target_color) else 0.0
+            color_bonus = scoring.color_bonus if has_color_keyword(item.product_name, target_color) else 0.0
             product_image_color_bonus = (
-                0.12
+                scoring.product_image_color_bonus
                 if item.dominant_color != "unknown" and item.dominant_color == target_color
                 else 0.0
             )
+            target_item_label = (
+                detected_items_by_category.get(item.category).item_label
+                if item.category in detected_items_by_category
+                else ""
+            )
+            item_label_bonus = self._compute_item_label_bonus(item.product_name, target_item_label)
             vision_similarity = (vision_similarity_by_product or {}).get(item.id, 0.0)
-            vision_bonus = max(0.0, vision_similarity) * 0.18
+            vision_bonus = max(0.0, vision_similarity) * scoring.vision_similarity_weight
             similarity = round(
                 min(
                     0.99,
-                    0.35
-                    + (vector_similarity * 0.45)
+                    scoring.base_score
+                    + (vector_similarity * scoring.vector_similarity_weight)
                     + tone_bonus
                     + mood_bonus
                     + silhouette_bonus
                     + category_bonus
                     + color_bonus
                     + product_image_color_bonus
+                    + item_label_bonus
                     + vision_bonus
                 ),
                 4,
@@ -459,6 +487,7 @@ class InMemoryStore:
                         "category_bonus": round(category_bonus, 4),
                         "color_bonus": round(color_bonus, 4),
                         "product_image_color_bonus": round(product_image_color_bonus, 4),
+                        "item_label_bonus": round(item_label_bonus, 4),
                         "vision_similarity": round(vision_similarity, 4),
                         "vision_bonus": round(vision_bonus, 4),
                     },
@@ -466,6 +495,7 @@ class InMemoryStore:
                         "dominant_tone": upload.analysis.dominant_tone,
                         "dominant_color": upload.analysis.dominant_color,
                         "category_target_color": target_color,
+                        "target_item_label": target_item_label,
                         "product_dominant_color": item.dominant_color,
                         "style_mood": upload.analysis.style_mood,
                         "silhouette": upload.analysis.silhouette,
@@ -486,6 +516,14 @@ class InMemoryStore:
             item["rank"] = rank
 
         return scored[:limit]
+
+    def _compute_item_label_bonus(self, product_name: str, target_item_label: str) -> float:
+        normalized_target = target_item_label.strip()
+        if not normalized_target or normalized_target in ITEM_LABEL_BONUS_EXCLUDED_LABELS:
+            return 0.0
+        if normalized_target in product_name:
+            return self.recommendation_scoring.item_label_match_bonus
+        return 0.0
 
     def _list_default_recommendation_products(self) -> list[ProductRecord]:
         return [
@@ -733,4 +771,16 @@ store = InMemoryStore(
         else None
     ),
     enable_gemini_correction=enable_gemini_correction,
+    recommendation_scoring=RecommendationScoringConfig(
+        base_score=float(settings.recommendation_score_base),
+        vector_similarity_weight=float(settings.recommendation_score_vector_similarity_weight),
+        tone_bonus=float(settings.recommendation_score_tone_bonus),
+        mood_bonus=float(settings.recommendation_score_mood_bonus),
+        silhouette_bonus=float(settings.recommendation_score_silhouette_bonus),
+        category_bonus=float(settings.recommendation_score_category_bonus),
+        color_bonus=float(settings.recommendation_score_color_bonus),
+        product_image_color_bonus=float(settings.recommendation_score_product_image_color_bonus),
+        item_label_match_bonus=float(settings.recommendation_score_item_label_match_bonus),
+        vision_similarity_weight=float(settings.recommendation_score_vision_similarity_weight),
+    ),
 )

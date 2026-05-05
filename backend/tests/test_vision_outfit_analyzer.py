@@ -917,6 +917,16 @@ def test_runtime_config_uses_longer_default_timeout_for_ollama(monkeypatch) -> N
     assert runtime_config["timeout_seconds"] == 90.0
 
 
+def test_settings_support_recommendation_scoring_overrides(monkeypatch) -> None:
+    monkeypatch.setenv("RECOMMENDATION_SCORE_ITEM_LABEL_MATCH_BONUS", "0.22")
+    monkeypatch.setenv("RECOMMENDATION_SCORE_VISION_SIMILARITY_WEIGHT", "0.31")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.recommendation_score_item_label_match_bonus == 0.22
+    assert settings.recommendation_score_vision_similarity_weight == 0.31
+
+
 def test_runtime_config_prefers_provider_specific_timeout_when_provider_overridden(monkeypatch) -> None:
     monkeypatch.setenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", "20")
     monkeypatch.setenv("OLLAMA_VISION_TIMEOUT_SECONDS", "120")

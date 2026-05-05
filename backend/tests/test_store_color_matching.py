@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.services.store import InMemoryStore, ProductRecord
+from src.services.image_analysis import DetectedOutfitItem
+from src.services.store import InMemoryStore, ProductRecord, RecommendationScoringConfig
 
 
 def make_product(
@@ -177,6 +178,83 @@ def test_vision_similarity_bonus_promotes_matching_product(tmp_path: Path) -> No
     assert items[0]["product_id"] == "vision-high"
     assert items[0]["score_breakdown"]["vision_similarity"] == 0.9
     assert items[0]["score_breakdown"]["vision_bonus"] > items[1]["score_breakdown"]["vision_bonus"]
+
+
+def test_item_label_bonus_promotes_specific_product_name_match(tmp_path: Path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        recommendation_scoring=RecommendationScoringConfig(item_label_match_bonus=0.14),
+    )
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+    upload.analysis.preferred_categories = ("shoes",)
+    upload.analysis.detected_items = (
+        DetectedOutfitItem(category="shoes", color="brown", item_label="메리제인 슈즈", query="브라운 메리제인 슈즈"),
+    )
+    upload.analysis.category_query_hints = {"shoes": "브라운 메리제인 슈즈"}
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="shoes",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            make_product("maryjane", "메리제인 슈즈"),
+            make_product("flat", "플랫 슈즈"),
+        ],
+    )
+
+    assert items[0]["product_id"] == "maryjane"
+    assert items[0]["score_breakdown"]["item_label_bonus"] == 0.14
+    assert items[0]["matched_signals"]["target_item_label"] == "메리제인 슈즈"
+    assert items[1]["score_breakdown"]["item_label_bonus"] == 0.0
+
+
+def test_vision_similarity_weight_can_be_tuned_independently(tmp_path: Path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        recommendation_scoring=RecommendationScoringConfig(
+            item_label_match_bonus=0.0,
+            vision_similarity_weight=0.0,
+        ),
+    )
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="shoes",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            make_product("vision-high-zero", "기본 슈즈"),
+            make_product("vision-low-zero", "기본 슈즈"),
+        ],
+        vision_similarity_by_product={
+            "vision-high-zero": 0.9,
+            "vision-low-zero": 0.1,
+        },
+    )
+
+    assert items[0]["score_breakdown"]["vision_bonus"] == 0.0
+    assert items[1]["score_breakdown"]["vision_bonus"] == 0.0
+    assert items[0]["similarity_score"] == items[1]["similarity_score"]
 
 
 def test_rgb_color_classifier_maps_common_outfit_colors(tmp_path: Path) -> None:

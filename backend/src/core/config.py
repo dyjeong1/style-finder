@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     vision_reranker_timeout_seconds: float = 1.5
     vision_reranker_max_image_bytes: int = 2_000_000
     vision_reranker_max_candidates: int = 10
+    recommendation_score_base: float = 0.35
+    recommendation_score_vector_similarity_weight: float = 0.45
+    recommendation_score_tone_bonus: float = 0.08
+    recommendation_score_mood_bonus: float = 0.06
+    recommendation_score_silhouette_bonus: float = 0.05
+    recommendation_score_category_bonus: float = 0.04
+    recommendation_score_color_bonus: float = 0.08
+    recommendation_score_product_image_color_bonus: float = 0.12
+    recommendation_score_item_label_match_bonus: float = 0.1
+    recommendation_score_vision_similarity_weight: float = 0.18
     gemini_api_key: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("GEMINI_API_KEY"),
