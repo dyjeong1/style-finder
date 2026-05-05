@@ -19,6 +19,7 @@ from src.services.image_analysis import (
     has_color_keyword,
     infer_color_from_text,
 )
+from src.services.recommendation_intent import dedupe_keywords, extract_intent_keywords, matches_intent_keyword
 from src.services.vision_outfit_analyzer import (
     VisionAnalyzerUnavailableError,
     VisionOutfitAnalyzer,
@@ -89,7 +90,26 @@ class RecommendationScoringConfig:
     vision_similarity_weight: float = 0.18
 
 
-ITEM_LABEL_BONUS_EXCLUDED_LABELS = {"상의", "탑", "팬츠", "바지", "가방", "신발", "슈즈", "악세서리"}
+ITEM_LABEL_BONUS_EXCLUDED_LABELS = {
+    "상의",
+    "탑",
+    "셔츠",
+    "티셔츠",
+    "블라우스",
+    "니트 탑",
+    "팬츠",
+    "바지",
+    "스커트",
+    "가방",
+    "신발",
+    "슈즈",
+    "스니커즈",
+    "로퍼",
+    "부츠",
+    "자켓",
+    "가디건",
+    "악세서리",
+}
 
 
 def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
@@ -450,7 +470,15 @@ class InMemoryStore:
                 if item.category in detected_items_by_category
                 else ""
             )
-            item_label_bonus = self._compute_item_label_bonus(item.product_name, target_item_label)
+            target_intent_keywords = self._build_target_intent_keywords(
+                category_query=upload.analysis.category_query_hints.get(item.category, ""),
+                target_item_label=target_item_label,
+            )
+            item_label_bonus = self._compute_item_label_bonus(
+                product_name=item.product_name,
+                target_item_label=target_item_label,
+                target_intent_keywords=target_intent_keywords,
+            )
             vision_similarity = (vision_similarity_by_product or {}).get(item.id, 0.0)
             vision_bonus = max(0.0, vision_similarity) * scoring.vision_similarity_weight
             similarity = round(
@@ -496,6 +524,7 @@ class InMemoryStore:
                         "dominant_color": upload.analysis.dominant_color,
                         "category_target_color": target_color,
                         "target_item_label": target_item_label,
+                        "target_intent_keywords": target_intent_keywords,
                         "product_dominant_color": item.dominant_color,
                         "style_mood": upload.analysis.style_mood,
                         "silhouette": upload.analysis.silhouette,
@@ -517,12 +546,30 @@ class InMemoryStore:
 
         return scored[:limit]
 
-    def _compute_item_label_bonus(self, product_name: str, target_item_label: str) -> float:
+    def _build_target_intent_keywords(self, category_query: str, target_item_label: str) -> list[str]:
+        return dedupe_keywords(extract_intent_keywords(category_query) + extract_intent_keywords(target_item_label))
+
+    def _compute_item_label_bonus(
+        self,
+        product_name: str,
+        target_item_label: str,
+        target_intent_keywords: list[str],
+    ) -> float:
         normalized_target = target_item_label.strip()
         if not normalized_target or normalized_target in ITEM_LABEL_BONUS_EXCLUDED_LABELS:
-            return 0.0
-        if normalized_target in product_name:
+            normalized_target = ""
+        if normalized_target and normalized_target in product_name:
             return self.recommendation_scoring.item_label_match_bonus
+        if target_intent_keywords:
+            matched_keywords = [
+                keyword for keyword in target_intent_keywords if matches_intent_keyword(product_name, keyword)
+            ]
+            if matched_keywords:
+                return round(
+                    self.recommendation_scoring.item_label_match_bonus
+                    * (len(matched_keywords) / len(target_intent_keywords)),
+                    4,
+                )
         return 0.0
 
     def _list_default_recommendation_products(self) -> list[ProductRecord]:

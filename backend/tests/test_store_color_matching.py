@@ -257,6 +257,70 @@ def test_vision_similarity_weight_can_be_tuned_independently(tmp_path: Path) -> 
     assert items[0]["similarity_score"] == items[1]["similarity_score"]
 
 
+def test_intent_keyword_bonus_preserves_model_query_intent_synonyms(tmp_path: Path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        recommendation_scoring=RecommendationScoringConfig(item_label_match_bonus=0.12),
+    )
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+    upload.analysis.preferred_categories = ("top",)
+    upload.analysis.detected_items = (
+        DetectedOutfitItem(category="top", color="navy", item_label="티셔츠", query="남색 롱슬리브 티셔츠"),
+    )
+    upload.analysis.category_query_hints = {"top": "남색 롱슬리브 티셔츠"}
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="top",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            ProductRecord(
+                id="long-sleeve-top",
+                source="naver",
+                product_name="네이비 긴팔 티셔츠",
+                category="top",
+                price=32000,
+                product_url="https://example.com/long-sleeve-top",
+                image_url="https://example.com/long-sleeve-top.jpg",
+                dominant_tone="cool",
+                style_mood="minimal",
+                silhouette="slim",
+                feature_vector=(0.9, 0.9, 0.9, 0.9),
+                dominant_color="navy",
+            ),
+            ProductRecord(
+                id="short-sleeve-top",
+                source="naver",
+                product_name="네이비 반팔 티셔츠",
+                category="top",
+                price=32000,
+                product_url="https://example.com/short-sleeve-top",
+                image_url="https://example.com/short-sleeve-top.jpg",
+                dominant_tone="cool",
+                style_mood="minimal",
+                silhouette="slim",
+                feature_vector=(0.9, 0.9, 0.9, 0.9),
+                dominant_color="navy",
+            ),
+        ],
+    )
+
+    assert items[0]["product_id"] == "long-sleeve-top"
+    assert items[0]["score_breakdown"]["item_label_bonus"] == 0.12
+    assert items[0]["matched_signals"]["target_intent_keywords"] == ["긴팔"]
+    assert items[1]["score_breakdown"]["item_label_bonus"] == 0.0
+
+
 def test_rgb_color_classifier_maps_common_outfit_colors(tmp_path: Path) -> None:
     store = InMemoryStore(wishlist_store_path=tmp_path / "wishlist.json")
 

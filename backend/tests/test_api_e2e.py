@@ -65,6 +65,7 @@ def test_core_e2e_flow() -> None:
     assert "category_target_color" in rec_items[0]["matched_signals"]
     assert "product_dominant_color" in rec_items[0]["matched_signals"]
     assert "target_item_label" in rec_items[0]["matched_signals"]
+    assert "target_intent_keywords" in rec_items[0]["matched_signals"]
     first_product_id = rec_items[0]["product_id"]
 
     add_wishlist_resp = client.post(

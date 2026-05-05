@@ -170,6 +170,49 @@ def test_naver_shopping_item_parse_drops_outer_result_when_specific_item_label_m
     assert product is None
 
 
+def test_naver_shopping_item_parse_keeps_intent_synonym_match_for_long_sleeve_top() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "네이비 긴팔 티셔츠",
+            "link": "https://smartstore.naver.com/demo/products/303",
+            "image": "https://shopping-phinf.pstatic.net/top.png",
+            "lprice": "29000",
+            "productId": "303",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "티셔츠",
+        },
+        category_hint="top",
+        query="남색 롱슬리브 티셔츠",
+    )
+
+    assert product is not None
+    assert product.category == "top"
+
+
+def test_naver_shopping_item_parse_drops_conflicting_sleeve_intent_for_top() -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    product = client._parse_item(
+        {
+            "title": "네이비 반팔 티셔츠",
+            "link": "https://smartstore.naver.com/demo/products/304",
+            "image": "https://shopping-phinf.pstatic.net/top-short.png",
+            "lprice": "29000",
+            "productId": "304",
+            "category1": "패션의류",
+            "category2": "여성의류",
+            "category3": "티셔츠",
+        },
+        category_hint="top",
+        query="남색 롱슬리브 티셔츠",
+    )
+
+    assert product is None
+
+
 def test_build_naver_query_uses_analysis_and_category() -> None:
     analysis = UploadAnalysis(
         checksum="abc",

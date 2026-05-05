@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from src.services.image_analysis import analyze_image_content, infer_color_from_text
+from src.services.recommendation_intent import extract_intent_keywords, matches_intent_keyword
 from src.services.store import ProductRecord, UploadAnalysis
 
 
@@ -38,6 +39,7 @@ CATEGORY_KEYWORDS = {
         "맨투맨",
         "후드",
         "후드티",
+        "롱슬리브",
         "민소매",
         "나시",
         "탱크탑",
@@ -463,11 +465,15 @@ def _matches_category_query(item: dict, title: str, category_hint: str, query: s
     if not any(keyword in haystack for keyword in CATEGORY_KEYWORDS.get(category_hint, ())):
         return False
 
+    semantic_keywords = extract_intent_keywords(query or "")
+    if semantic_keywords and not all(matches_intent_keyword(haystack, keyword) for keyword in semantic_keywords):
+        return False
+
     specific_keywords = _extract_specific_query_keywords(query or "", category_hint)
     if not specific_keywords:
         return True
 
-    return any(keyword in haystack for keyword in specific_keywords)
+    return any(matches_intent_keyword(haystack, keyword) for keyword in specific_keywords)
 
 
 def _extract_specific_query_keywords(query: str, category_hint: str) -> list[str]:
