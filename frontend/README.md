@@ -22,6 +22,18 @@ npm run local
 - 접속 주소: `http://127.0.0.1:3000`
 - 포함 동작: `build` 후 `start --hostname 127.0.0.1 --port 3000`
 
+## 페이지가 계속 안 열릴 때
+프론트와 백엔드를 따로 띄우는 대신, 저장소 루트에서 아래 스크립트를 쓰는 것을 권장합니다.
+
+```bash
+./scripts/start-local-stack.sh
+```
+
+- 상태 확인: `./scripts/status-local-stack.sh`
+- 중지: `./scripts/stop-local-stack.sh`
+- 로그 경로: `.local-runtime/backend.log`, `.local-runtime/frontend.log`
+- 이 경로는 백엔드 `8000`과 프론트 `3000`을 함께 맞춰 줍니다.
+
 ## 테스트
 ```bash
 cd frontend
