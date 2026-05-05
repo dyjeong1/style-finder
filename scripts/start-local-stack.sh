@@ -7,6 +7,8 @@ BACKEND_PID_FILE="$RUNTIME_DIR/backend.pid"
 FRONTEND_PID_FILE="$RUNTIME_DIR/frontend.pid"
 BACKEND_LOG_FILE="$RUNTIME_DIR/backend.log"
 FRONTEND_LOG_FILE="$RUNTIME_DIR/frontend.log"
+BACKEND_PORT="8000"
+FRONTEND_PORT="3000"
 
 mkdir -p "$RUNTIME_DIR"
 
@@ -21,20 +23,46 @@ read_pid() {
 
 ensure_pid_file_state() {
   local pid_file="$1"
+  local port="$2"
   local pid
   if ! pid="$(read_pid "$pid_file")"; then
+    pid="$(find_listen_pid "$port" || true)"
+    if [[ -n "$pid" ]]; then
+      printf '%s\n' "$pid" > "$pid_file"
+      return 0
+    fi
     rm -f "$pid_file"
     return 1
   fi
   if kill -0 "$pid" 2>/dev/null; then
     return 0
   fi
+  pid="$(find_listen_pid "$port" || true)"
+  if [[ -n "$pid" ]]; then
+    printf '%s\n' "$pid" > "$pid_file"
+    return 0
+  fi
   rm -f "$pid_file"
   return 1
 }
 
+find_listen_pid() {
+  local port="$1"
+  lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -n 1
+}
+
+record_listen_pid() {
+  local pid_file="$1"
+  local port="$2"
+  local pid
+  pid="$(find_listen_pid "$port" || true)"
+  [[ -n "$pid" ]] || return 1
+  printf '%s\n' "$pid" > "$pid_file"
+  return 0
+}
+
 start_backend() {
-  if ensure_pid_file_state "$BACKEND_PID_FILE"; then
+  if ensure_pid_file_state "$BACKEND_PID_FILE" "$BACKEND_PORT"; then
     echo "backend already running (pid $(read_pid "$BACKEND_PID_FILE"))"
     return 0
   fi
@@ -48,7 +76,7 @@ start_backend() {
 }
 
 start_frontend() {
-  if ensure_pid_file_state "$FRONTEND_PID_FILE"; then
+  if ensure_pid_file_state "$FRONTEND_PID_FILE" "$FRONTEND_PORT"; then
     echo "frontend already running (pid $(read_pid "$FRONTEND_PID_FILE"))"
     return 0
   fi
@@ -90,18 +118,20 @@ show_recent_log() {
 }
 
 start_backend
-if ! wait_for_url "http://127.0.0.1:8000/health" "backend" 30; then
+if ! wait_for_url "http://127.0.0.1:$BACKEND_PORT/health" "backend" 30; then
   show_recent_log "$BACKEND_LOG_FILE"
   exit 1
 fi
+record_listen_pid "$BACKEND_PID_FILE" "$BACKEND_PORT" || true
 
 start_frontend
-if ! wait_for_url "http://127.0.0.1:3000/upload" "frontend" 120; then
+if ! wait_for_url "http://127.0.0.1:$FRONTEND_PORT/upload" "frontend" 120; then
   show_recent_log "$FRONTEND_LOG_FILE"
   exit 1
 fi
+record_listen_pid "$FRONTEND_PID_FILE" "$FRONTEND_PORT" || true
 
 echo "local stack ready"
-echo "frontend: http://127.0.0.1:3000/upload"
-echo "backend:  http://127.0.0.1:8000/health"
+echo "frontend: http://127.0.0.1:$FRONTEND_PORT/upload"
+echo "backend:  http://127.0.0.1:$BACKEND_PORT/health"
 echo "logs: $BACKEND_LOG_FILE / $FRONTEND_LOG_FILE"
