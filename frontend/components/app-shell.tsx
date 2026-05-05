@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { listStoredUploadImages } from "@/lib/recent-upload-store";
 
 const navItems = [
   { href: "/upload", label: "업로드" },
@@ -12,7 +15,46 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [latestUploadedImageId, setLatestUploadedImageId] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncLatestUploadedImageId() {
+      const currentUploadedImageId =
+        typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("uploaded_image_id");
+
+      if (currentUploadedImageId) {
+        setLatestUploadedImageId(currentUploadedImageId);
+        return;
+      }
+
+      try {
+        const storedUploads = await listStoredUploadImages();
+        if (cancelled) {
+          return;
+        }
+
+        const recentUploadWithServerId = storedUploads.find((item) => typeof item.uploadedImageId === "string" && item.uploadedImageId.length > 0);
+        setLatestUploadedImageId(recentUploadWithServerId?.uploadedImageId ?? null);
+      } catch (storageError) {
+        console.warn("최근 업로드 기준 추천 링크를 복원하지 못했습니다.", storageError);
+        if (!cancelled) {
+          setLatestUploadedImageId(null);
+        }
+      }
+    }
+
+    void syncLatestUploadedImageId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  const recommendationHref = latestUploadedImageId
+    ? `/recommendations?uploaded_image_id=${encodeURIComponent(latestUploadedImageId)}`
+    : "/recommendations";
 
   return (
     <div className="app-background">
@@ -37,9 +79,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ul className="nav-list">
               {navItems.map((item, index) => {
                 const active = pathname === item.href;
+                const href = item.href === "/recommendations" ? recommendationHref : item.href;
                 return (
                   <li key={item.href} style={{ animationDelay: `${0.05 * (index + 1)}s` }} className="stagger">
-                    <Link href={item.href} className={active ? "nav-link active" : "nav-link"}>
+                    <Link href={href} className={active ? "nav-link active" : "nav-link"}>
                       {item.label}
                     </Link>
                   </li>

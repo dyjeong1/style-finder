@@ -241,6 +241,7 @@ export default function UploadPage() {
           id: historyRecordId,
           name: fileToUpload.name,
           type: fileToUpload.type || "image/jpeg",
+          uploadedImageId: uploaded.id,
         });
       } catch (storageError) {
         console.warn("최근 업로드 이미지 저장에 실패했습니다.", storageError);

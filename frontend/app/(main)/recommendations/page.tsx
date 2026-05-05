@@ -12,6 +12,7 @@ import {
   RecommendationItem,
   UploadAnalysis,
 } from "@/lib/api";
+import { getStoredUploadImageByUploadedImageId } from "@/lib/recent-upload-store";
 
 type SortOption = "similarity_desc" | "price_asc" | "price_desc";
 
@@ -172,6 +173,7 @@ function RecommendationPageContent() {
   const uploadedImageIdFromUrl = searchParams.get("uploaded_image_id") ?? readUploadedImageIdFromLocation();
   const lastResolvedUploadIdRef = useRef<string | null>(null);
   const latestRequestKeyRef = useRef(0);
+  const uploadedImagePreviewObjectUrlRef = useRef<string | null>(null);
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState<SortOption>("similarity_desc");
@@ -189,10 +191,25 @@ function RecommendationPageContent() {
   const [appliedCustomQuery, setAppliedCustomQuery] = useState("");
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [isUploadedImageModalOpen, setIsUploadedImageModalOpen] = useState(false);
-  const uploadedImagePreviewUrl = uploadedImageId ? getUploadedImageFileUrl(uploadedImageId) : buildUploadedImageFallback(null);
+  const [uploadedImagePreviewUrl, setUploadedImagePreviewUrl] = useState(() => buildUploadedImageFallback(null));
+
+  function revokeUploadedImagePreviewObjectUrl() {
+    if (!uploadedImagePreviewObjectUrlRef.current) {
+      return;
+    }
+
+    URL.revokeObjectURL(uploadedImagePreviewObjectUrlRef.current);
+    uploadedImagePreviewObjectUrlRef.current = null;
+  }
 
   useEffect(() => {
     document.title = "스타일매치 | 추천 상품";
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      revokeUploadedImagePreviewObjectUrl();
+    };
   }, []);
 
   useEffect(() => {
@@ -234,6 +251,45 @@ function RecommendationPageContent() {
     lastResolvedUploadIdRef.current = nextUploadedImageId;
     setUploadedImageId(nextUploadedImageId);
   }, [uploadedImageIdFromUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncUploadedImagePreview() {
+      revokeUploadedImagePreviewObjectUrl();
+
+      if (!uploadedImageId) {
+        setUploadedImagePreviewUrl(buildUploadedImageFallback(null));
+        return;
+      }
+
+      try {
+        const storedUpload = await getStoredUploadImageByUploadedImageId(uploadedImageId);
+        if (cancelled) {
+          return;
+        }
+
+        if (storedUpload) {
+          const objectUrl = URL.createObjectURL(storedUpload.blob);
+          uploadedImagePreviewObjectUrlRef.current = objectUrl;
+          setUploadedImagePreviewUrl(objectUrl);
+          return;
+        }
+      } catch (storageError) {
+        console.warn("추천 업로드 이미지 프리뷰를 브라우저 저장소에서 복원하지 못했습니다.", storageError);
+      }
+
+      if (!cancelled) {
+        setUploadedImagePreviewUrl(getUploadedImageFileUrl(uploadedImageId));
+      }
+    }
+
+    void syncUploadedImagePreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadedImageId]);
 
   async function loadSavedWishlistState() {
     setWishlistLoading(true);

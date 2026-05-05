@@ -22,18 +22,6 @@ npm run local
 - 접속 주소: `http://127.0.0.1:3000`
 - 포함 동작: `build` 후 `start --hostname 127.0.0.1 --port 3000`
 
-## 페이지가 계속 안 열릴 때
-프론트와 백엔드를 따로 띄우는 대신, 저장소 루트에서 아래 스크립트를 쓰는 것을 권장합니다.
-
-```bash
-./scripts/start-local-stack.sh
-```
-
-- 상태 확인: `./scripts/status-local-stack.sh`
-- 중지: `./scripts/stop-local-stack.sh`
-- 로그 경로: `.local-runtime/backend.log`, `.local-runtime/frontend.log`
-- 이 경로는 백엔드 `8000`과 프론트 `3000`을 함께 맞춰 줍니다.
-
 ## 테스트
 ```bash
 cd frontend
@@ -62,6 +50,7 @@ npm run test:e2e
 - `/wishlist`: `GET /wishlist` 조회 시 상품명/가격/쇼핑몰/카테고리/링크를 함께 노출하고 `DELETE /wishlist/{product_id}`로 찜 삭제
 - 업로드 후 추천 이동 시 `/recommendations?uploaded_image_id=...` 형태의 현재 업로드 ID만 URL로 전달합니다.
 - 추천 페이지는 `useSearchParams()` 값이 늦게 들어오는 경우에도 현재 브라우저 URL의 `uploaded_image_id`를 다시 읽어 업로드 기준 상태를 복구합니다.
+- 상단 `추천` 메뉴는 최근 업로드 저장소에 남아 있는 마지막 `uploaded_image_id`를 다시 붙여 현재 추천 기준이 사라지지 않게 유지합니다.
 - Playwright는 기본적으로 dev 서버를 띄우지만, production-start 회귀 확인이 필요하면 `npm run test:e2e:local`로 `npm run local` 기반 `next build + next start` 경로까지 검증할 수 있습니다.
 - 업로드 핵심 흐름과 `uploaded_image_id` 상태 동기화 회귀는 `@smoke` 태그로 묶여 있어 `npm run test:e2e:smoke`, `npm run test:e2e:local:smoke`로 빠르게 확인할 수 있습니다.
 
@@ -182,7 +171,8 @@ npm run test:e2e
 ## 현재 업로드 단일 세션화
 - 업로드 ID, 분석 결과, 업로드 히스토리를 브라우저 localStorage에 저장하지 않습니다.
 - 최근 업로드 이미지는 브라우저 `IndexedDB`에만 저장하고, 카드 클릭 시 새 `uploaded_image_id`로 다시 분석합니다.
-- 추천 페이지는 현재 URL의 `uploaded_image_id`와 추천 응답의 `analysis`만 기준으로 동작합니다.
+- 최근 업로드 저장소 레코드에는 최신 `uploaded_image_id`를 함께 저장해 추천 메뉴와 추천 프리뷰가 같은 업로드 기준을 다시 찾을 수 있게 합니다.
+- 추천 페이지는 현재 URL의 `uploaded_image_id`와 추천 응답의 `analysis`만 기준으로 추천을 다시 조회하고, 상단 프리뷰는 가능하면 브라우저 저장소의 실제 업로드 원본을 우선 사용합니다.
 - 새 이미지를 업로드하면 이전 업로드 분석 요약과 필터 상태를 즉시 초기화합니다.
 
 ## AI 우선 추천 기준 정리

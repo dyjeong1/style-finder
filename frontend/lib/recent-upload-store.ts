@@ -6,6 +6,7 @@ export type StoredUploadImageRecord = {
   type: string;
   sizeBytes: number;
   createdAt: string;
+  uploadedImageId?: string | null;
   blob: Blob;
 };
 
@@ -99,6 +100,7 @@ export async function saveStoredUploadImage(
     name: string;
     type: string;
     createdAt?: string;
+    uploadedImageId?: string | null;
   },
 ): Promise<string | null> {
   const nextRecordId = options.id ?? createRecordId();
@@ -111,6 +113,7 @@ export async function saveStoredUploadImage(
       type: options.type,
       sizeBytes: image.size,
       createdAt,
+      uploadedImageId: options.uploadedImageId ?? null,
       blob: image,
     };
 
@@ -135,6 +138,19 @@ export async function getStoredUploadImage(id: string): Promise<StoredUploadImag
   });
 
   return record ?? null;
+}
+
+export async function getStoredUploadImageByUploadedImageId(
+  uploadedImageId: string,
+): Promise<StoredUploadImageRecord | null> {
+  const matchingRecords = await withStore("readonly", async (store) => {
+    const storedRecords = (await wrapRequest(store.getAll())) as StoredUploadImageRecord[];
+    return storedRecords
+      .filter((record) => record.uploadedImageId === uploadedImageId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  });
+
+  return matchingRecords?.[0] ?? null;
 }
 
 export async function deleteStoredUploadImage(id: string): Promise<void> {

@@ -23,12 +23,6 @@
 - 업로드/추천/위시리스트 상단에는 중복 요약 배지보다 핵심 제목과 필터 조작에 집중합니다.
 
 ### 최근 주요 PLAN
-- `PLAN-20260505-로컬페이지지속실행보강`
-- 상세 문서: `PLAN/PLAN-20260505-로컬페이지지속실행보강/PLAN.md`
-- 기술 스펙: `PLAN/PLAN-20260505-로컬페이지지속실행보강/SPEC.md`
-- 상태: `done` (프론트 `3000`과 백엔드 `8000`을 한 번에 띄우는 로컬 실행 스택 정리 완료, 2026-05-05)
-  - 추가 메모: `scripts/start-local-stack.sh`, `scripts/status-local-stack.sh`, `scripts/stop-local-stack.sh`를 추가함
-  - 추가 메모: 로그와 PID는 `.local-runtime/` 아래에서 관리함
 - `PLAN-20260505-브랜드로고검색어반영`
 - 상세 문서: `PLAN/PLAN-20260505-브랜드로고검색어반영/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260505-브랜드로고검색어반영/SPEC.md`
@@ -71,6 +65,12 @@
 - 상태: `done` (추천 상단 업로드 썸네일을 클릭 가능한 확대 미리보기 모달로 연결함, 2026-05-05)
   - 추가 메모: 추천 상단 썸네일을 누르면 현재 추천 기준 업로드 이미지를 큰 정사각형 모달로 다시 확인할 수 있음
   - 추가 메모: 닫기 버튼, 배경 클릭, `Escape` 입력으로 확대 보기를 닫을 수 있음
+- `PLAN-20260505-추천업로드이미지프리뷰복원`
+- 상세 문서: `PLAN/PLAN-20260505-추천업로드이미지프리뷰복원/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260505-추천업로드이미지프리뷰복원/SPEC.md`
+- 상태: `done` (추천 메뉴 재진입 시 업로드 기준 유지와 업로드 원본 프리뷰 복원을 보강함, 2026-05-05)
+  - 추가 메모: 최근 업로드 브라우저 저장소에 최신 `uploaded_image_id` 매핑을 함께 저장해 추천 메뉴와 프리뷰가 같은 기준을 다시 읽을 수 있게 함
+  - 추가 메모: 추천 상단 썸네일과 확대 모달은 브라우저 저장소 원본을 우선 사용하고, 없을 때만 서버 파일 URL과 fallback 썸네일을 사용함
 - `PLAN-20260504-최근업로드이미지재사용복원`
 - 상세 문서: `PLAN/PLAN-20260504-최근업로드이미지재사용복원/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260504-최근업로드이미지재사용복원/SPEC.md`
@@ -237,11 +237,6 @@
      - `ollama serve`
      - `cd backend && cp .env.example .env`
 
-11. 페이지가 안 열릴 때 권장 복구:
-   - 한 번에 시작: `./scripts/start-local-stack.sh`
-   - 상태 확인: `./scripts/status-local-stack.sh`
-   - 중지: `./scripts/stop-local-stack.sh`
-   - 로그 경로: `.local-runtime/backend.log`, `.local-runtime/frontend.log`
      - `.env`에 `OLLAMA_VISION_ENABLED=true`, `OLLAMA_VISION_PROVIDER=ollama`, `OLLAMA_VISION_MODEL=gemma3:4b` 설정
      - `cd backend && PYTHONPATH=. python3 scripts/check_upload_analysis.py --image data/vision_dataset/images/codytest_2.jpg --provider ollama`
 11. 프론트 API 연동 확인:
