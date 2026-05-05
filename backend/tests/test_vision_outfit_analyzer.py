@@ -927,6 +927,18 @@ def test_settings_support_recommendation_scoring_overrides(monkeypatch) -> None:
     assert settings.recommendation_score_vision_similarity_weight == 0.31
 
 
+def test_settings_support_naver_shopping_query_tuning_overrides(monkeypatch) -> None:
+    monkeypatch.setenv("NAVER_SHOPPING_SORT", "date")
+    monkeypatch.setenv("NAVER_SHOPPING_FILTER", "naverpay")
+    monkeypatch.setenv("NAVER_SHOPPING_EXCLUDE", "used:rental:cbshop")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.naver_shopping_sort == "date"
+    assert settings.naver_shopping_filter == "naverpay"
+    assert settings.naver_shopping_exclude == "used:rental:cbshop"
+
+
 def test_runtime_config_prefers_provider_specific_timeout_when_provider_overridden(monkeypatch) -> None:
     monkeypatch.setenv("VISION_OUTFIT_ANALYZER_TIMEOUT_SECONDS", "20")
     monkeypatch.setenv("OLLAMA_VISION_TIMEOUT_SECONDS", "120")

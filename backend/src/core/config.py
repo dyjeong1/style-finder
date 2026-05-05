@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     naver_shopping_client_secret: Optional[str] = None
     naver_shopping_display: int = 30
     naver_shopping_timeout_seconds: float = 3.0
+    naver_shopping_sort: str = "sim"
+    naver_shopping_filter: Optional[str] = None
+    naver_shopping_exclude: str = "used:rental:cbshop"
     naver_shopping_analyze_product_images: bool = True
     naver_shopping_image_timeout_seconds: float = 1.0
     naver_shopping_max_image_bytes: int = 2_000_000

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import json
 from urllib.error import HTTPError
 
 import pytest
@@ -27,6 +28,20 @@ def test_naver_shopping_client_disabled_without_credentials() -> None:
     result = client.search(query="미니멀 상의", category="top", limit=3)
     assert result.products == []
     assert result.fallback_reason == "credentials_missing"
+
+
+def test_naver_shopping_config_normalizes_sort_filter_and_exclude() -> None:
+    config = NaverShoppingConfig(
+        client_id="id",
+        client_secret="secret",
+        sort="invalid",
+        filter="NAVERPAY",
+        exclude=" used : rental : cbshop ",
+    )
+
+    assert config.normalized_sort == "sim"
+    assert config.normalized_filter == "naverpay"
+    assert config.normalized_exclude == "used:rental:cbshop"
 
 
 def test_naver_shopping_client_reports_auth_failure(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -77,6 +92,59 @@ def test_naver_shopping_item_parse_strips_html_and_maps_fields() -> None:
     assert product.image_url.startswith("https://shopping-phinf.pstatic.net")
     assert product.price == 29000
     assert product.category == "top"
+
+
+def test_naver_shopping_client_sends_accuracy_related_query_parameters(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(
+        NaverShoppingConfig(
+            client_id="id",
+            client_secret="secret",
+            sort="date",
+            filter="naverpay",
+            exclude="used:rental:cbshop",
+            analyze_product_images=False,
+        )
+    )
+    captured: dict[str, object] = {}
+
+    class DummyResponse:
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "items": [
+                        {
+                            "title": "긴팔 티셔츠",
+                            "link": "https://smartstore.naver.com/demo/products/500",
+                            "image": "https://shopping-phinf.pstatic.net/item500.jpg",
+                            "lprice": "19000",
+                            "productId": "500",
+                            "category1": "패션의류",
+                            "category2": "여성의류",
+                            "category3": "티셔츠",
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    def fake_urlopen(request, timeout: float):
+        captured["url"] = request.full_url
+        captured["timeout"] = timeout
+        return DummyResponse()
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", fake_urlopen)
+
+    result = client.search(query="남색 롱슬리브 티셔츠", category="top", limit=5)
+
+    assert len(result.products) == 1
+    assert "sort=date" in str(captured["url"])
+    assert "filter=naverpay" in str(captured["url"])
+    assert "exclude=used%3Arental%3Acbshop" in str(captured["url"])
 
 
 def test_naver_shopping_item_parse_uses_product_image_analysis(monkeypatch: pytest.MonkeyPatch) -> None:

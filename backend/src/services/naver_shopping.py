@@ -24,6 +24,8 @@ CATEGORY_QUERIES = {
 }
 
 CATEGORY_ORDER = ("top", "bottom", "outer", "shoes", "bag", "accessory")
+ALLOWED_SORT_OPTIONS = {"sim", "date", "asc", "dsc"}
+ALLOWED_FILTER_OPTIONS = {"naverpay"}
 
 CATEGORY_KEYWORDS = {
     "top": (
@@ -198,6 +200,9 @@ class NaverShoppingConfig:
     client_secret: str | None
     display: int = 30
     timeout_seconds: float = 3.0
+    sort: str = "sim"
+    filter: str | None = None
+    exclude: str | None = "used:rental:cbshop"
     analyze_product_images: bool = False
     image_timeout_seconds: float = 1.0
     max_image_bytes: int = 2_000_000
@@ -206,6 +211,21 @@ class NaverShoppingConfig:
     @property
     def enabled(self) -> bool:
         return bool(self.client_id and self.client_secret)
+
+    @property
+    def normalized_sort(self) -> str:
+        normalized = (self.sort or "sim").strip().lower()
+        return normalized if normalized in ALLOWED_SORT_OPTIONS else "sim"
+
+    @property
+    def normalized_filter(self) -> str | None:
+        normalized = (self.filter or "").strip().lower()
+        return normalized if normalized in ALLOWED_FILTER_OPTIONS else None
+
+    @property
+    def normalized_exclude(self) -> str | None:
+        normalized = ":".join(part.strip().lower() for part in (self.exclude or "").split(":") if part.strip())
+        return normalized or None
 
 
 @dataclass(frozen=True)
@@ -287,9 +307,18 @@ class NaverShoppingClient:
             )
 
         display = max(1, min(limit, self.config.display, 100))
-        params = urlencode({"query": query, "display": display, "start": 1, "sort": "sim"})
+        params = {
+            "query": query,
+            "display": display,
+            "start": 1,
+            "sort": self.config.normalized_sort,
+        }
+        if self.config.normalized_filter:
+            params["filter"] = self.config.normalized_filter
+        if self.config.normalized_exclude:
+            params["exclude"] = self.config.normalized_exclude
         request = Request(
-            f"{self.api_url}?{params}",
+            f"{self.api_url}?{urlencode(params)}",
             headers={
                 "X-Naver-Client-Id": self.config.client_id or "",
                 "X-Naver-Client-Secret": self.config.client_secret or "",
