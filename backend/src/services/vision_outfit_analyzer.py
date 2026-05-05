@@ -66,7 +66,7 @@ OPENAI_SYSTEM_PROMPT = """당신은 패션 코디 이미지를 분석하는 한�
 출력 규칙:
 - color는 enum 안에서 가장 가까운 값 하나만 사용한다.
 - item_label은 한국어 세부 품목명으로 작성한다.
-- query는 가능하면 '색상 + 소재 + 품목명' 형태로 작성하고, 소재가 불명확할 때만 '색상 + 품목명' 형태를 사용한다.
+- query는 가능하면 '색상 + 패턴 + 소재 + 품목명' 순서를 우선 사용하고, 없는 정보만 생략한다.
 """
 GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
 
@@ -144,6 +144,7 @@ ITEM_LABEL_NORMALIZATION_RULES = {
     ),
 }
 ALL_KEYWORD_NORMALIZATION_LABELS = {
+    "스트라이프 니트 탑",
     "도트 미니 스커트",
     "플리츠 스커트",
     "레이스 스커트",
@@ -152,29 +153,39 @@ ALL_KEYWORD_NORMALIZATION_LABELS = {
     "와이드 팬츠",
 }
 QUERY_DESCRIPTOR_RULES = (
-    ("가죽", ("레더", "가죽", "라이더", "leather")),
-    ("스웨이드", ("스웨이드",)),
-    ("데님", ("데님", "청바지", "흑청")),
-    ("스트라이프", ("스트라이프",)),
-    ("도트", ("도트",)),
-    ("플리츠", ("플리츠",)),
-    ("레이스", ("레이스",)),
-    ("브이넥", ("브이넥",)),
-    ("골지", ("골지",)),
-    ("앙고라", ("앙고라",)),
-    ("크롭", ("크롭",)),
-    ("오버핏", ("오버핏",)),
-    ("와이드", ("와이드",)),
-    ("미니", ("미니",)),
-    ("플랫", ("플랫",)),
-    ("체인", ("체인",)),
+    ("material", "가죽", ("레더", "가죽", "라이더", "leather")),
+    ("material", "스웨이드", ("스웨이드", "suede")),
+    ("material", "데님", ("데님", "청바지", "흑청", "denim")),
+    ("material", "실크", ("실크", "silk")),
+    ("material", "새틴", ("새틴", "사틴", "satin")),
+    ("material", "린넨", ("린넨", "linen")),
+    ("material", "코튼", ("코튼", "cotton")),
+    ("material", "울", ("울", "울혼방", "wool")),
+    ("material", "니트", ("니트", "knit")),
+    ("pattern", "스트라이프", ("스트라이프", "stripe", "striped")),
+    ("pattern", "도트", ("도트", "dot", "dots", "polka")),
+    ("pattern", "플리츠", ("플리츠", "pleats", "pleated")),
+    ("pattern", "레이스", ("레이스", "lace", "lacy")),
+    ("pattern", "체크", ("체크", "check", "checked", "plaid", "타탄")),
+    ("pattern", "플라워", ("플라워", "플로럴", "floral", "꽃무늬")),
+    ("pattern", "퀼팅", ("퀼팅", "퀼티드", "quilted")),
+    ("pattern", "민무늬", ("민무늬", "무지", "솔리드", "solid", "plain")),
+    ("detail", "브이넥", ("브이넥", "v넥", "v-neck")),
+    ("detail", "골지", ("골지", "ribbed")),
+    ("detail", "앙고라", ("앙고라", "angora")),
+    ("detail", "크롭", ("크롭", "crop", "cropped")),
+    ("detail", "오버핏", ("오버핏", "overfit", "oversized")),
+    ("detail", "와이드", ("와이드", "wide")),
+    ("detail", "미니", ("미니", "mini")),
+    ("detail", "플랫", ("플랫", "flat")),
+    ("detail", "체인", ("체인", "chain")),
 )
 QUERY_DESCRIPTOR_ORDER = {
-    "top": ("오버핏", "크롭", "스트라이프", "브이넥", "골지", "앙고라"),
-    "outer": ("가죽", "스웨이드", "오버핏", "크롭"),
-    "bottom": ("도트", "플리츠", "레이스", "와이드", "미니"),
-    "shoes": ("가죽", "스웨이드", "플랫"),
-    "bag": ("가죽", "스웨이드", "체인", "미니"),
+    "top": ("스트라이프", "체크", "플라워", "민무늬", "실크", "새틴", "니트", "코튼", "린넨", "앙고라", "브이넥", "골지", "크롭", "오버핏"),
+    "outer": ("스트라이프", "체크", "민무늬", "가죽", "스웨이드", "울", "데님", "니트", "크롭", "오버핏"),
+    "bottom": ("도트", "플리츠", "레이스", "체크", "플라워", "민무늬", "데님", "실크", "새틴", "린넨", "와이드", "미니"),
+    "shoes": ("스트라이프", "체크", "민무늬", "가죽", "스웨이드", "니트", "플랫"),
+    "bag": ("체크", "스트라이프", "퀼팅", "민무늬", "가죽", "스웨이드", "데님", "실크", "체인", "미니"),
     "accessory": ("메탈", "뿔테", "무테", "진주", "링", "드롭", "체인"),
 }
 SUPPORTED_ACCESSORY_FAMILIES = {"안경", "목걸이", "귀걸이", "팔찌", "반지", "머플러", "모자", "머리끈", "양말", "벨트"}
@@ -716,7 +727,7 @@ def _extract_query_descriptors(category: str, item_label: str, query_hint: str) 
     item_family = _item_family(item_label)
 
     detected: list[str] = []
-    for normalized_keyword, aliases in QUERY_DESCRIPTOR_RULES:
+    for _descriptor_type, normalized_keyword, aliases in QUERY_DESCRIPTOR_RULES:
         if category == "accessory" and item_family in {"목걸이", "귀걸이", "팔찌", "반지"}:
             if normalized_keyword == "체인":
                 continue

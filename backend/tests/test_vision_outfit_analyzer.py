@@ -946,6 +946,9 @@ def test_guess_mime_type_and_query_builder_cover_common_defaults() -> None:
     assert build_item_query(category="shoes", color="gray", item_label="스니커즈") == "그레이 스니커즈"
     assert build_item_query(category="shoes", color="black", item_label="부츠", query_hint="블랙 가죽 부츠") == "블랙 가죽 부츠"
     assert build_item_query(category="bag", color="brown", item_label="숄더백", query_hint="브라운 스웨이드 숄더백") == "브라운 스웨이드 숄더백"
+    assert build_item_query(category="top", color="brown", item_label="셔츠", query_hint="브라운 스트라이프 실크 셔츠") == "브라운 스트라이프 실크 셔츠"
+    assert build_item_query(category="top", color="white", item_label="블라우스", query_hint="화이트 무지 실크 블라우스") == "화이트 민무늬 실크 블라우스"
+    assert build_item_query(category="bag", color="brown", item_label="숄더백", query_hint="브라운 체크 가죽 숄더백") == "브라운 체크 가죽 숄더백"
     assert build_item_query(category="accessory", color="gray", item_label="목걸이") == "실버 목걸이"
     assert build_item_query(category="accessory", color="black", item_label="안경", query_hint="블랙 메탈 안경테") == "블랙 메탈 안경"
     assert build_item_query(category="accessory", color="white", item_label="귀걸이", query_hint="화이트 진주 귀걸이") == "화이트 진주 귀걸이"
@@ -993,6 +996,41 @@ def test_model_output_normalizes_denim_and_stripe_labels() -> None:
         ("bottom", "navy", "와이드 데님 팬츠", "네이비 와이드 데님 팬츠"),
         ("bottom", "blue", "와이드 데님 팬츠", "블루 와이드 데님 팬츠"),
         ("bottom", "black", "미니 스커트", "블랙 도트 미니 스커트"),
+    ]
+
+
+def test_model_output_preserves_pattern_and_material_descriptor_order() -> None:
+    analyzer = VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig(enabled=True, provider="mock"))
+
+    items = analyzer.coerce_detected_items(
+        {
+            "items": [
+                {
+                    "category": "top",
+                    "color": "brown",
+                    "item_label": "실크 블라우스",
+                    "query": "브라운 스트라이프 실크 블라우스",
+                },
+                {
+                    "category": "bag",
+                    "color": "brown",
+                    "item_label": "가방",
+                    "query": "브라운 체크 가죽 가방",
+                },
+                {
+                    "category": "top",
+                    "color": "white",
+                    "item_label": "블라우스",
+                    "query": "화이트 무지 실크 블라우스",
+                },
+            ]
+        }
+    )
+
+    assert [(item.category, item.color, item.item_label, item.query) for item in items] == [
+        ("top", "brown", "블라우스", "브라운 스트라이프 실크 블라우스"),
+        ("bag", "brown", "가방", "브라운 체크 가죽 가방"),
+        ("top", "white", "블라우스", "화이트 민무늬 실크 블라우스"),
     ]
 
 
