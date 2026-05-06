@@ -769,18 +769,16 @@ function RecommendationPageContent() {
         <div
           className="image-preview-modal-backdrop"
           role="dialog"
-          aria-modal="true"
           aria-label="추천 기준 업로드 이미지 확대 보기"
-          onClick={() => setIsUploadedImageModalOpen(false)}
         >
-          <div className="image-preview-modal-sheet" onClick={(event) => event.stopPropagation()}>
+          <div className="image-preview-modal-sheet">
             <button
               type="button"
               className="image-preview-modal-close"
               aria-label="업로드 이미지 확대 보기 닫기"
               onClick={() => setIsUploadedImageModalOpen(false)}
             >
-              닫기
+              <span aria-hidden="true">×</span>
             </button>
             <div className="image-preview-modal-frame">
               <img

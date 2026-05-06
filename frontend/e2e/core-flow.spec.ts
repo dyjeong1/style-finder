@@ -460,6 +460,11 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page.getByText("AI 분석 기준")).toBeVisible();
   await expect(page.getByRole("button", { name: "현재 추천 기준 업로드 이미지 크게 보기" })).toHaveCount(1);
   await expect(page.locator(".uploaded-image-preview")).toBeVisible();
+  await page.getByRole("button", { name: "현재 추천 기준 업로드 이미지 크게 보기" }).dispatchEvent("click");
+  await expect(page.getByRole("dialog", { name: "추천 기준 업로드 이미지 확대 보기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "업로드 이미지 확대 보기 닫기" })).toBeVisible();
+  await page.getByRole("button", { name: "업로드 이미지 확대 보기 닫기" }).click();
+  await expect(page.getByRole("dialog", { name: "추천 기준 업로드 이미지 확대 보기" })).toHaveCount(0);
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
   await expect(page.getByText("톤과 색상은 업로드 이미지의 대표 색상에서, 무드와 실루엣은 감지된 품목 조합에서 계산합니다.")).toBeVisible();
   await expect(page.getByText(/^검색어:/)).toHaveCount(0);
