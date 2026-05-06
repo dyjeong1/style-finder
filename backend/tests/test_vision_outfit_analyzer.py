@@ -131,7 +131,7 @@ def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path)
     assert record.analysis.fallback_reason == "vision_disabled"
 
 
-def test_store_prefers_mock_vision_items_without_rule_fill(tmp_path) -> None:
+def test_store_keeps_mock_vision_items_and_only_supplements_missing_bag(tmp_path) -> None:
     mock_items = (
         DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
         DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
@@ -153,9 +153,10 @@ def test_store_prefers_mock_vision_items_without_rule_fill(tmp_path) -> None:
     )
 
     assert record.analysis.category_query_hints["top"] == "블루 가디건"
+    assert record.analysis.category_query_hints["bag"] == "아이보리 숄더백"
     assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
     assert "bottom" not in record.analysis.category_query_hints
-    assert [item.query for item in record.analysis.detected_items] == ["블루 가디건", "블랙 안경"]
+    assert [item.query for item in record.analysis.detected_items] == ["블루 가디건", "아이보리 숄더백", "블랙 안경"]
 
 
 def test_store_keeps_all_detected_items_but_uses_first_query_hint_per_category(tmp_path) -> None:
@@ -406,6 +407,27 @@ def test_resolve_detected_items_prefers_vision_and_applies_correction_without_ru
 
     assert [(item.category, item.query) for item in detected_items] == [
         ("top", "화이트 슬리브리스 탑"),
+    ]
+    assert analysis_source == "vision"
+    assert fallback_reason is None
+
+
+def test_resolve_detected_items_supplements_missing_bag_from_rule_signal() -> None:
+    detected_items, analysis_source, fallback_reason = resolve_detected_items(
+        b"fixture",
+        vision_predictor=lambda _content: [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bottom", color="black", item_label="슬랙스", query="블랙 슬랙스"),
+        ],
+        rule_predictor=lambda _content: [
+            DetectedOutfitItem(category="bag", color="brown", item_label="숄더백", query="브라운 숄더백"),
+        ],
+    )
+
+    assert [(item.category, item.query) for item in detected_items] == [
+        ("top", "화이트 셔츠"),
+        ("bottom", "블랙 슬랙스"),
+        ("bag", "브라운 숄더백"),
     ]
     assert analysis_source == "vision"
     assert fallback_reason is None

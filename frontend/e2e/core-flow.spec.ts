@@ -461,7 +461,8 @@ test("@smoke 업로드부터 추천, 찜 추가/삭제까지 핵심 흐름이 �
   await expect(page.getByRole("button", { name: "현재 추천 기준 업로드 이미지 크게 보기" })).toHaveCount(1);
   await expect(page.locator(".uploaded-image-preview")).toBeVisible();
   await expect(page.getByText("오버핏 스트라이프 셔츠")).toBeVisible();
-  await expect(page.getByText("검색어: 쿨톤 스트라이프 셔츠")).toBeVisible();
+  await expect(page.getByText("톤과 색상은 업로드 이미지의 대표 색상에서, 무드와 실루엣은 감지된 품목 조합에서 계산합니다.")).toBeVisible();
+  await expect(page.getByText(/^검색어:/)).toHaveCount(0);
   const storedUploadState = await page.evaluate(() => ({
     uploadedImageId: window.localStorage.getItem("stylematch_uploaded_image_id"),
     uploadedImageAnalysis: window.localStorage.getItem("stylematch_uploaded_image_analysis"),
@@ -650,7 +651,7 @@ test("@smoke 추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어
 
   await page.goto("/recommendations?uploaded_image_id=upload-sync-a");
   await expect(page.getByText("네이비 가디건 크롭 가디건")).toBeVisible();
-  await expect(page.getByText("검색어: 네이비 가디건")).toBeVisible();
+  await expect(page.getByText(/^검색어:/)).toHaveCount(0);
   await expect(page.getByText("감지 품목: 네이비 가디건")).toBeVisible();
 
   await page.locator("#recommendation-category").selectOption("top");
@@ -661,15 +662,14 @@ test("@smoke 추천 페이지는 uploaded_image_id가 바뀌면 이전 검색어
   await page.getByRole("button", { name: "검색어 적용" }).click();
 
   await expect(page.getByText("현재 직접 입력 검색어: 블랙 로퍼")).toBeVisible();
-  await expect(page.getByText("검색어: 블랙 로퍼 (직접 입력 적용)")).toBeVisible();
+  await expect(page.getByText(/^검색어:/)).toHaveCount(0);
 
   await page.goto("/recommendations?uploaded_image_id=upload-sync-b");
   await expect(page.getByText("화이트 셔츠 레이어드 세트")).toBeVisible();
-  await expect(page.getByText("검색어: 화이트 셔츠")).toBeVisible();
+  await expect(page.getByText(/^검색어:/)).toHaveCount(0);
   await expect(page.getByText("감지 품목: 화이트 셔츠 / 블랙 슬랙스")).toBeVisible();
   await expect(page.getByText("네이비 가디건 크롭 가디건")).toHaveCount(0);
   await expect(page.getByText("현재 직접 입력 검색어: 블랙 로퍼")).toHaveCount(0);
-  await expect(page.getByText("검색어: 블랙 로퍼 (직접 입력 적용)")).toHaveCount(0);
   await expect(page.getByText("감지 품목: 네이비 가디건")).toHaveCount(0);
   await expect(page.locator("#recommendation-category")).toHaveValue("");
   await expect(page.locator("#recommendation-sort")).toHaveValue("similarity_desc");
@@ -746,5 +746,5 @@ test("느린 이전 추천 응답이 새 uploaded_image_id 결과를 덮지 않�
   await expect(page.getByText("버건디 가디건 재킷")).toBeVisible();
   await expect(page.getByText("민트 니트 베스트")).toHaveCount(0);
   await expect(page.getByText("감지 품목: 민트 니트 베스트")).toHaveCount(0);
-  await expect(page.getByText("검색어: 버건디 가디건 자켓")).toBeVisible();
+  await expect(page.getByText(/^검색어:/)).toHaveCount(0);
 });

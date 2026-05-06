@@ -100,6 +100,14 @@ function getAnalysisSourceDescription(analysis: UploadAnalysis | null): string |
   return "현재 업로드의 AI 감지 품목 기준으로 추천을 만들고 있습니다.";
 }
 
+function getAnalysisDerivationDescription(analysis: UploadAnalysis | null): string | null {
+  if (!analysis) {
+    return null;
+  }
+
+  return "톤과 색상은 업로드 이미지의 대표 색상에서, 무드와 실루엣은 감지된 품목 조합에서 계산합니다.";
+}
+
 function getPreferredCategorySummary(analysis: UploadAnalysis): string {
   if (analysis.preferred_categories.length === 0) {
     return "없음";
@@ -534,7 +542,6 @@ function RecommendationPageContent() {
         </div>
       </div>
 
-      {searchQuery ? <p className="hint-text">검색어: {searchQuery}{appliedCustomQuery ? " (직접 입력 적용)" : ""}</p> : null}
       {fallbackMessage ? (
         <p className="warning-text" role="status">
           {fallbackMessage}
@@ -667,6 +674,9 @@ function RecommendationPageContent() {
           </div>
           {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
             <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
+          ) : null}
+          {getAnalysisDerivationDescription(uploadedImageAnalysis) ? (
+            <p className="hint-text">{getAnalysisDerivationDescription(uploadedImageAnalysis)}</p>
           ) : null}
           <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
           {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
