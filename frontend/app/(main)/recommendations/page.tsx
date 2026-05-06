@@ -100,14 +100,6 @@ function getAnalysisSourceDescription(analysis: UploadAnalysis | null): string |
   return "현재 업로드의 AI 감지 품목 기준으로 추천을 만들고 있습니다.";
 }
 
-function getAnalysisDerivationDescription(analysis: UploadAnalysis | null): string | null {
-  if (!analysis) {
-    return null;
-  }
-
-  return "톤과 색상은 업로드 이미지의 대표 색상에서, 무드와 실루엣은 감지된 품목 조합에서 계산합니다.";
-}
-
 function getPreferredCategorySummary(analysis: UploadAnalysis): string {
   if (analysis.preferred_categories.length === 0) {
     return "없음";
@@ -666,17 +658,8 @@ function RecommendationPageContent() {
             <h2>업로드 분석</h2>
             <span className="metric-chip">{getAnalysisSourceLabel(uploadedImageAnalysis)}</span>
           </div>
-          <div className="analysis-chip-row">
-            <span className="analysis-chip">톤 {uploadedImageAnalysis.dominant_tone}</span>
-            {uploadedImageAnalysis.dominant_color ? <span className="analysis-chip">색상 {uploadedImageAnalysis.dominant_color}</span> : null}
-            <span className="analysis-chip">무드 {uploadedImageAnalysis.style_mood}</span>
-            <span className="analysis-chip">실루엣 {uploadedImageAnalysis.silhouette}</span>
-          </div>
           {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
             <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
-          ) : null}
-          {getAnalysisDerivationDescription(uploadedImageAnalysis) ? (
-            <p className="hint-text">{getAnalysisDerivationDescription(uploadedImageAnalysis)}</p>
           ) : null}
           <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
           {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
