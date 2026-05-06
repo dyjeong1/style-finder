@@ -77,29 +77,6 @@ function getTopMatchLabel(items: RecommendationItem[]): string {
   return Number.isFinite(topScore) ? formatSimilarity(topScore) : "0%";
 }
 
-function getAnalysisSourceLabel(analysis: UploadAnalysis | null): string {
-  if (analysis?.analysis_source === "rule_fallback") {
-    return "fallback 분석 기준";
-  }
-
-  return "AI 분석 기준";
-}
-
-function getAnalysisSourceDescription(analysis: UploadAnalysis | null): string | null {
-  if (!analysis) {
-    return null;
-  }
-
-  if (analysis.analysis_source === "rule_fallback") {
-    if (analysis.fallback_reason) {
-      return `AI 분석 경로를 사용할 수 없어 규칙 fallback 으로 추천을 이어가고 있습니다. (${analysis.fallback_reason})`;
-    }
-    return "AI 분석 경로를 사용할 수 없어 규칙 fallback 으로 추천을 이어가고 있습니다.";
-  }
-
-  return "현재 업로드의 AI 감지 품목 기준으로 추천을 만들고 있습니다.";
-}
-
 function getPreferredCategorySummary(analysis: UploadAnalysis): string {
   if (analysis.preferred_categories.length === 0) {
     return "없음";
@@ -656,17 +633,10 @@ function RecommendationPageContent() {
         <section className="analysis-panel compact-analysis" aria-label="업로드 이미지 분석 요약">
           <div className="panel-title-row">
             <h2>업로드 분석</h2>
-            <span className="metric-chip">{getAnalysisSourceLabel(uploadedImageAnalysis)}</span>
           </div>
-          {getAnalysisSourceDescription(uploadedImageAnalysis) ? (
-            <p className="hint-text">{getAnalysisSourceDescription(uploadedImageAnalysis)}</p>
-          ) : null}
           <p className="hint-text">감지 카테고리: {getPreferredCategorySummary(uploadedImageAnalysis)}</p>
           {uploadedImageAnalysis.detected_items && uploadedImageAnalysis.detected_items.length > 0 ? (
             <p className="hint-text">감지 품목: {uploadedImageAnalysis.detected_items.map((item) => item.query).join(" / ")}</p>
-          ) : null}
-          {uploadedImageAnalysis.category_query_hints ? (
-            <p className="hint-text">검색 힌트: {Object.values(uploadedImageAnalysis.category_query_hints).join(" / ")}</p>
           ) : null}
         </section>
       ) : null}
