@@ -112,6 +112,8 @@ ITEM_LABEL_BONUS_EXCLUDED_LABELS = {
     "악세서리",
 }
 
+RECOMMENDATION_CATEGORY_ORDER = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+
 
 def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
     return {
@@ -552,7 +554,15 @@ class InMemoryStore:
         for rank, item in enumerate(scored, start=1):
             item["rank"] = rank
 
-        return scored[:limit]
+        if category:
+            return scored[:limit]
+
+        guaranteed_categories = _resolve_recommendation_category_targets(upload.analysis)
+        return _limit_recommendations_with_category_coverage(
+            scored=scored,
+            limit=limit,
+            guaranteed_categories=guaranteed_categories,
+        )
 
     def _build_target_intent_keywords(self, category_query: str, target_item_label: str) -> list[str]:
         return dedupe_keywords(extract_intent_keywords(category_query) + extract_intent_keywords(target_item_label))
@@ -749,9 +759,58 @@ def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[Detecte
     return first_items
 
 
+def _resolve_recommendation_category_targets(analysis: UploadAnalysis) -> tuple[str, ...]:
+    if analysis.category_query_hints:
+        categories = tuple(analysis.category_query_hints.keys())
+    else:
+        categories = analysis.preferred_categories
+
+    return tuple(category for category in RECOMMENDATION_CATEGORY_ORDER if category in categories)
+
+
+def _limit_recommendations_with_category_coverage(
+    scored: list[dict],
+    limit: int,
+    guaranteed_categories: tuple[str, ...],
+) -> list[dict]:
+    if len(scored) <= limit or not guaranteed_categories:
+        return scored[:limit]
+
+    guaranteed_items: list[dict] = []
+    guaranteed_ids: set[str] = set()
+    for category in guaranteed_categories:
+        match = next(
+            (
+                item
+                for item in scored
+                if item["category"] == category and item["product_id"] not in guaranteed_ids
+            ),
+            None,
+        )
+        if match is None:
+            continue
+        guaranteed_items.append(match)
+        guaranteed_ids.add(match["product_id"])
+
+    if not guaranteed_items:
+        return scored[:limit]
+
+    filler_slots = max(0, limit - len(guaranteed_items))
+    filler_items: list[dict] = []
+    for item in scored:
+        if item["product_id"] in guaranteed_ids:
+            continue
+        filler_items.append(item)
+        if len(filler_items) >= filler_slots:
+            break
+
+    selected_items = guaranteed_items + filler_items
+    selected_items.sort(key=lambda item: item["rank"])
+    return selected_items[:limit]
+
+
 def _sort_detected_items_for_display(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> list[DetectedOutfitItem]:
-    ordered_categories = ("top", "outer", "bottom", "shoes", "bag", "accessory")
-    order_map = {category: index for index, category in enumerate(ordered_categories)}
+    order_map = {category: index for index, category in enumerate(RECOMMENDATION_CATEGORY_ORDER)}
     accessory_priority = {
         "안경": 0,
         "목걸이": 1,

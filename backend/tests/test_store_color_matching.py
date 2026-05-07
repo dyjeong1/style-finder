@@ -9,6 +9,7 @@ from src.services.store import InMemoryStore, ProductRecord, RecommendationScori
 def make_product(
     product_id: str,
     product_name: str,
+    category: str = "shoes",
     feature_vector: tuple[float, ...] = (0.9, 0.9, 0.9, 0.9),
     dominant_color: str = "unknown",
 ) -> ProductRecord:
@@ -16,7 +17,7 @@ def make_product(
         id=product_id,
         source="naver",
         product_name=product_name,
-        category="shoes",
+        category=category,
         price=39000,
         product_url=f"https://example.com/{product_id}",
         image_url=f"https://example.com/{product_id}.jpg",
@@ -366,3 +367,45 @@ def test_registered_products_do_not_leak_into_default_recommendation_fallback(tm
     )
 
     assert all(item["product_id"] != "naver-top-999" for item in items)
+
+
+def test_detected_accessory_category_survives_overall_limit(tmp_path: Path) -> None:
+    store = InMemoryStore(wishlist_store_path=tmp_path / "wishlist.json")
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+    upload.analysis.preferred_categories = ("top", "bottom", "accessory")
+    upload.analysis.category_query_hints = {
+        "top": "그레이 니트 탑",
+        "bottom": "화이트 미니 스커트",
+        "accessory": "그레이 악세서리",
+    }
+    upload.analysis.detected_items = (
+        DetectedOutfitItem(category="top", color="gray", item_label="니트 탑", query="그레이 니트 탑"),
+        DetectedOutfitItem(category="bottom", color="white", item_label="미니 스커트", query="화이트 미니 스커트"),
+        DetectedOutfitItem(category="accessory", color="gray", item_label="악세서리", query="그레이 악세서리"),
+    )
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category=None,
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=3,
+        candidate_products=[
+            make_product("top-1", "그레이 니트 탑", category="top", feature_vector=(0.9, 0.9, 0.9, 0.9)),
+            make_product("bottom-1", "화이트 미니 스커트", category="bottom", feature_vector=(0.89, 0.89, 0.89, 0.89)),
+            make_product("outer-1", "네이비 가디건", category="outer", feature_vector=(0.88, 0.88, 0.88, 0.88)),
+            make_product("accessory-1", "그레이 헤어핀", category="accessory", feature_vector=(0.1, 0.1, 0.1, 0.1)),
+        ],
+    )
+
+    assert [item["product_id"] for item in items] == ["top-1", "bottom-1", "accessory-1"]
+    assert [item["category"] for item in items] == ["top", "bottom", "accessory"]
+    assert all(item["product_id"] != "outer-1" for item in items)
