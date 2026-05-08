@@ -10,7 +10,6 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from src.services.image_analysis import analyze_image_content, infer_color_from_text
-from src.services.recommendation_intent import extract_intent_keywords, matches_intent_keyword
 from src.services.store import ProductRecord, UploadAnalysis
 
 
@@ -491,50 +490,7 @@ def _matches_category_query(item: dict, title: str, category_hint: str, query: s
         for key in ("category1", "category2", "category3", "category4")
     ) + f" {title}"
 
-    if not any(keyword in haystack for keyword in CATEGORY_KEYWORDS.get(category_hint, ())):
-        return False
-
-    semantic_keywords = extract_intent_keywords(query or "")
-    if semantic_keywords and not all(matches_intent_keyword(haystack, keyword) for keyword in semantic_keywords):
-        return False
-
-    specific_keywords = _extract_specific_query_keywords(query or "", category_hint)
-    if not specific_keywords:
-        return True
-
-    return any(matches_intent_keyword(haystack, keyword) for keyword in specific_keywords)
-
-
-def _extract_specific_query_keywords(query: str, category_hint: str) -> list[str]:
-    normalized_query = " ".join(query.split())
-    if not normalized_query:
-        return []
-
-    generic_keywords = {
-        CATEGORY_QUERIES.get(category_hint, ""),
-        "패션",
-        "의류",
-        "신발",
-        "가방",
-        "악세서리",
-        "악세서리",
-        "상의",
-        "하의",
-        "아우터",
-    }
-    color_keywords = {label for label in COLOR_QUERIES.values()}
-    tone_keywords = {label for label in TONE_QUERIES.values()}
-    mood_keywords = {label for label in MOOD_QUERIES.values()}
-
-    return [
-        keyword
-        for keyword in CATEGORY_KEYWORDS.get(category_hint, ())
-        if keyword in normalized_query
-        and keyword not in generic_keywords
-        and keyword not in color_keywords
-        and keyword not in tone_keywords
-        and keyword not in mood_keywords
-    ]
+    return any(keyword in haystack for keyword in CATEGORY_KEYWORDS.get(category_hint, ()))
 
 
 def _fallback_image_url(title: str) -> str:

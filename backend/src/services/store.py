@@ -24,7 +24,6 @@ from src.services.vision_outfit_analyzer import (
     VisionAnalyzerUnavailableError,
     VisionOutfitAnalyzer,
     VisionOutfitAnalyzerConfig,
-    merge_detected_items,
 )
 
 
@@ -154,7 +153,6 @@ def resolve_detected_items(
         detected_items = tuple(_sort_detected_items_for_display(tuple(rule_predictor(content))))
         return detected_items, "rule_fallback", fallback_reason
 
-    rule_detected_items: list[DetectedOutfitItem] = []
     detected_items = tuple(vision_detected_items)
     analysis_source = "vision"
 
@@ -176,12 +174,6 @@ def resolve_detected_items(
                         categories=correction_categories,
                     )
                 )
-
-    if detected_items and not any(item.category == "bag" for item in detected_items):
-        rule_detected_items = rule_predictor(content)
-        bag_items = [item for item in rule_detected_items if item.category == "bag"]
-        if bag_items:
-            detected_items = tuple(merge_detected_items(list(detected_items), [bag_items[0]]))
 
     return tuple(_sort_detected_items_for_display(detected_items)), analysis_source, None
 

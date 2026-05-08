@@ -217,7 +217,7 @@ def test_naver_shopping_item_parse_drops_irrelevant_category_hint_result() -> No
     assert product is None
 
 
-def test_naver_shopping_item_parse_drops_outer_result_when_specific_item_label_mismatches() -> None:
+def test_naver_shopping_item_parse_keeps_outer_result_even_when_specific_item_label_differs() -> None:
     client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
 
     product = client._parse_item(
@@ -235,7 +235,8 @@ def test_naver_shopping_item_parse_drops_outer_result_when_specific_item_label_m
         query="그레이 가디건",
     )
 
-    assert product is None
+    assert product is not None
+    assert product.category == "outer"
 
 
 def test_naver_shopping_item_parse_keeps_intent_synonym_match_for_long_sleeve_top() -> None:
@@ -260,7 +261,7 @@ def test_naver_shopping_item_parse_keeps_intent_synonym_match_for_long_sleeve_to
     assert product.category == "top"
 
 
-def test_naver_shopping_item_parse_drops_conflicting_sleeve_intent_for_top() -> None:
+def test_naver_shopping_item_parse_keeps_top_result_even_when_sleeve_intent_differs() -> None:
     client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
 
     product = client._parse_item(
@@ -278,7 +279,8 @@ def test_naver_shopping_item_parse_drops_conflicting_sleeve_intent_for_top() -> 
         query="남색 롱슬리브 티셔츠",
     )
 
-    assert product is None
+    assert product is not None
+    assert product.category == "top"
 
 
 def test_build_naver_query_uses_analysis_and_category() -> None:
@@ -294,6 +296,21 @@ def test_build_naver_query_uses_analysis_and_category() -> None:
 
     assert build_naver_query(analysis, "bag") == "블랙 쿨톤 미니멀 가방"
     assert build_naver_query(analysis, None) == "블랙 쿨톤 미니멀 아우터"
+
+
+def test_build_naver_query_prefers_ai_category_query_hint_as_is() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="cool",
+        style_mood="minimal",
+        silhouette="relaxed",
+        preferred_categories=("shoes",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="black",
+        category_query_hints={"shoes": "브라운 메리제인 슈즈"},
+    )
+
+    assert build_naver_query(analysis, "shoes") == "브라운 메리제인 슈즈"
 
 
 def test_build_naver_category_queries_covers_all_recommendation_categories() -> None:
