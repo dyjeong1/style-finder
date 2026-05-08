@@ -8,6 +8,7 @@ updated_at: 2026-05-08
 related:
   tasks:
     - TSK-0001-AI검색직결및필터완화
+    - TSK-0002-규칙분석fallback전용정리
 tags:
   - backend
   - recommendations
@@ -30,6 +31,7 @@ tags:
 - 포함 범위:
   - AI 성공 시 규칙 기반 `bag` 보강 제거
   - 네이버 후보 relevance 필터 완화
+  - 사용하지 않는 fallback 병합 코드 제거
   - 백엔드 테스트/문서 정리
 - 제외 범위:
   - AI provider 실패 시 최후 fallback 정책 변경
@@ -55,8 +57,10 @@ tags:
 ## 6. 검증/수용 기준(DoD)
 - [x] AI 성공 시 규칙 기반 `bag` 보강이 더 이상 실행되지 않는다.
 - [x] 네이버 후보는 카테고리만 맞으면 세부 품목 mismatch 만으로 제거되지 않는다.
+- [x] 규칙 분석과 엮여 있던 dead code 가 제거된다.
 - [x] 관련 백엔드 테스트와 문서가 최신 상태다.
 
 ## 7. 변경 이력
 - 2026-05-08: PLAN 생성.
 - 2026-05-08: AI 성공 시 규칙 기반 `bag` 보강을 제거하고, 네이버 relevance 필터를 카테고리 중심으로 완화함.
+- 2026-05-08: 규칙 분석을 fallback 전용으로 더 명확히 만들기 위해 dead fallback 병합 코드와 전용 테스트를 제거함.

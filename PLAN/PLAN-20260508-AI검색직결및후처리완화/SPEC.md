@@ -10,6 +10,7 @@ related:
     - PLAN-20260508-AI검색직결및후처리완화
   tasks:
     - TSK-0001-AI검색직결및필터완화
+    - TSK-0002-규칙분석fallback전용정리
 tags:
   - backend
   - recommendations
@@ -22,6 +23,7 @@ tags:
 2. 추천 검색은 `analysis.category_query_hints`에 담긴 AI query를 그대로 사용한다.
 3. 네이버 후보 필터는 잘못된 카테고리만 제외하고, 세부 품목/의도 mismatch 때문에 같은 카테고리 상품을 버리지 않는다.
 4. AI provider 오류/미가동 시에는 기존 규칙 fallback 경로를 유지한다.
+5. 런타임에서 더 이상 사용하지 않는 fallback 병합 함수와 전용 테스트는 제거한다.
 
 ## 2. 상태 관리 규칙
 - `analysis_source == vision`이면 규칙 기반 추가 카테고리 병합을 수행하지 않는다.

@@ -20,7 +20,6 @@ from src.services.vision_outfit_analyzer import (
     build_item_query,
     ensure_local_provider_reachable,
     guess_mime_type,
-    merge_detected_items,
 )
 
 
@@ -36,78 +35,6 @@ def build_flatlay_fixture() -> bytes:
     output = BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
-
-
-def test_merge_detected_items_prefers_vision_category_and_keeps_fallback_rest() -> None:
-    vision_items = [
-        DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
-        DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
-        DetectedOutfitItem(category="accessory", color="gray", item_label="목걸이", query="그레이 목걸이"),
-    ]
-    fallback_items = [
-        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
-        DetectedOutfitItem(category="bottom", color="white", item_label="팬츠", query="화이트 팬츠"),
-        DetectedOutfitItem(category="bag", color="white", item_label="숄더백", query="아이보리 숄더백"),
-    ]
-
-    merged = merge_detected_items(vision_items, fallback_items)
-
-    assert [item.category for item in merged] == ["top", "bottom", "bag", "accessory", "accessory"]
-    assert merged[0].query == "블루 가디건"
-    assert merged[1].query == "화이트 팬츠"
-    assert merged[2].query == "아이보리 숄더백"
-    assert merged[3].query == "블랙 안경"
-    assert merged[4].query == "그레이 목걸이"
-
-
-def test_merge_detected_items_reconciles_outer_color_and_bottom_specificity() -> None:
-    vision_items = [
-        DetectedOutfitItem(category="outer", color="gray", item_label="가디건", query="그레이 가디건"),
-        DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
-    ]
-    fallback_items = [
-        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
-        DetectedOutfitItem(category="bottom", color="navy", item_label="와이드 데님 팬츠", query="네이비 와이드 데님 팬츠"),
-    ]
-
-    merged = merge_detected_items(vision_items, fallback_items)
-
-    assert [(item.category, item.query) for item in merged] == [
-        ("outer", "블루 가디건"),
-        ("bottom", "네이비 와이드 데님 팬츠"),
-    ]
-
-
-def test_merge_detected_items_reassigns_cardigan_from_top_to_outer_and_keeps_fallback_top() -> None:
-    vision_items = [
-        DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
-    ]
-    fallback_items = [
-        DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
-        DetectedOutfitItem(category="outer", color="blue", item_label="가디건", query="블루 가디건"),
-    ]
-
-    merged = merge_detected_items(vision_items, fallback_items)
-
-    assert [(item.category, item.query) for item in merged] == [
-        ("top", "화이트 셔츠"),
-        ("outer", "블루 가디건"),
-    ]
-
-
-def test_merge_detected_items_refines_generic_bag_with_more_specific_fallback() -> None:
-    vision_items = [
-        DetectedOutfitItem(category="bag", color="brown", item_label="가방", query="브라운 가방"),
-    ]
-    fallback_items = [
-        DetectedOutfitItem(category="bag", color="brown", item_label="숄더백", query="브라운 숄더백"),
-    ]
-
-    merged = merge_detected_items(vision_items, fallback_items)
-
-    assert [(item.category, item.query) for item in merged] == [
-        ("bag", "브라운 숄더백"),
-    ]
 
 
 def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path) -> None:
@@ -131,7 +58,7 @@ def test_store_keeps_rule_based_analysis_when_vision_analyzer_disabled(tmp_path)
     assert record.analysis.fallback_reason == "vision_disabled"
 
 
-def test_store_keeps_mock_vision_items_and_only_supplements_missing_bag(tmp_path) -> None:
+def test_store_keeps_mock_vision_items_without_rule_bag_supplement(tmp_path) -> None:
     mock_items = (
         DetectedOutfitItem(category="top", color="blue", item_label="가디건", query="블루 가디건"),
         DetectedOutfitItem(category="accessory", color="black", item_label="안경", query="블랙 안경"),
@@ -153,10 +80,10 @@ def test_store_keeps_mock_vision_items_and_only_supplements_missing_bag(tmp_path
     )
 
     assert record.analysis.category_query_hints["top"] == "블루 가디건"
-    assert record.analysis.category_query_hints["bag"] == "아이보리 숄더백"
     assert record.analysis.category_query_hints["accessory"] == "블랙 안경"
+    assert "bag" not in record.analysis.category_query_hints
     assert "bottom" not in record.analysis.category_query_hints
-    assert [item.query for item in record.analysis.detected_items] == ["블루 가디건", "아이보리 숄더백", "블랙 안경"]
+    assert [item.query for item in record.analysis.detected_items] == ["블루 가디건", "블랙 안경"]
 
 
 def test_store_keeps_all_detected_items_but_uses_first_query_hint_per_category(tmp_path) -> None:
@@ -412,7 +339,7 @@ def test_resolve_detected_items_prefers_vision_and_applies_correction_without_ru
     assert fallback_reason is None
 
 
-def test_resolve_detected_items_supplements_missing_bag_from_rule_signal() -> None:
+def test_resolve_detected_items_does_not_supplement_missing_bag_from_rule_signal() -> None:
     detected_items, analysis_source, fallback_reason = resolve_detected_items(
         b"fixture",
         vision_predictor=lambda _content: [
@@ -427,7 +354,6 @@ def test_resolve_detected_items_supplements_missing_bag_from_rule_signal() -> No
     assert [(item.category, item.query) for item in detected_items] == [
         ("top", "화이트 셔츠"),
         ("bottom", "블랙 슬랙스"),
-        ("bag", "브라운 숄더백"),
     ]
     assert analysis_source == "vision"
     assert fallback_reason is None
