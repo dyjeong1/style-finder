@@ -345,6 +345,8 @@
 29. 프론트 로컬 실행 안정화 메모:
    - `npm run local`이 `build + start --hostname 127.0.0.1 --port 3000`를 한 번에 실행함
    - 로컬 화면 확인은 `next dev`보다 `npm run local`을 기본 경로로 권장함
+   - `./scripts/start-local-stack.sh`, `./scripts/status-local-stack.sh`, `./scripts/stop-local-stack.sh`를 기준 실행 경로로 유지하고 `.local-runtime/` 로그/PID는 다시 git 추적에서 제외함
+   - 업로드 원본 파일명이 한글이어도 `/images/{upload_id}/file` 응답이 깨지지 않도록 `Content-Disposition` 헤더를 UTF-8 방식으로 보강함
 30. 추천 stale 업로드 상태 복구 메모:
    - 백엔드 재시작 후 이전 `uploaded_image_id`가 남아 있어도 추천 페이지가 치명적으로 깨지지 않음
    - stale 업로드 상태를 자동 초기화하고 `/upload` 재업로드를 안내함

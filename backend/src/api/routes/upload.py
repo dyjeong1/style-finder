@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
 from src.core.auth import get_current_user
@@ -6,6 +8,14 @@ from src.services.auth_service import AuthUser
 from src.services.store import serialize_upload_analysis, store
 
 router = APIRouter()
+
+
+def build_content_disposition(filename: str) -> str:
+    ascii_fallback = "".join(char if char.isascii() and char not in {'"', "\\"} else "_" for char in filename).strip()
+    if not ascii_fallback:
+        ascii_fallback = "uploaded-image"
+    encoded_filename = quote(filename, safe="")
+    return f"""inline; filename="{ascii_fallback}"; filename*=UTF-8''{encoded_filename}"""
 
 
 @router.get("/{upload_id}/file")
@@ -24,7 +34,7 @@ def get_uploaded_image_file(upload_id: str) -> Response:
     return Response(
         content=record.content,
         media_type=record.content_type,
-        headers={"Content-Disposition": f'inline; filename="{record.filename}"'},
+        headers={"Content-Disposition": build_content_disposition(record.filename)},
     )
 
 

@@ -10,7 +10,7 @@ def test_core_e2e_flow() -> None:
 
     upload_resp = client.post(
         "/images/upload",
-        files={"image": ("outfit.png", b"fake-image-bytes", "image/png")},
+        files={"image": ("코디 이미지.png", b"fake-image-bytes", "image/png")},
     )
     assert upload_resp.status_code == 200
     upload_data = upload_resp.json()["data"]
@@ -44,6 +44,7 @@ def test_core_e2e_flow() -> None:
     assert image_resp.status_code == 200
     assert image_resp.content == b"fake-image-bytes"
     assert image_resp.headers["content-type"].startswith("image/png")
+    assert "filename*=UTF-8''%EC%BD%94%EB%94%94%20%EC%9D%B4%EB%AF%B8%EC%A7%80.png" in image_resp.headers["content-disposition"]
 
     rec_resp = client.get(
         "/recommendations",
