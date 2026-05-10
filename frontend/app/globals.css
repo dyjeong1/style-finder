@@ -601,7 +601,7 @@ button:disabled {
 .upload-stage-frame {
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 18px;
   min-height: 560px;
   padding: 8px 0 0;
   border: 0;
@@ -796,6 +796,7 @@ button:disabled {
 
 .upload-primary-row {
   display: grid;
+  margin-top: -12px;
 }
 
 .upload-progress-text {
