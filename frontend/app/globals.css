@@ -1057,7 +1057,9 @@ button:disabled {
 }
 
 .wishlist-toolbar {
-  justify-content: space-between;
+  justify-content: flex-start;
+  align-items: end;
+  gap: 12px;
 }
 
 .wishlist-toolbar .control-field {
