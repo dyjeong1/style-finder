@@ -700,7 +700,7 @@ button:disabled {
 .upload-stage-unified-copy span {
   max-width: 16ch;
   color: #3f3f46;
-  font-size: 18pt;
+  font-size: 18px;
   font-weight: 500;
   line-height: 1.32;
   white-space: pre-line;
@@ -811,7 +811,7 @@ button:disabled {
   min-height: 86px;
   padding: 18px 28px;
   border-radius: 999px;
-  font-size: 20pt;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.03em;
 }
