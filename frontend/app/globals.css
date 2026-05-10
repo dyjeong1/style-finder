@@ -600,7 +600,8 @@ button:disabled {
 
 .upload-stage-frame {
   display: grid;
-  gap: 18px;
+  align-content: start;
+  gap: 8px;
   min-height: 560px;
   padding: 8px 0 0;
   border: 0;
@@ -617,6 +618,7 @@ button:disabled {
 }
 
 .upload-stage-copy h1 {
+  margin: 0;
   font-size: 19pt;
   font-weight: 750;
   line-height: 1.08;
