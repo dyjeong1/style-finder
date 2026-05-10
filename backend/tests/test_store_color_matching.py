@@ -255,6 +255,48 @@ def test_item_label_bonus_rewards_family_and_descriptor_alignment_when_exact_lab
     assert items[0]["score_breakdown"]["item_label_bonus"] > items[1]["score_breakdown"]["item_label_bonus"]
 
 
+def test_item_label_bonus_rewards_brand_alignment_for_same_family(tmp_path: Path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        recommendation_scoring=RecommendationScoringConfig(item_label_match_bonus=0.1),
+    )
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+    upload.analysis.preferred_categories = ("shoes",)
+    upload.analysis.detected_items = (
+        DetectedOutfitItem(
+            category="shoes",
+            color="black",
+            item_label="메리제인 슈즈",
+            query="뉴발란스 블랙 메리제인 슈즈",
+            brand="뉴발란스",
+        ),
+    )
+    upload.analysis.category_query_hints = {"shoes": "뉴발란스 블랙 메리제인 슈즈"}
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="shoes",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            make_product("nb-maryjane", "뉴발란스 블랙 메리제인 슈즈"),
+            make_product("generic-maryjane", "블랙 메리제인 슈즈"),
+        ],
+    )
+
+    assert items[0]["product_id"] == "nb-maryjane"
+    assert items[0]["score_breakdown"]["item_label_bonus"] > items[1]["score_breakdown"]["item_label_bonus"]
+
+
 def test_vision_similarity_weight_can_be_tuned_independently(tmp_path: Path) -> None:
     store = InMemoryStore(
         wishlist_store_path=tmp_path / "wishlist.json",

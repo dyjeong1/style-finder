@@ -579,23 +579,35 @@ class InMemoryStore:
     ) -> float:
         normalized_target = target_item_label.strip()
         base_bonus = self.recommendation_scoring.item_label_match_bonus
+        matched_descriptors = [
+            descriptor
+            for descriptor in extract_style_descriptors(category_query)
+            if matches_style_descriptor(product_name, descriptor)
+        ]
+        matched_brands = [
+            brand for brand in extract_brand_keywords(category_query) if matches_brand_keyword(product_name, brand)
+        ]
+        matched_intents = [
+            keyword for keyword in target_intent_keywords if matches_intent_keyword(product_name, keyword)
+        ]
         if not normalized_target or normalized_target in ITEM_LABEL_BONUS_EXCLUDED_LABELS:
             normalized_target = ""
         if normalized_target and normalized_target in product_name:
-            return base_bonus
+            exact_bonus = base_bonus
+            if matched_brands:
+                exact_bonus += base_bonus * 0.2
+            if matched_descriptors:
+                exact_bonus += (base_bonus * 0.1) * (
+                    len(matched_descriptors) / max(1, len(extract_style_descriptors(category_query)))
+                )
+            if matched_intents:
+                exact_bonus += (base_bonus * 0.1) * (len(matched_intents) / len(target_intent_keywords))
+            return round(min(base_bonus * 1.4, exact_bonus), 4)
         if normalized_target:
             search_text = " ".join(part for part in (category_query, normalized_target) if part).strip()
             target_families = extract_item_families(search_text)
             matched_families = [
                 family for family in target_families if matches_item_family(product_name, family)
-            ]
-            matched_descriptors = [
-                descriptor
-                for descriptor in extract_style_descriptors(category_query)
-                if matches_style_descriptor(product_name, descriptor)
-            ]
-            matched_brands = [
-                brand for brand in extract_brand_keywords(category_query) if matches_brand_keyword(product_name, brand)
             ]
             if matched_families:
                 family_bonus = base_bonus * 0.7
@@ -609,13 +621,10 @@ class InMemoryStore:
                     brand_bonus = base_bonus * 0.2
                 return round(min(base_bonus * 1.2, family_bonus + descriptor_bonus + brand_bonus), 4)
         if target_intent_keywords:
-            matched_keywords = [
-                keyword for keyword in target_intent_keywords if matches_intent_keyword(product_name, keyword)
-            ]
-            if matched_keywords:
+            if matched_intents:
                 return round(
                     base_bonus
-                    * (len(matched_keywords) / len(target_intent_keywords)),
+                    * (len(matched_intents) / len(target_intent_keywords)),
                     4,
                 )
         return 0.0

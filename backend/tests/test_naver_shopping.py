@@ -7,6 +7,7 @@ from urllib.error import HTTPError
 import pytest
 from PIL import Image
 
+from src.services.image_analysis import DetectedOutfitItem
 from src.services.naver_shopping import (
     CATEGORY_ORDER,
     NaverShoppingClient,
@@ -325,11 +326,33 @@ def test_build_naver_query_variants_adds_simplified_family_variant() -> None:
         feature_vector=(0.1, 0.2, 0.3, 0.4),
         dominant_color="black",
         category_query_hints={"bag": "블랙 가죽 숄더백"},
+        detected_items=(),
     )
 
     assert build_naver_query_variants(analysis, "bag") == [
         "블랙 가죽 숄더백",
         "블랙 숄더백",
+    ]
+
+
+def test_build_naver_query_variants_uses_detected_item_focus_query() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="cool",
+        style_mood="minimal",
+        silhouette="relaxed",
+        preferred_categories=("top",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="navy",
+        category_query_hints={"top": "남색 롱슬리브 티셔츠"},
+        detected_items=(
+            DetectedOutfitItem(category="top", color="navy", item_label="티셔츠", query="남색 롱슬리브 티셔츠"),
+        ),
+    )
+
+    assert build_naver_query_variants(analysis, "top") == [
+        "남색 롱슬리브 티셔츠",
+        "네이비 긴팔 티셔츠",
     ]
 
 
@@ -460,3 +483,48 @@ def test_naver_shopping_search_sorts_products_by_query_alignment(monkeypatch: py
     result = client.search(query="브라운 메리제인 슈즈", category="shoes", limit=5)
 
     assert [product.id for product in result.products] == ["naver-602", "naver-601"]
+
+
+def test_naver_shopping_search_penalizes_conflicting_brand_and_family(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    class DummyResponse:
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "items": [
+                        {
+                            "title": "나이키 블랙 로퍼",
+                            "link": "https://smartstore.naver.com/demo/products/701",
+                            "image": "https://shopping-phinf.pstatic.net/item701.jpg",
+                            "lprice": "39000",
+                            "productId": "701",
+                            "category1": "패션잡화",
+                            "category2": "여성슈즈",
+                            "category3": "로퍼",
+                        },
+                        {
+                            "title": "뉴발란스 블랙 메리제인 슈즈",
+                            "link": "https://smartstore.naver.com/demo/products/702",
+                            "image": "https://shopping-phinf.pstatic.net/item702.jpg",
+                            "lprice": "42000",
+                            "productId": "702",
+                            "category1": "패션잡화",
+                            "category2": "여성슈즈",
+                            "category3": "메리제인",
+                        },
+                    ]
+                }
+            ).encode("utf-8")
+
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", lambda *_args, **_kwargs: DummyResponse())
+
+    result = client.search(query="뉴발란스 블랙 메리제인 슈즈", category="shoes", limit=5)
+
+    assert [product.id for product in result.products] == ["naver-702", "naver-701"]

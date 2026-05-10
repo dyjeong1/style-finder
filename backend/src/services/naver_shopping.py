@@ -9,7 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from src.services.image_analysis import analyze_image_content, infer_color_from_text
+from src.services.image_analysis import DetectedOutfitItem, analyze_image_content, infer_color_from_text
 from src.services.recommendation_intent import (
     extract_brand_keywords,
     extract_intent_keywords,
@@ -263,7 +263,8 @@ def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
 
 
 def build_naver_query_variants(analysis: UploadAnalysis, category: str | None) -> list[str]:
-    return _build_query_variants(build_naver_query(analysis, category), category)
+    detected_item = _find_detected_item_by_category(analysis, category)
+    return _build_query_variants_with_item(build_naver_query(analysis, category), category, detected_item=detected_item)
 
 
 def build_custom_naver_query(custom_query: str, category: str | None) -> str:
@@ -532,15 +533,30 @@ def _matches_category_query(item: dict, title: str, category_hint: str, query: s
 
 
 def _build_query_variants(query: str, category: str | None) -> list[str]:
+    return _build_query_variants_with_item(query, category, detected_item=None)
+
+
+def _build_query_variants_with_item(
+    query: str,
+    category: str | None,
+    detected_item: DetectedOutfitItem | None,
+) -> list[str]:
     normalized_query = " ".join(query.split())
     if not normalized_query:
         return ["패션 의류"]
 
     variants = [normalized_query]
-    simplified_query = _build_simplified_query(normalized_query, category)
-    if simplified_query and simplified_query not in variants:
-        variants.append(simplified_query)
+    support_query = _build_support_query(normalized_query, category, detected_item=detected_item)
+    if support_query and support_query not in variants:
+        variants.append(support_query)
     return variants
+
+
+def _build_support_query(query: str, category: str | None, detected_item: DetectedOutfitItem | None) -> str:
+    focused_query = _build_detected_item_focus_query(query=query, detected_item=detected_item)
+    if focused_query and focused_query != " ".join(query.split()):
+        return focused_query
+    return _build_simplified_query(query, category)
 
 
 def _build_simplified_query(query: str, category: str | None) -> str:
@@ -549,12 +565,15 @@ def _build_simplified_query(query: str, category: str | None) -> str:
     color = COLOR_QUERIES.get(infer_color_from_text(query), "")
     families = extract_item_families(query)
     descriptors = extract_style_descriptors(query)
+    intents = extract_intent_keywords(query)
 
     query_parts: list[str] = []
     if brands:
         query_parts.append(brands[0])
     if color:
         query_parts.append(color)
+    if intents:
+        query_parts.append(intents[0])
     if families:
         query_parts.append(families[0])
     elif descriptors:
@@ -574,14 +593,22 @@ def _compute_query_alignment_score(product: ProductRecord, query: str, category:
     query_descriptors = extract_style_descriptors(query)
     query_brands = extract_brand_keywords(query)
     query_intents = extract_intent_keywords(query)
+    product_families = extract_item_families(product_name)
+    product_brands = extract_brand_keywords(product_name)
+    product_intents = extract_intent_keywords(product_name)
 
     if category and product.category == category:
         score += 0.6
-    if target_color != "unknown" and infer_color_from_text(product_name) == target_color:
+    product_color = infer_color_from_text(product_name)
+    if target_color != "unknown" and product_color == target_color:
         score += 0.8
+    elif target_color != "unknown" and product_color not in {"unknown", target_color}:
+        score -= 0.35
     matched_families = [family for family in query_families if matches_item_family(product_name, family)]
     if matched_families:
         score += 2.4
+    elif query_families and product_families:
+        score -= 1.25
     matched_descriptors = [
         descriptor for descriptor in query_descriptors if matches_style_descriptor(product_name, descriptor)
     ]
@@ -590,11 +617,45 @@ def _compute_query_alignment_score(product: ProductRecord, query: str, category:
     matched_brands = [brand for brand in query_brands if matches_brand_keyword(product_name, brand)]
     if matched_brands:
         score += 0.9
+    elif query_brands and product_brands:
+        score -= 0.7
     matched_intents = [keyword for keyword in query_intents if matches_intent_keyword(product_name, keyword)]
     if matched_intents:
         score += 1.2 * (len(matched_intents) / max(1, len(query_intents)))
+    elif query_intents and product_intents:
+        score -= 0.85
 
     return round(score, 4)
+
+
+def _build_detected_item_focus_query(query: str, detected_item: DetectedOutfitItem | None) -> str:
+    if detected_item is None:
+        return ""
+
+    normalized_query = " ".join(query.split())
+    color = COLOR_QUERIES.get(detected_item.color, "")
+    intents = extract_intent_keywords(normalized_query)
+
+    query_parts: list[str] = []
+    if detected_item.brand:
+        query_parts.append(detected_item.brand)
+    if color:
+        query_parts.append(color)
+    if intents:
+        query_parts.append(intents[0])
+    query_parts.append(detected_item.item_label)
+
+    focused = " ".join(part for part in query_parts if part).strip()
+    return focused or normalized_query
+
+
+def _find_detected_item_by_category(analysis: UploadAnalysis, category: str | None) -> DetectedOutfitItem | None:
+    if not category:
+        return None
+    for item in analysis.detected_items:
+        if item.category == category:
+            return item
+    return None
 
 
 def _fallback_image_url(title: str) -> str:

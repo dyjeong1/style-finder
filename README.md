@@ -24,6 +24,12 @@
 - 업로드/추천/위시리스트 상단에는 중복 요약 배지보다 핵심 제목과 필터 조작에 집중합니다.
 
 ### 최근 주요 PLAN
+- `PLAN-20260510-AI프롬프트및네이버검색정확도고도화`
+- 상세 문서: `PLAN/PLAN-20260510-AI프롬프트및네이버검색정확도고도화/PLAN.md`
+- 기술 스펙: `PLAN/PLAN-20260510-AI프롬프트및네이버검색정확도고도화/SPEC.md`
+- 상태: `done` (AI 프롬프트를 쇼핑 query 중심으로 강화하고, 감지 item 기반 보조 query/네이버 후보 정렬/최종 랭킹 정합성을 보강함, 2026-05-10)
+  - 추가 메모: 보조 query 는 이제 감지 item 의 `brand + color + intent + item_label` 우선 구조를 사용함
+  - 추가 메모: 네이버 후보는 category 일치 외에도 family/brand/intent mismatch 에 더 큰 불이익을 받음
 - `PLAN-20260510-AI원본분석고정및보조검색유지`
 - 상세 문서: `PLAN/PLAN-20260510-AI원본분석고정및보조검색유지/PLAN.md`
 - 기술 스펙: `PLAN/PLAN-20260510-AI원본분석고정및보조검색유지/SPEC.md`
