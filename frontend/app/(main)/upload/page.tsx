@@ -311,7 +311,9 @@ export default function UploadPage() {
   const elapsedMinutes = Math.floor(uploadElapsedMs / 60_000);
   const elapsedSeconds = Math.floor((uploadElapsedMs % 60_000) / 1000);
   const uploadElapsedLabel = `분석 진행 시간 : ${elapsedMinutes}분 ${elapsedSeconds}초`;
-  const uploadInstruction = isDragActive ? "이미지를 이곳에 놓아주세요." : "이미지를 이곳으로 드래그하거나 클릭해서 업로드해주세요.";
+  const uploadInstruction = isDragActive
+    ? "이미지를 이곳에 놓아주세요.\n클릭해서 업로드할 수도 있습니다."
+    : "이미지를 이곳으로 드래그하거나\n클릭해서 업로드 해주세요.";
 
   return (
     <section className="split-grid upload-reference-grid" aria-label="코디 이미지 업로드">
@@ -359,7 +361,9 @@ export default function UploadPage() {
                   </span>
                 ) : null}
                 {filePreviewUrl ? <strong>{fileName}</strong> : null}
-                <span>{filePreviewUrl ? "선택한 이미지를 다시 클릭하면 다른 파일로 바꿀 수 있습니다." : uploadInstruction}</span>
+                <span className="upload-stage-instruction">
+                  {filePreviewUrl ? "선택한 이미지를 다시 클릭하면\n다른 파일로 바꿀 수 있습니다." : uploadInstruction}
+                </span>
                 <small>허용 이미지: PNG, JPG, JPEG, WEBP</small>
               </div>
               {filePreviewUrl ? (
@@ -458,7 +462,6 @@ export default function UploadPage() {
                   <img src={recentUpload.previewUrl} alt={`${recentUpload.name} 최근 업로드 미리보기`} className="recent-upload-thumb" />
                   <div className="recent-upload-body">
                     <strong>{recentUpload.name}</strong>
-                    <span className="recent-upload-caption">다시 분석하면 최신 추천을 새로 생성합니다.</span>
                     <span className="recent-upload-meta">
                       {formatRecentUploadDate(recentUpload.createdAt)} · {formatFileSize(recentUpload.sizeBytes)}
                     </span>

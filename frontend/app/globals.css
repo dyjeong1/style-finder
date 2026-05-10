@@ -600,7 +600,7 @@ button:disabled {
 
 .upload-stage-frame {
   display: grid;
-  gap: 28px;
+  gap: 18px;
   min-height: 560px;
   padding: 8px 0 0;
   border: 0;
@@ -611,13 +611,14 @@ button:disabled {
 .upload-stage-copy {
   display: grid;
   justify-items: center;
-  gap: 12px;
+  gap: 4px;
   max-width: none;
   text-align: center;
 }
 
 .upload-stage-copy h1 {
-  font-size: 27pt;
+  font-size: 19pt;
+  font-weight: 750;
   line-height: 1.08;
 }
 
@@ -695,12 +696,14 @@ button:disabled {
   line-height: 1.28;
 }
 
+.upload-stage-instruction,
 .upload-stage-unified-copy span {
   max-width: 16ch;
   color: #3f3f46;
   font-size: 18pt;
   font-weight: 500;
   line-height: 1.32;
+  white-space: pre-line;
 }
 
 .upload-stage-unified-copy small {
@@ -925,12 +928,13 @@ button:disabled {
 .recent-upload-body {
   min-width: 0;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .recent-upload-body strong {
   font-size: 12.6pt;
   letter-spacing: -0.04em;
+  color: #374151;
 }
 
 .recent-upload-caption {

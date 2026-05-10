@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <span className="brand-copy">
               <strong>StyleMatch</strong>
-              <small>이미지 기반 스타일 추천</small>
+              <small>이미지 기반 상품 추천</small>
             </span>
           </Link>
           <nav className="top-nav-right" aria-label="주요 메뉴">
