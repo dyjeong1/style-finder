@@ -601,7 +601,7 @@ button:disabled {
 .upload-stage-frame {
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 28px;
   min-height: 560px;
   padding: 8px 0 0;
   border: 0;
