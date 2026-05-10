@@ -602,7 +602,7 @@ button:disabled {
   display: grid;
   align-content: start;
   gap: 28px;
-  min-height: 560px;
+  min-height: auto;
   padding: 8px 0 0;
   border: 0;
   background: transparent;
@@ -796,7 +796,7 @@ button:disabled {
 
 .upload-primary-row {
   display: grid;
-  margin-top: -12px;
+  margin-top: 12px;
 }
 
 .upload-progress-text {
