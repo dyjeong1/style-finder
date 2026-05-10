@@ -65,3 +65,4 @@ tags:
 ## 7. 변경 이력
 - 2026-05-10: PLAN 생성.
 - 2026-05-10: same-category 규칙 보정, 네이버 query variant, 후보/랭킹 정합성 보강, 회귀 테스트를 추가함.
+- 2026-05-10: 후속 PLAN에서 same-category 규칙 보정은 제거하고, query variant/랭킹 보강만 유지함.

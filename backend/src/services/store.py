@@ -121,15 +121,6 @@ ITEM_LABEL_BONUS_EXCLUDED_LABELS = {
     "악세서리",
 }
 
-RULE_REFINEMENT_GENERIC_LABELS = {
-    "top": {"상의", "탑"},
-    "outer": {"아우터"},
-    "bottom": {"팬츠", "바지", "하의"},
-    "shoes": {"신발", "슈즈"},
-    "bag": {"가방"},
-    "accessory": {"악세서리", "액세서리"},
-}
-
 RECOMMENDATION_CATEGORY_ORDER = ("top", "outer", "bottom", "shoes", "bag", "accessory")
 
 
@@ -193,19 +184,6 @@ def resolve_detected_items(
                         categories=correction_categories,
                     )
                 )
-
-    if detected_items:
-        try:
-            rule_detected_items = rule_predictor(content)
-        except Exception:
-            rule_detected_items = []
-        if rule_detected_items:
-            detected_items = tuple(
-                apply_same_category_rule_refinements(
-                    base_items=detected_items,
-                    rule_items=rule_detected_items,
-                )
-            )
 
     return tuple(_sort_detected_items_for_display(detected_items)), analysis_source, None
 
@@ -785,31 +763,6 @@ def apply_selective_category_corrections(
     ]
 
 
-def apply_same_category_rule_refinements(
-    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
-    rule_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
-) -> list[DetectedOutfitItem]:
-    rule_by_category = _first_item_by_category(rule_items)
-    refined: list[DetectedOutfitItem] = []
-
-    for item in base_items:
-        rule_item = rule_by_category.get(item.category)
-        if rule_item is None or not _should_replace_with_rule_item(base_item=item, rule_item=rule_item):
-            refined.append(item)
-            continue
-        refined.append(
-            DetectedOutfitItem(
-                category=item.category,
-                color=rule_item.color if item.color in {"unknown", "neutral"} else item.color,
-                item_label=rule_item.item_label,
-                query=rule_item.query,
-                brand=item.brand or rule_item.brand,
-            )
-        )
-
-    return refined
-
-
 def _filter_accessory_correction_items(
     base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
     correction_items: list[DetectedOutfitItem],
@@ -827,22 +780,6 @@ def _filter_accessory_correction_items(
         kept_items.extend(new_items)
 
     return kept_items
-
-
-def _should_replace_with_rule_item(base_item: DetectedOutfitItem, rule_item: DetectedOutfitItem) -> bool:
-    if base_item.category != rule_item.category:
-        return False
-
-    generic_labels = RULE_REFINEMENT_GENERIC_LABELS.get(base_item.category, set())
-    normalized_base_label = base_item.item_label.strip()
-    normalized_rule_label = rule_item.item_label.strip()
-    if normalized_base_label not in generic_labels:
-        return False
-    if not normalized_rule_label or normalized_rule_label in generic_labels:
-        return False
-    if normalized_base_label == normalized_rule_label and base_item.query.strip():
-        return False
-    return True
 
 
 def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> dict[str, DetectedOutfitItem]:
