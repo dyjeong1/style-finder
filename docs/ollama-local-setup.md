@@ -4,6 +4,7 @@
 
 ## 1. 권장 기준
 - 기본 권장 경로: `Ollama + gemma3:4b`
+- 비교 후보: `qwen2.5vl:7b`
 - 사용 목적:
   - 로컬 무료 반복 실험
   - `backend/src/services/vision_outfit_analyzer.py`의 `ollama` provider 확인
@@ -79,7 +80,7 @@ OLLAMA_VISION_ENABLED=true
 OLLAMA_VISION_PROVIDER=ollama
 OLLAMA_VISION_MODEL=gemma3:4b
 OLLAMA_API_BASE_URL=http://127.0.0.1:11434/api/chat
-OLLAMA_VISION_TIMEOUT_SECONDS=90.0
+OLLAMA_VISION_TIMEOUT_SECONDS=120.0
 ```
 
 필요하면 함께 확인할 값:
@@ -196,4 +197,3 @@ PYTHONPATH=. python3 scripts/check_upload_analysis.py --image data/vision_datase
 - 프론트 실행
 - `/upload` 실제 업로드 확인
 - 필요 시 `compare_vision_predictors.py`로 정밀 비교
-

@@ -156,6 +156,7 @@ cp .env.example .env
 
 Ollama 실행 메모:
 - 이 저장소 기준 기본 권장 로컬 무료 경로는 `Ollama + gemma3:4b`입니다.
+- `qwen2.5vl:7b`는 설치되어 있으면 비교 후보로 시도할 수 있지만, `codytest_2` 실이미지 재검증에서는 `gemma3:4b`보다 안정적이지 않았습니다.
 - 설치, 모델 pull, 서버 실행, `.env` 설정, 점검 명령은 `../docs/ollama-local-setup.md`를 우선 참고하세요.
 - 가장 짧은 확인 순서는 `ollama pull gemma3:4b` -> `ollama serve` -> `PYTHONPATH=. python3 scripts/check_upload_analysis.py --image data/vision_dataset/images/codytest_2.jpg --provider ollama` 입니다.
 
