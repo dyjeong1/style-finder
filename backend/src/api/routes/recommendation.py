@@ -13,8 +13,10 @@ from src.services.naver_shopping import (
     NaverShoppingSearchResult,
     build_custom_naver_category_queries,
     build_custom_naver_query,
+    build_custom_naver_query_variants,
     build_naver_category_queries,
     build_naver_query,
+    build_naver_query_variants,
 )
 from src.services.store import ProductRecord, UploadAnalysis, serialize_upload_analysis
 from src.services.store import store
@@ -32,8 +34,23 @@ def _search_naver_candidates(
 ) -> tuple[list[ProductRecord], str, str | None, str | None]:
     if category:
         query = build_custom_naver_query(custom_query, category) if custom_query else build_naver_query(analysis, category)
-        result = client.search(query=query, category=category, limit=limit)
-        return result.products, query, result.fallback_reason, result.fallback_message
+        query_variants = (
+            build_custom_naver_query_variants(custom_query or "", category)
+            if custom_query
+            else build_naver_query_variants(analysis, category)
+        )
+        products_by_id: dict[str, ProductRecord] = {}
+        fallback_result: NaverShoppingSearchResult | None = None
+        per_query_limit = max(3, min(limit, max(3, limit // max(1, len(query_variants)) + 2)))
+        for variant in query_variants:
+            result = client.search(query=variant, category=category, limit=per_query_limit)
+            if fallback_result is None and result.fallback_reason:
+                fallback_result = result
+            for product in result.products:
+                products_by_id.setdefault(product.id, product)
+        fallback_reason = fallback_result.fallback_reason if fallback_result and not products_by_id else None
+        fallback_message = fallback_result.fallback_message if fallback_result and not products_by_id else None
+        return list(products_by_id.values()), query, fallback_reason, fallback_message
 
     category_queries = build_custom_naver_category_queries(custom_query) if custom_query else build_naver_category_queries(analysis)
     per_category_limit = max(3, (limit + len(category_queries) - 1) // len(category_queries))
@@ -42,12 +59,18 @@ def _search_naver_candidates(
     products_by_id: dict[str, ProductRecord] = {}
 
     for item_category, query in category_queries:
-        result = client.search(query=query, category=item_category, limit=per_category_limit)
-        if fallback_result is None and result.fallback_reason:
-            fallback_result = result
-
-        for product in result.products:
-            products_by_id.setdefault(product.id, product)
+        query_variants = (
+            build_custom_naver_query_variants(query, item_category)
+            if custom_query
+            else build_naver_query_variants(analysis, item_category)
+        )
+        per_query_limit = max(2, per_category_limit // max(1, len(query_variants)) + 1)
+        for variant in query_variants:
+            result = client.search(query=variant, category=item_category, limit=per_query_limit)
+            if fallback_result is None and result.fallback_reason:
+                fallback_result = result
+            for product in result.products:
+                products_by_id.setdefault(product.id, product)
 
     fallback_reason = fallback_result.fallback_reason if fallback_result and not products_by_id else None
     fallback_message = fallback_result.fallback_message if fallback_result and not products_by_id else None

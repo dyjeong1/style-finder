@@ -13,8 +13,10 @@ from src.services.naver_shopping import (
     NaverShoppingConfig,
     build_custom_naver_category_queries,
     build_custom_naver_query,
+    build_custom_naver_query_variants,
     build_naver_category_queries,
     build_naver_query,
+    build_naver_query_variants,
     infer_custom_query_categories,
 )
 from src.services.store import UploadAnalysis
@@ -313,6 +315,31 @@ def test_build_naver_query_prefers_ai_category_query_hint_as_is() -> None:
     assert build_naver_query(analysis, "shoes") == "브라운 메리제인 슈즈"
 
 
+def test_build_naver_query_variants_adds_simplified_family_variant() -> None:
+    analysis = UploadAnalysis(
+        checksum="abc",
+        dominant_tone="cool",
+        style_mood="minimal",
+        silhouette="relaxed",
+        preferred_categories=("bag",),
+        feature_vector=(0.1, 0.2, 0.3, 0.4),
+        dominant_color="black",
+        category_query_hints={"bag": "블랙 가죽 숄더백"},
+    )
+
+    assert build_naver_query_variants(analysis, "bag") == [
+        "블랙 가죽 숄더백",
+        "블랙 숄더백",
+    ]
+
+
+def test_build_custom_naver_query_variants_adds_simplified_family_variant() -> None:
+    assert build_custom_naver_query_variants("화이트 스트라이프 니트 탑", "top") == [
+        "화이트 스트라이프 니트 탑 상의",
+        "화이트 니트 탑",
+    ]
+
+
 def test_build_naver_category_queries_covers_all_recommendation_categories() -> None:
     analysis = UploadAnalysis(
         checksum="abc",
@@ -388,3 +415,48 @@ def test_build_custom_naver_category_queries_limits_to_explicit_product_group() 
         ("outer", "미니멀 재킷과 토트백 아우터"),
         ("bag", "미니멀 재킷과 토트백 가방"),
     ]
+
+
+def test_naver_shopping_search_sorts_products_by_query_alignment(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = NaverShoppingClient(NaverShoppingConfig(client_id="id", client_secret="secret"))
+
+    class DummyResponse:
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "items": [
+                        {
+                            "title": "브라운 로퍼",
+                            "link": "https://smartstore.naver.com/demo/products/601",
+                            "image": "https://shopping-phinf.pstatic.net/item601.jpg",
+                            "lprice": "39000",
+                            "productId": "601",
+                            "category1": "패션잡화",
+                            "category2": "여성슈즈",
+                            "category3": "로퍼",
+                        },
+                        {
+                            "title": "브라운 메리제인 슈즈",
+                            "link": "https://smartstore.naver.com/demo/products/602",
+                            "image": "https://shopping-phinf.pstatic.net/item602.jpg",
+                            "lprice": "42000",
+                            "productId": "602",
+                            "category1": "패션잡화",
+                            "category2": "여성슈즈",
+                            "category3": "메리제인",
+                        },
+                    ]
+                }
+            ).encode("utf-8")
+
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr("src.services.naver_shopping.urlopen", lambda *_args, **_kwargs: DummyResponse())
+
+    result = client.search(query="브라운 메리제인 슈즈", category="shoes", limit=5)
+
+    assert [product.id for product in result.products] == ["naver-602", "naver-601"]

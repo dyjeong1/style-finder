@@ -219,6 +219,42 @@ def test_item_label_bonus_promotes_specific_product_name_match(tmp_path: Path) -
     assert items[1]["score_breakdown"]["item_label_bonus"] == 0.0
 
 
+def test_item_label_bonus_rewards_family_and_descriptor_alignment_when_exact_label_differs(tmp_path: Path) -> None:
+    store = InMemoryStore(
+        wishlist_store_path=tmp_path / "wishlist.json",
+        recommendation_scoring=RecommendationScoringConfig(item_label_match_bonus=0.1),
+    )
+    upload = store.create_upload(
+        user_id="local-user",
+        filename="outfit.png",
+        content_type="image/png",
+        size_bytes=10,
+        content=b"not-a-real-image",
+    )
+    upload.analysis.feature_vector = (0.9, 0.9, 0.9, 0.9)
+    upload.analysis.preferred_categories = ("bag",)
+    upload.analysis.detected_items = (
+        DetectedOutfitItem(category="bag", color="black", item_label="숄더백", query="블랙 가죽 숄더백"),
+    )
+    upload.analysis.category_query_hints = {"bag": "블랙 가죽 숄더백"}
+
+    items = store.list_recommendations(
+        uploaded_image_id=upload.id,
+        category="bag",
+        min_price=None,
+        max_price=None,
+        sort="similarity_desc",
+        limit=2,
+        candidate_products=[
+            make_product("hobo", "블랙 가죽 호보백", category="bag"),
+            make_product("canvas", "블랙 캔버스 토트백", category="bag"),
+        ],
+    )
+
+    assert items[0]["product_id"] == "hobo"
+    assert items[0]["score_breakdown"]["item_label_bonus"] > items[1]["score_breakdown"]["item_label_bonus"]
+
+
 def test_vision_similarity_weight_can_be_tuned_independently(tmp_path: Path) -> None:
     store = InMemoryStore(
         wishlist_store_path=tmp_path / "wishlist.json",

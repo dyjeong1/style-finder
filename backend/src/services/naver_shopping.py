@@ -10,6 +10,16 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from src.services.image_analysis import analyze_image_content, infer_color_from_text
+from src.services.recommendation_intent import (
+    extract_brand_keywords,
+    extract_intent_keywords,
+    extract_item_families,
+    extract_style_descriptors,
+    matches_brand_keyword,
+    matches_intent_keyword,
+    matches_item_family,
+    matches_style_descriptor,
+)
 from src.services.store import ProductRecord, UploadAnalysis
 
 
@@ -252,6 +262,10 @@ def build_naver_query(analysis: UploadAnalysis, category: str | None) -> str:
     return " ".join(part for part in query_parts if part).strip() or "패션 의류"
 
 
+def build_naver_query_variants(analysis: UploadAnalysis, category: str | None) -> list[str]:
+    return _build_query_variants(build_naver_query(analysis, category), category)
+
+
 def build_custom_naver_query(custom_query: str, category: str | None) -> str:
     normalized_query = " ".join(custom_query.split())
     category_keyword = CATEGORY_QUERIES.get(category or "")
@@ -259,6 +273,10 @@ def build_custom_naver_query(custom_query: str, category: str | None) -> str:
         return f"{normalized_query} {category_keyword}".strip()
 
     return normalized_query or "패션 의류"
+
+
+def build_custom_naver_query_variants(custom_query: str, category: str | None) -> list[str]:
+    return _build_query_variants(build_custom_naver_query(custom_query, category), category)
 
 
 def infer_custom_query_categories(custom_query: str) -> list[str]:
@@ -372,6 +390,7 @@ class NaverShoppingClient:
                 fallback_message="네이버 쇼핑에서 조건에 맞는 상품을 찾지 못해 샘플 데이터로 표시하고 있습니다.",
             )
 
+        products = self._sort_products_by_query_alignment(products, query=query, category=category)
         return NaverShoppingSearchResult(products=products)
 
     def _parse_item(self, item: dict, category_hint: str | None, query: str | None = None) -> ProductRecord | None:
@@ -444,6 +463,25 @@ class NaverShoppingClient:
 
         return analyze_image_content(content)
 
+    def _sort_products_by_query_alignment(
+        self,
+        products: list[ProductRecord],
+        query: str,
+        category: str | None,
+    ) -> list[ProductRecord]:
+        if not query:
+            return products
+
+        scored = [
+            (_compute_query_alignment_score(product, query=query, category=category), index, product)
+            for index, product in enumerate(products)
+        ]
+        if not any(score > 0 for score, _index, _product in scored):
+            return products
+
+        scored.sort(key=lambda entry: (-entry[0], entry[1]))
+        return [product for _score, _index, product in scored]
+
 
 def _strip_html(value: str) -> str:
     return html.unescape(re.sub(r"<[^>]+>", "", value))
@@ -491,6 +529,72 @@ def _matches_category_query(item: dict, title: str, category_hint: str, query: s
     ) + f" {title}"
 
     return any(keyword in haystack for keyword in CATEGORY_KEYWORDS.get(category_hint, ()))
+
+
+def _build_query_variants(query: str, category: str | None) -> list[str]:
+    normalized_query = " ".join(query.split())
+    if not normalized_query:
+        return ["패션 의류"]
+
+    variants = [normalized_query]
+    simplified_query = _build_simplified_query(normalized_query, category)
+    if simplified_query and simplified_query not in variants:
+        variants.append(simplified_query)
+    return variants
+
+
+def _build_simplified_query(query: str, category: str | None) -> str:
+    normalized_query = " ".join(query.split())
+    brands = extract_brand_keywords(query)
+    color = COLOR_QUERIES.get(infer_color_from_text(query), "")
+    families = extract_item_families(query)
+    descriptors = extract_style_descriptors(query)
+
+    query_parts: list[str] = []
+    if brands:
+        query_parts.append(brands[0])
+    if color:
+        query_parts.append(color)
+    if families:
+        query_parts.append(families[0])
+    elif descriptors:
+        query_parts.append(descriptors[0])
+    elif category:
+        query_parts.append(CATEGORY_QUERIES.get(category, "패션"))
+
+    simplified = " ".join(part for part in query_parts if part).strip()
+    return simplified or normalized_query
+
+
+def _compute_query_alignment_score(product: ProductRecord, query: str, category: str | None) -> float:
+    score = 0.0
+    product_name = product.product_name
+    target_color = infer_color_from_text(query)
+    query_families = extract_item_families(query)
+    query_descriptors = extract_style_descriptors(query)
+    query_brands = extract_brand_keywords(query)
+    query_intents = extract_intent_keywords(query)
+
+    if category and product.category == category:
+        score += 0.6
+    if target_color != "unknown" and infer_color_from_text(product_name) == target_color:
+        score += 0.8
+    matched_families = [family for family in query_families if matches_item_family(product_name, family)]
+    if matched_families:
+        score += 2.4
+    matched_descriptors = [
+        descriptor for descriptor in query_descriptors if matches_style_descriptor(product_name, descriptor)
+    ]
+    if matched_descriptors:
+        score += 1.0 * (len(matched_descriptors) / max(1, len(query_descriptors)))
+    matched_brands = [brand for brand in query_brands if matches_brand_keyword(product_name, brand)]
+    if matched_brands:
+        score += 0.9
+    matched_intents = [keyword for keyword in query_intents if matches_intent_keyword(product_name, keyword)]
+    if matched_intents:
+        score += 1.2 * (len(matched_intents) / max(1, len(query_intents)))
+
+    return round(score, 4)
 
 
 def _fallback_image_url(title: str) -> str:

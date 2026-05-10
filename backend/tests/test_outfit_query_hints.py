@@ -192,6 +192,28 @@ def build_earring_selfie_fixture() -> bytes:
     return output.getvalue()
 
 
+def build_left_bag_and_maryjane_selfie_fixture() -> bytes:
+    image = Image.new("RGB", (430, 780), (228, 223, 215))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((118, 112, 284, 352), fill=(22, 26, 36))
+    draw.rectangle((158, 130, 236, 258), fill=(244, 244, 240))
+    draw.polygon(((134, 352), (304, 352), (286, 598), (150, 598)), fill=(183, 156, 118))
+    draw.rectangle((70, 448, 114, 612), fill=(18, 18, 20))
+    draw.rectangle((64, 430, 104, 446), fill=(18, 18, 20))
+    draw.line((88, 378, 88, 432), fill=(18, 18, 20), width=8)
+    draw.line((88, 378, 110, 408), fill=(18, 18, 20), width=6)
+    draw.rectangle((154, 594, 194, 730), fill=(239, 232, 219))
+    draw.rectangle((214, 594, 254, 730), fill=(239, 232, 219))
+    draw.ellipse((132, 704, 208, 770), fill=(22, 22, 24))
+    draw.ellipse((202, 704, 278, 770), fill=(22, 22, 24))
+    draw.line((164, 716, 184, 716), fill=(232, 232, 228), width=4)
+    draw.line((234, 716, 254, 716), fill=(232, 232, 228), width=4)
+
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def test_outfit_query_hints_ignore_background_and_split_categories() -> None:
     hints = analyze_outfit_category_query_hints(build_flatlay_fixture())
 
@@ -297,6 +319,13 @@ def test_outfit_query_hints_detect_present_bag_and_shoes_in_selfie() -> None:
     assert hints["bag"] in {"브라운 숄더백", "브라운 토트백"}
     assert hints["shoes"] in {"화이트 스니커즈", "화이트 슈즈"}
     assert "accessory" not in hints
+
+
+def test_outfit_query_hints_detect_left_side_bag_in_full_body_selfie() -> None:
+    hints = analyze_outfit_category_query_hints(build_left_bag_and_maryjane_selfie_fixture())
+
+    assert hints["bag"] in {"블랙 숄더백", "블랙 토트백"}
+    assert hints["shoes"] in {"블랙 로퍼", "블랙 슈즈"}
 
 
 def test_outfit_query_hints_keep_sneakers_and_skip_bag_when_absent() -> None:

@@ -19,7 +19,17 @@ from src.services.image_analysis import (
     has_color_keyword,
     infer_color_from_text,
 )
-from src.services.recommendation_intent import dedupe_keywords, extract_intent_keywords, matches_intent_keyword
+from src.services.recommendation_intent import (
+    dedupe_keywords,
+    extract_brand_keywords,
+    extract_intent_keywords,
+    extract_item_families,
+    extract_style_descriptors,
+    matches_brand_keyword,
+    matches_intent_keyword,
+    matches_item_family,
+    matches_style_descriptor,
+)
 from src.services.vision_outfit_analyzer import (
     VisionAnalyzerUnavailableError,
     VisionOutfitAnalyzer,
@@ -111,6 +121,15 @@ ITEM_LABEL_BONUS_EXCLUDED_LABELS = {
     "악세서리",
 }
 
+RULE_REFINEMENT_GENERIC_LABELS = {
+    "top": {"상의", "탑"},
+    "outer": {"아우터"},
+    "bottom": {"팬츠", "바지", "하의"},
+    "shoes": {"신발", "슈즈"},
+    "bag": {"가방"},
+    "accessory": {"악세서리", "액세서리"},
+}
+
 RECOMMENDATION_CATEGORY_ORDER = ("top", "outer", "bottom", "shoes", "bag", "accessory")
 
 
@@ -174,6 +193,19 @@ def resolve_detected_items(
                         categories=correction_categories,
                     )
                 )
+
+    if detected_items:
+        try:
+            rule_detected_items = rule_predictor(content)
+        except Exception:
+            rule_detected_items = []
+        if rule_detected_items:
+            detected_items = tuple(
+                apply_same_category_rule_refinements(
+                    base_items=detected_items,
+                    rule_items=rule_detected_items,
+                )
+            )
 
     return tuple(_sort_detected_items_for_display(detected_items)), analysis_source, None
 
@@ -478,6 +510,7 @@ class InMemoryStore:
             )
             item_label_bonus = self._compute_item_label_bonus(
                 product_name=item.product_name,
+                category_query=upload.analysis.category_query_hints.get(item.category, ""),
                 target_item_label=target_item_label,
                 target_intent_keywords=target_intent_keywords,
             )
@@ -562,21 +595,48 @@ class InMemoryStore:
     def _compute_item_label_bonus(
         self,
         product_name: str,
+        category_query: str,
         target_item_label: str,
         target_intent_keywords: list[str],
     ) -> float:
         normalized_target = target_item_label.strip()
+        base_bonus = self.recommendation_scoring.item_label_match_bonus
         if not normalized_target or normalized_target in ITEM_LABEL_BONUS_EXCLUDED_LABELS:
             normalized_target = ""
         if normalized_target and normalized_target in product_name:
-            return self.recommendation_scoring.item_label_match_bonus
+            return base_bonus
+        if normalized_target:
+            search_text = " ".join(part for part in (category_query, normalized_target) if part).strip()
+            target_families = extract_item_families(search_text)
+            matched_families = [
+                family for family in target_families if matches_item_family(product_name, family)
+            ]
+            matched_descriptors = [
+                descriptor
+                for descriptor in extract_style_descriptors(category_query)
+                if matches_style_descriptor(product_name, descriptor)
+            ]
+            matched_brands = [
+                brand for brand in extract_brand_keywords(category_query) if matches_brand_keyword(product_name, brand)
+            ]
+            if matched_families:
+                family_bonus = base_bonus * 0.7
+                descriptor_bonus = 0.0
+                brand_bonus = 0.0
+                if matched_descriptors:
+                    descriptor_bonus = (base_bonus * 0.3) * (
+                        len(matched_descriptors) / max(1, len(extract_style_descriptors(category_query)))
+                    )
+                if matched_brands:
+                    brand_bonus = base_bonus * 0.2
+                return round(min(base_bonus * 1.2, family_bonus + descriptor_bonus + brand_bonus), 4)
         if target_intent_keywords:
             matched_keywords = [
                 keyword for keyword in target_intent_keywords if matches_intent_keyword(product_name, keyword)
             ]
             if matched_keywords:
                 return round(
-                    self.recommendation_scoring.item_label_match_bonus
+                    base_bonus
                     * (len(matched_keywords) / len(target_intent_keywords)),
                     4,
                 )
@@ -725,6 +785,31 @@ def apply_selective_category_corrections(
     ]
 
 
+def apply_same_category_rule_refinements(
+    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+    rule_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+) -> list[DetectedOutfitItem]:
+    rule_by_category = _first_item_by_category(rule_items)
+    refined: list[DetectedOutfitItem] = []
+
+    for item in base_items:
+        rule_item = rule_by_category.get(item.category)
+        if rule_item is None or not _should_replace_with_rule_item(base_item=item, rule_item=rule_item):
+            refined.append(item)
+            continue
+        refined.append(
+            DetectedOutfitItem(
+                category=item.category,
+                color=rule_item.color if item.color in {"unknown", "neutral"} else item.color,
+                item_label=rule_item.item_label,
+                query=rule_item.query,
+                brand=item.brand or rule_item.brand,
+            )
+        )
+
+    return refined
+
+
 def _filter_accessory_correction_items(
     base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
     correction_items: list[DetectedOutfitItem],
@@ -742,6 +827,22 @@ def _filter_accessory_correction_items(
         kept_items.extend(new_items)
 
     return kept_items
+
+
+def _should_replace_with_rule_item(base_item: DetectedOutfitItem, rule_item: DetectedOutfitItem) -> bool:
+    if base_item.category != rule_item.category:
+        return False
+
+    generic_labels = RULE_REFINEMENT_GENERIC_LABELS.get(base_item.category, set())
+    normalized_base_label = base_item.item_label.strip()
+    normalized_rule_label = rule_item.item_label.strip()
+    if normalized_base_label not in generic_labels:
+        return False
+    if not normalized_rule_label or normalized_rule_label in generic_labels:
+        return False
+    if normalized_base_label == normalized_rule_label and base_item.query.strip():
+        return False
+    return True
 
 
 def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> dict[str, DetectedOutfitItem]:

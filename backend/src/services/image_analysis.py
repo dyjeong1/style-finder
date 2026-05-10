@@ -126,7 +126,7 @@ OUTFIT_QUERY_REGIONS = {
     "top": (0.12, 0.02, 0.82, 0.46),
     "bottom": (0.18, 0.36, 0.62, 0.94),
     "outer": (0.22, 0.02, 0.70, 0.38),
-    "shoes": (0.00, 0.66, 0.30, 0.98),
+    "shoes": (0.12, 0.66, 0.78, 0.98),
     "bag": (0.50, 0.38, 0.98, 0.82),
     "accessory": (0.62, 0.00, 1.00, 0.36),
 }
@@ -812,13 +812,15 @@ def _category_component_score(component: ForegroundComponent, category: str) -> 
             return 0.0
         if component.width_ratio < 0.08 or component.area_ratio < 0.01:
             return 0.0
-        if component.top_ratio < 0.3:
+        if component.top_ratio < 0.18:
+            return 0.0
+        if component.center_y > 0.82 and component.height_ratio <= 0.22:
             return 0.0
         if component.bottom_ratio >= 0.98 and component.top_ratio >= 0.7:
             return 0.0
-        if component.center_x >= 0.68:
+        if component.center_x >= 0.68 or component.center_x <= 0.36:
             score += 0.35
-        if 0.35 <= component.center_y <= 0.76:
+        if 0.28 <= component.center_y <= 0.82:
             score += 0.2
         if 0.015 <= component.area_ratio <= 0.14:
             score += 0.1
@@ -904,8 +906,10 @@ def _component_matches_subject_bounds(
         return (
             component.bottom_ratio >= top + 0.12
             and component.top_ratio <= bottom
-            and component.left_ratio <= right + 0.1
-            and component.center_x >= right - 0.1
+            and (
+                (component.left_ratio <= right + 0.1 and component.center_x >= right - 0.1)
+                or (component.right_ratio >= left - 0.18 and component.center_x <= left + 0.12)
+            )
         )
 
     return True
