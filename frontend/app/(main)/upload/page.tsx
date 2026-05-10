@@ -311,6 +311,7 @@ export default function UploadPage() {
   const elapsedMinutes = Math.floor(uploadElapsedMs / 60_000);
   const elapsedSeconds = Math.floor((uploadElapsedMs % 60_000) / 1000);
   const uploadElapsedLabel = `분석 진행 시간 : ${elapsedMinutes}분 ${elapsedSeconds}초`;
+  const uploadInstruction = isDragActive ? "이미지를 이곳에 놓아주세요." : "이미지를 이곳으로 드래그하거나 클릭해서 업로드해주세요.";
 
   return (
     <section className="split-grid upload-reference-grid" aria-label="코디 이미지 업로드">
@@ -318,7 +319,7 @@ export default function UploadPage() {
         <div className="upload-stage-card">
           <div className="upload-stage-frame">
             <div className="upload-stage-copy">
-              <p className="lead page-lead">이미지를 넣으면 유사한 상품을 추천해드립니다.</p>
+              <h1>이미지로 상품 찾기</h1>
             </div>
             <div
               className={`upload-stage-unified-zone${isDragActive ? " is-drag-active" : ""}${filePreviewUrl ? " has-preview" : ""}`}
@@ -343,8 +344,22 @@ export default function UploadPage() {
               }}
             >
               <div className="upload-stage-unified-copy">
-                <strong>{fileName || "코디 이미지 업로드"}</strong>
-                <span>{isDragActive ? "여기에 이미지를 놓아주세요" : "클릭하거나 이미지를 끌어다 놓아 주세요."}</span>
+                {!filePreviewUrl ? (
+                  <span className="upload-stage-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path
+                        d="M9 5.5 10.2 4h3.6L15 5.5H19A2.5 2.5 0 0 1 21.5 8v8A2.5 2.5 0 0 1 19 18.5H5A2.5 2.5 0 0 1 2.5 16V8A2.5 2.5 0 0 1 5 5.5h4Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                    </svg>
+                  </span>
+                ) : null}
+                {filePreviewUrl ? <strong>{fileName}</strong> : null}
+                <span>{filePreviewUrl ? "선택한 이미지를 다시 클릭하면 다른 파일로 바꿀 수 있습니다." : uploadInstruction}</span>
                 <small>허용 이미지: PNG, JPG, JPEG, WEBP</small>
               </div>
               {filePreviewUrl ? (
@@ -386,8 +401,8 @@ export default function UploadPage() {
           <button type="button" className="upload-primary-button" onClick={handleUpload} disabled={uploading || !selectedFile} aria-busy={uploading}>
             {uploading ? "이미지 분석 중..." : "이미지 분석하기"}
           </button>
-          {uploading ? <p className="upload-progress-text">{uploadElapsedLabel}</p> : null}
         </div>
+        {uploading ? <p className="upload-progress-text">{uploadElapsedLabel}</p> : null}
         {analysis ? (
           <div className="analysis-panel upload-inline-analysis">
             <div className="panel-title-row">

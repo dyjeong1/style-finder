@@ -6,7 +6,7 @@ priority: P1
 created_at: 2026-05-10
 updated_at: 2026-05-10
 related:
-  tasks: [TSK-0001-화이트모드문서형리디자인, TSK-0002-GNB전폭정렬]
+  tasks: [TSK-0001-화이트모드문서형리디자인, TSK-0002-GNB전폭정렬, TSK-0003-업로드레퍼런스형보정]
 tags: [frontend, design, white-mode, shadcn]
 ---
 
@@ -49,3 +49,4 @@ tags: [frontend, design, white-mode, shadcn]
 - 2026-05-10: PLAN 생성
 - 2026-05-10: 화이트 모드 토큰, 공통 셸, 핵심 화면 스타일 리디자인 완료
 - 2026-05-10: GNB가 본문 컨테이너 폭에 같이 묶여 보이던 문제를 분리하고 헤더 전폭 정렬 보정
+- 2026-05-10: 업로드 메인 카드를 참고 이미지에 맞춰 중앙 타이틀, 카메라 아이콘, 큰 pill 버튼 구조로 보정
