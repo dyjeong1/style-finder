@@ -698,7 +698,8 @@ button:disabled {
 
 .upload-stage-instruction,
 .upload-stage-unified-copy span {
-  max-width: 16ch;
+  width: min(300px, 100%);
+  max-width: 300px;
   color: #3f3f46;
   font-size: 18px;
   font-weight: 500;
