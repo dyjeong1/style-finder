@@ -7,7 +7,7 @@ created_at: 2026-05-10
 updated_at: 2026-05-10
 related:
   plan: [PLAN-20260510-화이트모드문서형리디자인]
-  tasks: [TSK-0001-화이트모드문서형리디자인]
+  tasks: [TSK-0001-화이트모드문서형리디자인, TSK-0002-GNB전폭정렬]
 tags: [frontend, white-mode, layout]
 ---
 
@@ -28,6 +28,7 @@ shadcn 설치 문서 페이지처럼 밝고 정돈된 제품 문서형 인상을
 - `frontend/app/globals.css`에서 화이트 모드 토큰과 공통 컴포넌트 스타일을 재정의합니다.
 - `frontend/components/app-shell.tsx`는 기존 구조를 유지하되 새 전역 스타일에 맞게 상단 셸이 동작하도록 둡니다.
 - 업로드/추천/위시리스트는 기존 JSX를 최대한 유지하면서 레이아웃과 시각 위계만 전환합니다.
+- GNB는 본문 `max-width` 제약과 분리해 상단 헤더 선과 배경이 전폭으로 보이도록 유지합니다.
 
 ## 5. 수용 기준
 - [x] 전역 화면 톤이 화이트 모드 기준으로 전환됨
