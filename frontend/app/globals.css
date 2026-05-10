@@ -769,7 +769,8 @@ button:disabled {
 }
 
 .upload-stage-loading span:last-child {
-  max-width: 30ch;
+  width: min(420px, 100%);
+  max-width: 420px;
   color: rgba(255, 255, 255, 0.8);
 }
 
