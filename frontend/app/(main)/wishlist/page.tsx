@@ -145,8 +145,10 @@ export default function WishlistPage() {
             <option value="name_asc">이름순</option>
           </select>
         </label>
-        <button type="button" className="ghost-button" onClick={() => void loadWishlist()}>
-          새로고침
+        <button type="button" className="ghost-button icon-only-button" onClick={() => void loadWishlist()} aria-label="새로고침">
+          <span aria-hidden="true" className="refresh-icon">
+            ↻
+          </span>
         </button>
       </div>
       <div className="status-region" aria-live="polite" aria-atomic="true">

@@ -597,8 +597,10 @@ function RecommendationPageContent() {
           <p className="hint-text">비워두면 현재 업로드의 분석 결과로 검색어를 자동 생성합니다.</p>
         )}
         <div className="action-row">
-          <button type="button" className="ghost-button" onClick={() => void loadRecommendations()}>
-            새로고침
+          <button type="button" className="ghost-button icon-only-button" onClick={() => void loadRecommendations()} aria-label="새로고침">
+            <span aria-hidden="true" className="refresh-icon">
+              ↻
+            </span>
           </button>
           <button type="button" className="ghost-button" onClick={resetFilters}>
             필터 초기화
