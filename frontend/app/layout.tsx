@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
-import { Fraunces, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
-const headingFont = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-heading",
-});
-
-const bodyFont = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
 export const metadata: Metadata = {
-  title: "StyleMatch Frontend MVP",
-  description: "Frontend scaffold for StyleMatch private service",
+  title: "스타일매치",
+  description: "코디 이미지를 기반으로 유사한 상품을 추천하는 스타일매치 서비스",
 };
 
 export default function RootLayout({
@@ -24,7 +13,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body className={`${headingFont.variable} ${bodyFont.variable}`}>
+      <body>
         <AppShell>{children}</AppShell>
       </body>
     </html>

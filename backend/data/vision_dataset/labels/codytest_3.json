@@ -1,0 +1,48 @@
+{
+  "sample_id": "codytest_3",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "white",
+      "item_label": "탑",
+      "notes": "화이트 이너 탑"
+    },
+    {
+      "category": "outer",
+      "color": "blue",
+      "item_label": "가디건",
+      "notes": "소라색 니트 가디건"
+    },
+    {
+      "category": "bottom",
+      "color": "brown",
+      "item_label": "팬츠",
+      "notes": "브라운 와이드 팬츠"
+    },
+    {
+      "category": "shoes",
+      "color": "white",
+      "item_label": "스니커즈",
+      "notes": "화이트 스니커즈"
+    },
+    {
+      "category": "bag",
+      "color": "brown",
+      "item_label": "숄더백",
+      "notes": "브라운 스웨이드 숄더백"
+    },
+    {
+      "category": "accessory",
+      "color": "gray",
+      "item_label": "목걸이",
+      "notes": "실버 목걸이"
+    },
+    {
+      "category": "accessory",
+      "color": "gray",
+      "item_label": "팔찌",
+      "notes": "실버 팔찌"
+    }
+  ]
+}

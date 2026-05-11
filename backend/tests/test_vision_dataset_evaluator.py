@@ -1,0 +1,270 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import hashlib
+from datetime import datetime, timezone
+
+from PIL import Image
+
+from scripts.compare_vision_predictors import build_comparison_report_payload, build_runtime_predictor
+from scripts.generate_openai_vision_report import build_report_stem, generate_openai_comparison_artifacts
+from src.services.image_analysis import DetectedOutfitItem
+from src.services.vision_dataset_evaluator import (
+    compare_summaries,
+    evaluate_dataset,
+    format_comparison_text,
+    format_evaluation_text,
+    load_dataset_samples,
+)
+
+
+def _make_dataset(root: Path) -> Path:
+    dataset_root = root / "vision_dataset"
+    images_dir = dataset_root / "images"
+    labels_dir = dataset_root / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir(parents=True)
+
+    image = Image.new("RGB", (32, 32), (255, 255, 255))
+    image.save(images_dir / "sample-001.png")
+
+    (labels_dir / "sample-001.json").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample-001",
+                "source": "test",
+                "items": [
+                    {"category": "top", "color": "white", "item_label": "셔츠"},
+                    {"category": "bottom", "color": "blue", "item_label": "데님 팬츠"},
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return dataset_root
+
+
+def test_evaluate_dataset_calculates_summary(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bag", color="black", item_label="숄더백", query="블랙 숄더백"),
+        ]
+
+    summary = evaluate_dataset(dataset_root, predictor=predictor)
+
+    assert summary.sample_count == 1
+    assert summary.expected_item_count == 2
+    assert summary.predicted_item_count == 2
+    assert summary.matched_item_count == 1
+    assert summary.item_precision == 0.5
+    assert summary.item_recall == 0.5
+    assert summary.exact_match_accuracy == 0.0
+    assert summary.category_recall["top"] == 1.0
+    assert summary.category_recall["bottom"] == 0.0
+    assert summary.samples[0].missing_items == ("bottom:blue:데님 팬츠",)
+    assert summary.samples[0].unexpected_items == ("bag:black:숄더백",)
+
+
+def test_format_evaluation_text_contains_summary_and_sample_lines(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")]
+
+    summary = evaluate_dataset(dataset_root, predictor=predictor)
+    text = format_evaluation_text(summary)
+
+    assert "비전 데이터셋 평가 결과" in text
+    assert "- 샘플 수: 1" in text
+    assert "sample-001" in text
+    assert "missing: bottom:blue:데님 팬츠" in text
+
+
+def test_compare_summaries_reports_improvement(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def baseline_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")]
+
+    def candidate_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+        ]
+
+    baseline = evaluate_dataset(dataset_root, predictor=baseline_predictor)
+    candidate = evaluate_dataset(dataset_root, predictor=candidate_predictor)
+    comparison = compare_summaries("rule", baseline, "gemini", candidate)
+    text = format_comparison_text(comparison)
+
+    assert comparison.precision_delta == 0.0
+    assert comparison.recall_delta == 0.5
+    assert comparison.improved_samples == ("sample-001",)
+    assert "비전 분석기 비교 결과" in text
+    assert "기준 분석기: rule" in text
+    assert "비교 분석기: gemini" in text
+
+
+def test_load_dataset_samples_supports_sample_ids_offset_and_limit(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    labels_dir = dataset_root / "labels"
+    images_dir = dataset_root / "images"
+
+    image = Image.new("RGB", (32, 32), (0, 0, 0))
+    image.save(images_dir / "sample-002.png")
+    (labels_dir / "sample-002.json").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample-002",
+                "source": "test",
+                "items": [{"category": "bag", "color": "black", "item_label": "숄더백"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    filtered = load_dataset_samples(dataset_root, sample_ids=("sample-002",))
+    assert [sample.sample_id for sample in filtered] == ["sample-002"]
+
+    windowed = load_dataset_samples(dataset_root, offset=1, limit=1)
+    assert [sample.sample_id for sample in windowed] == ["sample-002"]
+
+
+def test_build_runtime_predictor_uses_cached_primary_and_correction_items(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    image_bytes = (dataset_root / "images" / "sample-001.png").read_bytes()
+    cache_key = hashlib.sha256(image_bytes).hexdigest()
+    cache_dir = dataset_root / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "ollama.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "탑", "query": "화이트 탑"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (cache_dir / "gemini.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "슬리브리스 탑", "query": "화이트 슬리브리스 탑"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    predictor = build_runtime_predictor("runtime-ollama+gemini", dataset_root=dataset_root)
+    detected_items = predictor(image_bytes)
+
+    assert [(item.category, item.query) for item in detected_items] == [
+        ("top", "화이트 슬리브리스 탑"),
+    ]
+
+
+def test_build_report_stem_includes_scope_suffixes() -> None:
+    stem = build_report_stem(
+        baseline_name="rule",
+        candidate_name="openai",
+        sample_ids=("sample-001", "sample-002"),
+        offset=1,
+        limit=3,
+        generated_at=datetime(2026, 5, 3, 10, 15, 30, tzinfo=timezone.utc),
+    )
+
+    assert stem == "openai-vs-rule-20260503-101530-samples-sample-001-sample-002-offset-1-limit-3"
+
+
+def test_build_comparison_report_payload_includes_expected_and_sample_details(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+
+    def baseline_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠")]
+
+    def candidate_predictor(_content: bytes) -> list[DetectedOutfitItem]:
+        return [
+            DetectedOutfitItem(category="top", color="white", item_label="셔츠", query="화이트 셔츠"),
+            DetectedOutfitItem(category="bottom", color="blue", item_label="데님 팬츠", query="블루 데님 팬츠"),
+        ]
+
+    baseline = evaluate_dataset(dataset_root, predictor=baseline_predictor)
+    candidate = evaluate_dataset(dataset_root, predictor=candidate_predictor)
+    comparison = compare_summaries("rule", baseline, "runtime-ollama+gemini", candidate)
+    payload = build_comparison_report_payload(dataset_root, comparison)
+
+    assert payload["baseline_name"] == "rule"
+    assert payload["candidate_name"] == "runtime-ollama+gemini"
+    sample = payload["samples"][0]
+    assert sample["sample_id"] == "sample-001"
+    assert sample["expected_items"] == ["top:white:셔츠", "bottom:blue:데님 팬츠"]
+    assert sample["baseline"]["matched_items"] == ["top:white:셔츠"]
+    assert sample["candidate"]["matched_items"] == ["bottom:blue:데님 팬츠", "top:white:셔츠"]
+
+
+def test_generate_openai_comparison_artifacts_writes_json_and_text_reports(tmp_path: Path) -> None:
+    dataset_root = _make_dataset(tmp_path)
+    image_bytes = (dataset_root / "images" / "sample-001.png").read_bytes()
+    cache_key = hashlib.sha256(image_bytes).hexdigest()
+    cache_dir = dataset_root / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "openai.json").write_text(
+        json.dumps(
+            {
+                cache_key: [
+                    {"category": "top", "color": "white", "item_label": "셔츠", "query": "화이트 셔츠"},
+                    {"category": "bottom", "color": "blue", "item_label": "데님 팬츠", "query": "블루 데님 팬츠"},
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = generate_openai_comparison_artifacts(
+        dataset_root=dataset_root,
+        generated_at=datetime(2026, 5, 3, 10, 15, 30, tzinfo=timezone.utc),
+    )
+
+    json_report_path = Path(payload["json_report_path"])
+    text_report_path = Path(payload["text_report_path"])
+
+    assert json_report_path.exists()
+    assert text_report_path.exists()
+    assert json_report_path.name == "openai-vs-rule-20260503-101530.json"
+    assert text_report_path.name == "openai-vs-rule-20260503-101530.txt"
+
+    report_payload = json.loads(json_report_path.read_text(encoding="utf-8"))
+    text_summary = text_report_path.read_text(encoding="utf-8")
+
+    assert payload["candidate_name"] == "openai"
+    assert report_payload["candidate_name"] == "openai"
+    assert report_payload["candidate"]["item_recall"] == 1.0
+    assert "비전 분석기 비교 결과" in text_summary
+
+
+def test_generate_openai_comparison_artifacts_requires_dataset_files(tmp_path: Path) -> None:
+    empty_root = tmp_path / "empty_dataset"
+    empty_root.mkdir()
+
+    try:
+        generate_openai_comparison_artifacts(dataset_root=empty_root)
+    except FileNotFoundError as exc:
+        assert "정답 라벨 파일" in str(exc)
+    else:
+        raise AssertionError("expected FileNotFoundError for missing dataset files")

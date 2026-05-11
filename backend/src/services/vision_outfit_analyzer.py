@@ -1,0 +1,758 @@
+from __future__ import annotations
+
+import base64
+from dataclasses import dataclass, field
+import json
+import logging
+import socket
+from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
+from src.services.image_analysis import (
+    CATEGORY_QUERY_LABELS,
+    COLOR_QUERY_LABELS,
+    DEFAULT_ITEM_LABELS,
+    DetectedOutfitItem,
+    infer_color_from_text,
+)
+
+
+OPENAI_ALLOWED_CATEGORIES = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+OPENAI_ALLOWED_COLORS = tuple(COLOR_QUERY_LABELS) + ("neutral", "unknown")
+GEMINI_GENERATE_CONTENT_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
+LOCAL_PROVIDER_HOSTS = {"127.0.0.1", "localhost", "::1"}
+LOCAL_PROVIDER_REACHABILITY_TIMEOUT_SECONDS = 0.35
+logger = logging.getLogger(__name__)
+OPENAI_RESPONSE_SCHEMA = {
+    "name": "outfit_analysis",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "category": {"type": "string", "enum": list(OPENAI_ALLOWED_CATEGORIES)},
+                        "color": {"type": "string", "enum": list(OPENAI_ALLOWED_COLORS)},
+                        "item_label": {"type": "string"},
+                        "query": {"type": "string"},
+                        "brand": {"type": "string"},
+                    },
+                    "required": ["category", "color", "item_label", "query"],
+                },
+            }
+        },
+        "required": ["items"],
+    },
+}
+OPENAI_SYSTEM_PROMPT = """당신은 패션 코디 이미지를 분석하는 한국어 스타일 분석기다.
+
+목표:
+- 이미지 안에 실제로 보이는 패션 아이템만 식별한다.
+- 허용 카테고리는 top, outer, bottom, shoes, bag, accessory 뿐이다.
+- 카테고리가 보이지 않으면 절대 추측해서 넣지 않는다.
+- 같은 카테고리에 여러 품목이 보이면 모두 반환할 수 있다. 예: accessory의 안경과 목걸이.
+- 손에 들었거나 어깨에 멘 가방은 프레임 가장자리 쪽에 있어도 bag으로 본다.
+- 배경, 사람의 신체, 휴대폰, 컵, 의자, 테이블, 벽, 거울, 그림자, 텍스트, 스티커는 제외한다.
+- outer와 top이 동시에 보이면 분리한다. 예: 가디건 + 나시.
+- 어깨에 걸친 가디건이나 니트도 outer로 본다.
+- query는 쇼핑 검색에 바로 쓸 수 있는 간결한 한국어 검색어여야 한다.
+- 로고나 브랜드 텍스트가 매우 명확히 보일 때만 brand에 넣고, 불명확하면 빈 문자열로 둔다.
+
+출력 규칙:
+- color는 enum 안에서 가장 가까운 값 하나만 사용한다.
+- item_label은 한국 서비스에서 바로 이해되는 세부 품목명으로 작성한다. 예: `메리제인 슈즈`, `플랫 슈즈`, `로퍼`, `숄더백`.
+- `상의`, `하의`, `가방`, `신발`, `악세서리` 같은 너무 일반적인 표현은 마지막 수단일 때만 쓴다. 가능하면 실제 쇼핑몰 상품명에 바로 들어갈 세부 품목명을 선택한다.
+- top은 `셔츠`, `블라우스`, `티셔츠`, `니트 탑`, `슬리브리스 탑`처럼 고르고, bottom은 `슬랙스`, `데님 팬츠`, `와이드 팬츠`, `미니 스커트`처럼 고른다.
+- shoes는 `메리제인 슈즈`, `플랫 슈즈`, `스니커즈`, `로퍼`, `부츠`, `샌들`, `구두` 중 가장 가까운 것을 고른다.
+- bag은 `숄더백`, `토트백`, `크로스백`, `백팩`, `호보백`, `버킷백`, `클러치`처럼 가능한 한 구체적으로 고른다.
+- `바레즈`, `발레리나즈` 같은 어색한 외래어 음차 표현은 쓰지 않는다.
+- brand는 가능하면 한국 서비스에서 많이 쓰는 표기(`뉴발란스`, `나이키`, `아디다스`)를 사용한다.
+- query는 가능하면 '브랜드 + 색상 + 패턴 + 소재 + 품목명' 순서를 우선 사용하고, 없는 정보만 생략한다.
+- query에는 반드시 상품명 핵심으로 쓰일 강한 품목명 하나를 남긴다. 예: `블랙 슈즈`보다 `블랙 메리제인 슈즈`, `브라운 가방`보다 `브라운 숄더백`.
+- query가 너무 길어질 것 같으면 무드/불필요한 수식어보다 브랜드, 색상, 핵심 디테일, 품목명을 우선 남긴다.
+"""
+GEMINI_SYSTEM_PROMPT = OPENAI_SYSTEM_PROMPT
+
+ITEM_LABEL_NORMALIZATION_RULES = {
+    "top": (
+        (("슬리브리스", "나시", "탱크"), "슬리브리스 탑"),
+        (("스트라이프", "니트"), "스트라이프 니트 탑"),
+        (("스트라이프", "스웨터"), "스트라이프 니트 탑"),
+        (("골지 상의", "골지 탑", "이너 탑", "이너웨어"), "탑"),
+        (("이너",), "탑"),
+        (("상의",), "탑"),
+        (("블라우스",), "블라우스"),
+        (("셔츠",), "셔츠"),
+        (("티셔츠", "티 ", "tee"), "티셔츠"),
+        (("스웨터",), "니트 탑"),
+        (("니트",), "니트 탑"),
+    ),
+    "outer": (
+        (("가디건",), "가디건"),
+        (("니트 조끼", "브이넥 니트 조끼"), "니트 베스트"),
+        (("니트 베스트",), "니트 베스트"),
+        (("베스트",), "베스트"),
+        (("레더", "가죽", "라이더"), "레더 자켓"),
+        (("재킷",), "자켓"),
+        (("블레이저", "자켓"), "자켓"),
+        (("점퍼", "블루종", "집업"), "점퍼"),
+        (("민소매 원피스", "점프수트"), "원피스"),
+        (("원피스",), "원피스"),
+        (("코트",), "코트"),
+    ),
+    "bottom": (
+        (("도트", "미니", "스커트"), "미니 스커트"),
+        (("플리츠", "스커트"), "플리츠 스커트"),
+        (("레이스", "스커트"), "레이스 스커트"),
+        (("미니", "스커트"), "미니 스커트"),
+        (("스커트",), "스커트"),
+        (("와이드", "청바지"), "와이드 데님 팬츠"),
+        (("와이드", "데님"), "와이드 데님 팬츠"),
+        (("청바지",), "데님 팬츠"),
+        (("데님",), "데님 팬츠"),
+        (("슬랙스",), "슬랙스"),
+        (("와이드", "팬츠"), "와이드 팬츠"),
+        (("팬츠",), "팬츠"),
+    ),
+    "shoes": (
+        (("메리제인",), "메리제인 슈즈"),
+        (("플랫슈즈", "플랫 슈즈", "플랫", "발레리나", "발레 슈즈", "발레 플랫", "바레즈", "ballerina", "ballet flat", "ballet flats"), "플랫 슈즈"),
+        (("로퍼",), "로퍼"),
+        (("부츠",), "부츠"),
+        (("운동화",), "스니커즈"),
+        (("스니커",), "스니커즈"),
+        (("구두",), "구두"),
+    ),
+    "bag": (
+        (("숄더",), "숄더백"),
+        (("크로스",), "크로스백"),
+        (("토트",), "토트백"),
+        (("백팩",), "백팩"),
+        (("가방",), "가방"),
+    ),
+    "accessory": (
+        (("선글라스",), "안경"),
+        (("안경테",), "안경"),
+        (("아이웨어",), "안경"),
+        (("안경",), "안경"),
+        (("목걸이", "네크리스"), "목걸이"),
+        (("귀걸이", "이어링"), "귀걸이"),
+        (("체인 팔찌",), "팔찌"),
+        (("팔찌", "브레이슬릿"), "팔찌"),
+        (("반지", "링"), "반지"),
+        (("머플러", "스카프"), "머플러"),
+        (("모자", "캡", "비니", "버킷", "베레모"), "모자"),
+        (("머리끈", "스크런치", "헤어밴드", "리본"), "머리끈"),
+        (("양말", "삭스"), "양말"),
+        (("벨트",), "벨트"),
+    ),
+}
+ALL_KEYWORD_NORMALIZATION_LABELS = {
+    "스트라이프 니트 탑",
+    "도트 미니 스커트",
+    "플리츠 스커트",
+    "레이스 스커트",
+    "미니 스커트",
+    "와이드 데님 팬츠",
+    "와이드 팬츠",
+}
+BRAND_NORMALIZATION_RULES = (
+    ("뉴발란스", ("뉴발란스", "new balance", "newbalance")),
+    ("나이키", ("나이키", "nike")),
+    ("아디다스", ("아디다스", "adidas")),
+    ("컨버스", ("컨버스", "converse")),
+    ("반스", ("반스", "vans")),
+    ("아식스", ("아식스", "asics")),
+    ("푸마", ("푸마", "puma")),
+    ("리복", ("리복", "reebok")),
+    ("살로몬", ("살로몬", "salomon")),
+    ("크록스", ("크록스", "crocs")),
+    ("닥터마틴", ("닥터마틴", "dr. martens", "dr martens", "doc martens")),
+)
+QUERY_DESCRIPTOR_RULES = (
+    ("material", "가죽", ("레더", "가죽", "라이더", "leather")),
+    ("material", "스웨이드", ("스웨이드", "suede")),
+    ("material", "데님", ("데님", "청바지", "흑청", "denim")),
+    ("material", "실크", ("실크", "silk")),
+    ("material", "새틴", ("새틴", "사틴", "satin")),
+    ("material", "쉬폰", ("쉬폰", "chiffon")),
+    ("material", "트위드", ("트위드", "tweed")),
+    ("material", "벨벳", ("벨벳", "벨루어", "velvet", "velour")),
+    ("material", "린넨", ("린넨", "linen")),
+    ("material", "코튼", ("코튼", "cotton")),
+    ("material", "코듀로이", ("코듀로이", "corduroy")),
+    ("material", "울", ("울", "울혼방", "wool")),
+    ("material", "니트", ("니트", "knit")),
+    ("material", "퍼", ("퍼", "페이크 퍼", "퍼 소재", "fur", "faux fur")),
+    ("pattern", "스트라이프", ("스트라이프", "stripe", "striped")),
+    ("pattern", "도트", ("도트", "dot", "dots", "polka")),
+    ("pattern", "플리츠", ("플리츠", "pleats", "pleated")),
+    ("pattern", "레이스", ("레이스", "lace", "lacy")),
+    ("pattern", "체크", ("체크", "check", "checked", "plaid", "타탄")),
+    ("pattern", "플라워", ("플라워", "플로럴", "floral", "꽃무늬")),
+    ("pattern", "퀼팅", ("퀼팅", "퀼티드", "quilted")),
+    ("pattern", "민무늬", ("민무늬", "무지", "솔리드", "solid", "plain")),
+    ("detail", "브이넥", ("브이넥", "v넥", "v-neck")),
+    ("detail", "골지", ("골지", "ribbed")),
+    ("detail", "앙고라", ("앙고라", "angora")),
+    ("detail", "크롭", ("크롭", "crop", "cropped")),
+    ("detail", "오버핏", ("오버핏", "overfit", "oversized")),
+    ("detail", "와이드", ("와이드", "wide")),
+    ("detail", "미니", ("미니", "mini")),
+    ("detail", "플랫", ("플랫", "flat")),
+    ("detail", "체인", ("체인", "chain")),
+)
+QUERY_DESCRIPTOR_ORDER = {
+    "top": ("스트라이프", "체크", "플라워", "레이스", "민무늬", "실크", "새틴", "쉬폰", "트위드", "벨벳", "니트", "코튼", "린넨", "코듀로이", "앙고라", "브이넥", "골지", "크롭", "오버핏"),
+    "outer": ("스트라이프", "체크", "민무늬", "가죽", "스웨이드", "트위드", "울", "데님", "니트", "벨벳", "코듀로이", "퍼", "크롭", "오버핏"),
+    "bottom": ("도트", "플리츠", "레이스", "체크", "플라워", "민무늬", "데님", "실크", "새틴", "쉬폰", "트위드", "린넨", "벨벳", "코듀로이", "와이드", "미니"),
+    "shoes": ("스트라이프", "체크", "민무늬", "가죽", "스웨이드", "니트", "플랫"),
+    "bag": ("체크", "스트라이프", "퀼팅", "민무늬", "가죽", "스웨이드", "트위드", "데님", "실크", "벨벳", "체인", "미니"),
+    "accessory": ("메탈", "뿔테", "무테", "진주", "링", "드롭", "체인"),
+}
+SUPPORTED_ACCESSORY_FAMILIES = {"안경", "목걸이", "귀걸이", "팔찌", "반지", "머플러", "모자", "머리끈", "양말", "벨트"}
+
+
+@dataclass(frozen=True)
+class VisionOutfitAnalyzerConfig:
+    enabled: bool = False
+    provider: str = "disabled"
+    model_name: str = ""
+    max_image_bytes: int = 2_000_000
+    timeout_seconds: float = 20.0
+    api_base_url: str = ""
+    api_key: str | None = None
+
+
+class VisionAnalyzerUnavailableError(RuntimeError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass
+class VisionOutfitAnalyzer:
+    config: VisionOutfitAnalyzerConfig
+    mock_items: tuple[DetectedOutfitItem, ...] = field(default_factory=tuple)
+
+    def analyze(self, content: bytes) -> list[DetectedOutfitItem]:
+        try:
+            return self.analyze_or_raise(content)
+        except Exception as exc:
+            provider = (self.config.provider or "disabled").lower()
+            provider_label = "Vision"
+            if provider == "openai":
+                provider_label = "OpenAI Vision"
+            elif provider == "gemini":
+                provider_label = "Gemini Vision"
+            elif provider == "ollama":
+                provider_label = "Ollama Vision"
+            logger.warning("%s provider fallback: %s", provider_label, summarize_provider_error(exc))
+            return []
+
+    def analyze_or_raise(self, content: bytes) -> list[DetectedOutfitItem]:
+        if not self.config.enabled:
+            raise VisionAnalyzerUnavailableError("vision_disabled")
+        if not content:
+            raise VisionAnalyzerUnavailableError("missing_content")
+        if len(content) > self.config.max_image_bytes:
+            raise VisionAnalyzerUnavailableError("image_too_large")
+
+        provider = (self.config.provider or "disabled").lower()
+        if provider == "mock":
+            return list(self.mock_items)
+        if provider == "openai":
+            return self._analyze_with_openai(content)
+        if provider == "gemini":
+            return self._analyze_with_gemini(content)
+        if provider == "ollama":
+            return self._analyze_with_ollama(content)
+
+        raise VisionAnalyzerUnavailableError("unsupported_provider")
+
+    def coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
+        return self._coerce_detected_items(parsed_payload)
+
+    def _analyze_with_openai(self, content: bytes) -> list[DetectedOutfitItem]:
+        if not self.config.api_key:
+            raise VisionAnalyzerUnavailableError("missing_api_key")
+
+        payload = {
+            "model": self.config.model_name or "gpt-4o",
+            "input": [
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": OPENAI_SYSTEM_PROMPT,
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": "이미지를 분석해 지정된 JSON schema에 맞는 착장 품목만 반환해줘.",
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": self._build_data_url(content),
+                        },
+                    ],
+                },
+            ],
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": OPENAI_RESPONSE_SCHEMA["name"],
+                    "strict": OPENAI_RESPONSE_SCHEMA["strict"],
+                    "schema": OPENAI_RESPONSE_SCHEMA["schema"],
+                }
+            },
+        }
+        response_payload = self._post_json(
+            url=self.config.api_base_url or "https://api.openai.com/v1/responses",
+            payload=payload,
+            headers={
+                "Authorization": f"Bearer {self.config.api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        parsed_payload = self._extract_response_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
+    def _analyze_with_gemini(self, content: bytes) -> list[DetectedOutfitItem]:
+        if not self.config.api_key:
+            raise VisionAnalyzerUnavailableError("missing_api_key")
+
+        model_name = self.config.model_name or "gemini-2.5-flash"
+        url = self.config.api_base_url or GEMINI_GENERATE_CONTENT_URL.format(model=model_name)
+        payload = {
+            "system_instruction": {"parts": [{"text": GEMINI_SYSTEM_PROMPT}]},
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": "이미지를 분석해 지정된 JSON schema에 맞는 착장 품목만 반환해줘."},
+                        {
+                            "inline_data": {
+                                "mime_type": guess_mime_type(content),
+                                "data": base64.b64encode(content).decode("ascii"),
+                            }
+                        },
+                    ],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseJsonSchema": OPENAI_RESPONSE_SCHEMA["schema"],
+            },
+        }
+        response_payload = self._post_json(
+            url=f"{url}?key={self.config.api_key}",
+            payload=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        parsed_payload = self._extract_gemini_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
+    def _analyze_with_ollama(self, content: bytes) -> list[DetectedOutfitItem]:
+        model_name = self.config.model_name or "qwen2.5vl:7b"
+        url = self.config.api_base_url or OLLAMA_CHAT_URL
+        ensure_local_provider_reachable(url)
+        payload = {
+            "model": model_name,
+            "stream": False,
+            "format": OPENAI_RESPONSE_SCHEMA["schema"],
+            "options": {"temperature": 0},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": OPENAI_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": "이미지를 분석해 지정된 JSON schema에 맞는 착장 품목만 반환해줘.",
+                    "images": [base64.b64encode(content).decode("ascii")],
+                },
+            ],
+        }
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+
+        response_payload = self._post_json(
+            url=url,
+            payload=payload,
+            headers=headers,
+        )
+        parsed_payload = self._extract_ollama_payload(response_payload)
+        return self._coerce_detected_items(parsed_payload)
+
+    def _post_json(self, url: str, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
+        request = Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=self.config.timeout_seconds) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            raise VisionAnalyzerUnavailableError("provider_http_error") from exc
+        except TimeoutError as exc:
+            raise VisionAnalyzerUnavailableError("provider_timeout") from exc
+        except URLError as exc:
+            raise VisionAnalyzerUnavailableError("provider_unreachable") from exc
+
+    def _extract_response_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(response_payload.get("output_text"), str):
+            return json.loads(response_payload["output_text"])
+
+        for output_item in response_payload.get("output", []):
+            for content_item in output_item.get("content", []):
+                if isinstance(content_item.get("parsed"), dict):
+                    return content_item["parsed"]
+                if isinstance(content_item.get("json"), dict):
+                    return content_item["json"]
+                text_value = content_item.get("text")
+                if isinstance(text_value, str) and text_value.strip():
+                    return json.loads(text_value)
+
+        raise ValueError("OpenAI response did not contain structured JSON output")
+
+    def _extract_gemini_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
+        for candidate in response_payload.get("candidates", []):
+            content = candidate.get("content", {})
+            for part in content.get("parts", []):
+                text_value = part.get("text")
+                if isinstance(text_value, str) and text_value.strip():
+                    return json.loads(text_value)
+
+        raise ValueError("Gemini response did not contain structured JSON output")
+
+    def _extract_ollama_payload(self, response_payload: dict[str, Any]) -> dict[str, Any]:
+        message = response_payload.get("message", {})
+        text_value = message.get("content")
+        if isinstance(text_value, str) and text_value.strip():
+            return json.loads(text_value)
+        raise ValueError("Ollama response did not contain structured JSON output")
+
+    def _coerce_detected_items(self, parsed_payload: dict[str, Any]) -> list[DetectedOutfitItem]:
+        raw_items = parsed_payload.get("items", [])
+        if not isinstance(raw_items, list):
+            return []
+
+        normalized_items: list[DetectedOutfitItem] = []
+        seen: set[tuple[str, str, str, str]] = set()
+
+        for raw_item in raw_items:
+            if not isinstance(raw_item, dict):
+                continue
+
+            category = str(raw_item.get("category", "")).strip().lower()
+            if category not in OPENAI_ALLOWED_CATEGORIES:
+                continue
+
+            color = str(raw_item.get("color", "unknown")).strip().lower()
+            if color not in OPENAI_ALLOWED_COLORS:
+                color = "unknown"
+
+            item_label = str(raw_item.get("item_label", "")).strip()
+            if not item_label:
+                item_label = DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
+
+            query = str(raw_item.get("query", "")).strip()
+            brand = _normalize_brand_name(str(raw_item.get("brand", "")).strip())
+            color = _normalize_item_color(category=category, color=color, item_label=item_label, query=query)
+            item_label = _normalize_item_label(category=category, color=color, item_label=item_label, query=query)
+            category = _normalize_item_category(category=category, item_label=item_label, query=query)
+            if category == "accessory" and not _is_supported_accessory_item(item_label):
+                continue
+            brand = _extract_query_brand(brand_hint=brand, item_label=item_label, query_hint=query)
+            query = build_item_query(category=category, color=color, item_label=item_label, query_hint=query, brand_hint=brand)
+            normalized = DetectedOutfitItem(
+                category=category,
+                color=color,
+                item_label=item_label,
+                query=query,
+                brand=brand,
+            )
+            dedupe_key = (normalized.category, normalized.color, normalized.item_label, normalized.query)
+            if dedupe_key in seen:
+                continue
+
+            seen.add(dedupe_key)
+            normalized_items.append(normalized)
+
+        return normalized_items
+
+    def _build_data_url(self, content: bytes) -> str:
+        mime_type = guess_mime_type(content)
+        encoded = base64.b64encode(content).decode("ascii")
+        return f"data:{mime_type};base64,{encoded}"
+
+
+def ensure_local_provider_reachable(url: str, timeout_seconds: float = LOCAL_PROVIDER_REACHABILITY_TIMEOUT_SECONDS) -> None:
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").strip().lower()
+    if hostname not in LOCAL_PROVIDER_HOSTS:
+        return
+
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        connection = socket.create_connection((parsed.hostname or hostname, port), timeout=timeout_seconds)
+    except OSError as exc:
+        raise VisionAnalyzerUnavailableError("provider_unreachable") from exc
+
+    connection.close()
+
+
+def build_item_query(category: str, color: str, item_label: str, query_hint: str = "", brand_hint: str = "") -> str:
+    color_prefix = COLOR_QUERY_LABELS.get(color, "")
+    category_label = CATEGORY_QUERY_LABELS.get(category, category)
+    normalized_label = item_label.strip() or category_label
+    if category == "accessory":
+        family = _item_family(normalized_label)
+        if family in {"목걸이", "귀걸이", "팔찌", "반지"}:
+            if color == "gray":
+                color_prefix = "실버"
+            elif color == "yellow":
+                color_prefix = "골드"
+    brand_prefix = _extract_query_brand(brand_hint=brand_hint, item_label=normalized_label, query_hint=query_hint)
+    descriptors = _extract_query_descriptors(category, normalized_label, query_hint)
+    query_parts: list[str] = []
+    if brand_prefix and brand_prefix not in normalized_label:
+        query_parts.append(brand_prefix)
+    if color_prefix and color_prefix not in normalized_label:
+        query_parts.append(color_prefix)
+    query_parts.extend(descriptors)
+    query_parts.append(normalized_label)
+    return " ".join(_dedupe_preserve_order(query_parts)).strip()
+
+
+def _item_family(item_label: str) -> str:
+    label = item_label.strip()
+    for family in (
+        "가디건",
+        "니트 베스트",
+        "베스트",
+        "자켓",
+        "레더 자켓",
+        "점퍼",
+        "원피스",
+        "슬리브리스 탑",
+        "블라우스",
+        "셔츠",
+        "티셔츠",
+        "니트 탑",
+        "탑",
+        "와이드 데님 팬츠",
+        "데님 팬츠",
+        "와이드 팬츠",
+        "팬츠",
+        "바지",
+        "슬랙스",
+        "스커트",
+        "도트 미니 스커트",
+        "플리츠 스커트",
+        "레이스 스커트",
+        "미니 스커트",
+        "메리제인 슈즈",
+        "플랫 슈즈",
+        "스니커즈",
+        "로퍼",
+        "부츠",
+        "숄더백",
+        "크로스백",
+        "토트백",
+        "가방",
+        "안경",
+        "목걸이",
+        "귀걸이",
+        "머리끈",
+        "양말",
+        "벨트",
+        "모자",
+        "머플러",
+    ):
+        if family in label:
+            return family
+    return label
+
+
+def _normalize_item_color(category: str, color: str, item_label: str, query: str) -> str:
+    combined_text = " ".join(part for part in (item_label, query) if part).strip()
+    inferred_color = infer_color_from_text(combined_text)
+    if inferred_color != "unknown":
+        return inferred_color
+    if category == "accessory":
+        if color in {"unknown", "neutral"}:
+            if any(keyword in combined_text for keyword in ("진주", "펄", "pearl")):
+                return "white"
+            if any(keyword in combined_text for keyword in ("실버", "은", "실버톤", "메탈")):
+                return "gray"
+            if any(keyword in combined_text for keyword in ("골드", "금", "골드톤")):
+                return "yellow"
+            if any(keyword in combined_text for keyword in ("목걸이", "네크리스", "귀걸이", "이어링", "팔찌", "브레이슬릿", "반지", "링")):
+                return "gray"
+    if category == "bottom" and any(keyword in combined_text for keyword in ("청바지", "데님")) and color in {"unknown", "neutral"}:
+        return "blue"
+    if color == "neutral":
+        return "unknown"
+    return color
+
+
+def _normalize_item_label(category: str, color: str, item_label: str, query: str) -> str:
+    combined_text = " ".join(part for part in (item_label, query) if part).strip()
+    if not combined_text:
+        return DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
+
+    if category == "bottom" and color in {"blue", "navy"}:
+        if "와이드" in combined_text and "팬츠" in combined_text:
+            return "와이드 데님 팬츠"
+        if any(keyword in combined_text for keyword in ("팬츠", "바지")):
+            return "데님 팬츠"
+
+    for keywords, normalized_label in ITEM_LABEL_NORMALIZATION_RULES.get(category, ()):
+        matcher = all if normalized_label in ALL_KEYWORD_NORMALIZATION_LABELS else any
+        if matcher(keyword in combined_text for keyword in keywords):
+            return normalized_label
+
+    return item_label.strip() or DEFAULT_ITEM_LABELS.get(category, {}).get(color, CATEGORY_QUERY_LABELS.get(category, category))
+
+
+def _normalize_item_category(category: str, item_label: str, query: str) -> str:
+    combined_text = " ".join(part for part in (item_label, query) if part).strip()
+    if category == "outer" and any(keyword in combined_text for keyword in ("숄더백", "크로스백", "토트백", "백팩", "가방")):
+        return "bag"
+    return category
+
+
+def _extract_query_descriptors(category: str, item_label: str, query_hint: str) -> list[str]:
+    combined_text = " ".join(part for part in (query_hint, item_label) if part).strip()
+    if not combined_text:
+        return []
+    item_family = _item_family(item_label)
+
+    detected: list[str] = []
+    for _descriptor_type, normalized_keyword, aliases in QUERY_DESCRIPTOR_RULES:
+        if category == "accessory" and item_family in {"목걸이", "귀걸이", "팔찌", "반지"}:
+            if normalized_keyword == "체인":
+                continue
+        if normalized_keyword in item_label or any(alias in item_label for alias in aliases):
+            continue
+        if any(alias in combined_text for alias in aliases):
+            detected.append(normalized_keyword)
+
+    if category == "accessory":
+        detected.extend(_extract_accessory_descriptors(item_family=item_family, item_label=item_label, combined_text=combined_text))
+
+    category_order = QUERY_DESCRIPTOR_ORDER.get(category, ())
+    ordered = [keyword for keyword in category_order if keyword in detected]
+    ordered.extend(keyword for keyword in detected if keyword not in ordered)
+    return ordered
+
+
+def _normalize_brand_name(value: str) -> str:
+    normalized = " ".join(value.split()).strip()
+    if not normalized:
+        return ""
+
+    lowered = normalized.lower()
+    for canonical, aliases in BRAND_NORMALIZATION_RULES:
+        alias_values = tuple(alias.lower() for alias in aliases)
+        if lowered == canonical.lower() or lowered in alias_values:
+            return canonical
+    return normalized
+
+
+def _extract_query_brand(brand_hint: str, item_label: str, query_hint: str) -> str:
+    explicit_brand = _normalize_brand_name(brand_hint)
+    if explicit_brand and explicit_brand not in item_label:
+        return explicit_brand
+
+    combined_text = " ".join(part for part in (query_hint, item_label) if part).strip().lower()
+    if not combined_text:
+        return ""
+
+    for canonical, aliases in BRAND_NORMALIZATION_RULES:
+        alias_values = tuple(alias.lower() for alias in aliases)
+        if canonical.lower() in combined_text or any(alias in combined_text for alias in alias_values):
+            if canonical not in item_label:
+                return canonical
+    return ""
+
+
+def _extract_accessory_descriptors(item_family: str, item_label: str, combined_text: str) -> list[str]:
+    descriptors: list[str] = []
+    if item_family == "안경":
+        if "메탈" not in item_label and any(alias in combined_text for alias in ("메탈", "metal")):
+            descriptors.append("메탈")
+        if "뿔테" not in item_label and any(alias in combined_text for alias in ("뿔테", "아세테이트", "acetate")):
+            descriptors.append("뿔테")
+        if "무테" not in item_label and any(alias in combined_text for alias in ("무테", "rimless")):
+            descriptors.append("무테")
+    if item_family == "귀걸이":
+        if "진주" not in item_label and any(alias in combined_text for alias in ("진주", "펄", "pearl")):
+            descriptors.append("진주")
+        if "메탈" not in item_label and any(alias in combined_text for alias in ("메탈", "metal")):
+            descriptors.append("메탈")
+        if "링" not in item_label and any(alias in combined_text for alias in ("링 귀걸이", "링 이어링", "후프", "hoop")):
+            descriptors.append("링")
+        if "드롭" not in item_label and any(alias in combined_text for alias in ("드롭", "drop")):
+            descriptors.append("드롭")
+    return descriptors
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
+
+
+def _is_supported_accessory_item(item_label: str) -> bool:
+    return _item_family(item_label) in SUPPORTED_ACCESSORY_FAMILIES
+
+
+def guess_mime_type(content: bytes) -> str:
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith(b"RIFF") and content[8:12] == b"WEBP":
+        return "image/webp"
+    if content.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    return "application/octet-stream"
+
+
+def summarize_provider_error(exc: Exception) -> str:
+    if isinstance(exc, HTTPError):
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8")
+        except Exception:
+            detail = ""
+        return f"HTTP {exc.code} {exc.reason}: {detail}".strip()
+    if isinstance(exc, URLError):
+        return f"URL error: {exc.reason}"
+    return str(exc)

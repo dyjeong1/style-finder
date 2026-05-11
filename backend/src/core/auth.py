@@ -1,34 +1,12 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from typing import Optional
-
-from src.services.auth_service import AuthUser, auth_service
-
-bearer_scheme = HTTPBearer(auto_error=False)
+from src.services.auth_service import AuthUser
 
 
-def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
-) -> AuthUser:
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(
-            status_code=401,
-            detail={
-                "code": "AUTH_UNAUTHORIZED",
-                "message": "Access token is missing or invalid.",
-                "detail": {},
-            },
-        )
+LOCAL_USER = AuthUser(
+    user_id="local-user-001",
+    email="local@stylematch.dev",
+    role="owner",
+)
 
-    user = auth_service.get_user_by_token(credentials.credentials)
-    if user is None:
-        raise HTTPException(
-            status_code=401,
-            detail={
-                "code": "AUTH_UNAUTHORIZED",
-                "message": "Access token is missing or invalid.",
-                "detail": {},
-            },
-        )
 
-    return user
+def get_current_user() -> AuthUser:
+    return LOCAL_USER

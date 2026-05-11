@@ -1,8 +1,60 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import hashlib
+import json
+import math
+from pathlib import Path
+from typing import Callable
 from uuid import uuid4
+
+from src.core.config import get_settings, resolve_vision_outfit_analyzer_runtime_config
+from src.services.image_analysis import (
+    DetectedOutfitItem,
+    analyze_outfit_items,
+    analyze_image_content,
+    classify_rgb_color,
+    fallback_color_from_digest,
+    has_color_keyword,
+    infer_color_from_text,
+)
+from src.services.recommendation_intent import (
+    dedupe_keywords,
+    extract_brand_keywords,
+    extract_intent_keywords,
+    extract_item_families,
+    extract_style_descriptors,
+    matches_brand_keyword,
+    matches_intent_keyword,
+    matches_item_family,
+    matches_style_descriptor,
+)
+from src.services.vision_outfit_analyzer import (
+    VisionAnalyzerUnavailableError,
+    VisionOutfitAnalyzer,
+    VisionOutfitAnalyzerConfig,
+)
+
+
+WARM_COLORS = {"beige", "brown", "red", "pink", "yellow"}
+COOL_COLORS = {"blue", "navy", "green"}
+
+
+@dataclass
+class UploadAnalysis:
+    checksum: str
+    dominant_tone: str
+    style_mood: str
+    silhouette: str
+    preferred_categories: tuple[str, ...]
+    feature_vector: tuple[float, ...]
+    dominant_color: str = "unknown"
+    category_query_hints: dict[str, str] = field(default_factory=dict)
+    detected_items: tuple[DetectedOutfitItem, ...] = ()
+    analysis_source: str = "vision"
+    query_source: str = "detected_items"
+    fallback_reason: str | None = None
 
 
 @dataclass
@@ -13,7 +65,9 @@ class UploadedImageRecord:
     filename: str
     content_type: str
     size_bytes: int
+    content: bytes
     created_at: str
+    analysis: UploadAnalysis
 
 
 @dataclass
@@ -25,13 +79,166 @@ class ProductRecord:
     price: int
     product_url: str
     image_url: str
+    dominant_tone: str
+    style_mood: str
+    silhouette: str
+    feature_vector: tuple[float, ...]
+    dominant_color: str = "unknown"
+
+
+@dataclass(frozen=True)
+class RecommendationScoringConfig:
+    base_score: float = 0.35
+    vector_similarity_weight: float = 0.45
+    tone_bonus: float = 0.08
+    mood_bonus: float = 0.06
+    silhouette_bonus: float = 0.05
+    category_bonus: float = 0.04
+    color_bonus: float = 0.08
+    product_image_color_bonus: float = 0.12
+    item_label_match_bonus: float = 0.1
+    vision_similarity_weight: float = 0.18
+
+
+ITEM_LABEL_BONUS_EXCLUDED_LABELS = {
+    "상의",
+    "탑",
+    "셔츠",
+    "티셔츠",
+    "블라우스",
+    "니트 탑",
+    "팬츠",
+    "바지",
+    "스커트",
+    "가방",
+    "신발",
+    "슈즈",
+    "스니커즈",
+    "로퍼",
+    "부츠",
+    "자켓",
+    "가디건",
+    "악세서리",
+}
+
+RECOMMENDATION_CATEGORY_ORDER = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+
+
+def serialize_upload_analysis(analysis: UploadAnalysis) -> dict:
+    return {
+        "checksum": analysis.checksum,
+        "dominant_tone": analysis.dominant_tone,
+        "dominant_color": analysis.dominant_color,
+        "style_mood": analysis.style_mood,
+        "silhouette": analysis.silhouette,
+        "preferred_categories": list(analysis.preferred_categories),
+        "category_query_hints": analysis.category_query_hints,
+        "detected_items": [
+            {
+                "category": item.category,
+                "color": item.color,
+                "item_label": item.item_label,
+                "query": item.query,
+                "brand": item.brand,
+            }
+            for item in analysis.detected_items
+        ],
+        "analysis_source": analysis.analysis_source,
+        "query_source": analysis.query_source,
+        "fallback_reason": analysis.fallback_reason,
+    }
+
+
+def resolve_detected_items(
+    content: bytes,
+    vision_predictor: Callable[[bytes], list[DetectedOutfitItem]],
+    correction_predictor: Callable[[bytes], list[DetectedOutfitItem]] | None = None,
+    enable_gemini_correction: bool = False,
+    rule_predictor: Callable[[bytes], list[DetectedOutfitItem]] = analyze_outfit_items,
+) -> tuple[tuple[DetectedOutfitItem, ...], str, str | None]:
+    try:
+        vision_detected_items = vision_predictor(content)
+    except Exception as exc:
+        fallback_reason = exc.reason if isinstance(exc, VisionAnalyzerUnavailableError) else "vision_error"
+        detected_items = tuple(_sort_detected_items_for_display(tuple(rule_predictor(content))))
+        return detected_items, "rule_fallback", fallback_reason
+
+    detected_items = tuple(vision_detected_items)
+    analysis_source = "vision"
+
+    if detected_items and enable_gemini_correction and correction_predictor is not None:
+        correction_categories = select_gemini_correction_categories(
+            vision_items=vision_detected_items,
+            merged_items=detected_items,
+        )
+        if correction_categories:
+            try:
+                correction_items = correction_predictor(content)
+            except Exception:
+                correction_items = []
+            if correction_items:
+                detected_items = tuple(
+                    apply_selective_category_corrections(
+                        base_items=detected_items,
+                        correction_items=correction_items,
+                        categories=correction_categories,
+                    )
+                )
+
+    return tuple(_sort_detected_items_for_display(detected_items)), analysis_source, None
 
 
 class InMemoryStore:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        wishlist_store_path: Path | None = None,
+        vision_outfit_analyzer: VisionOutfitAnalyzer | None = None,
+        gemini_correction_analyzer: VisionOutfitAnalyzer | None = None,
+        enable_gemini_correction: bool = False,
+        recommendation_scoring: RecommendationScoringConfig | None = None,
+    ) -> None:
         self.uploads: dict[str, UploadedImageRecord] = {}
-        self.products: dict[str, ProductRecord] = self._seed_products()
-        self.wishlist_by_user: dict[str, set[str]] = {}
+        self.seeded_products: dict[str, ProductRecord] = self._seed_products()
+        self.seeded_product_ids: tuple[str, ...] = tuple(self.seeded_products)
+        self.products: dict[str, ProductRecord] = dict(self.seeded_products)
+        self.wishlist_store_path = wishlist_store_path or Path(__file__).resolve().parents[2] / "data" / "wishlist.json"
+        self.wishlist_by_user: dict[str, dict[str, str]] = self._load_wishlist()
+        self.vision_outfit_analyzer = vision_outfit_analyzer or VisionOutfitAnalyzer(VisionOutfitAnalyzerConfig())
+        self.gemini_correction_analyzer = gemini_correction_analyzer
+        self.enable_gemini_correction = enable_gemini_correction and gemini_correction_analyzer is not None
+        self.recommendation_scoring = recommendation_scoring or RecommendationScoringConfig()
+
+    def _load_wishlist(self) -> dict[str, dict[str, str]]:
+        if not self.wishlist_store_path.exists():
+            return {}
+
+        try:
+            raw_payload = json.loads(self.wishlist_store_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+        if not isinstance(raw_payload, dict):
+            return {}
+
+        restored: dict[str, dict[str, str]] = {}
+        for user_id, items in raw_payload.items():
+            if not isinstance(user_id, str) or not isinstance(items, dict):
+                continue
+
+            restored[user_id] = {
+                product_id: created_at
+                for product_id, created_at in items.items()
+                if isinstance(product_id, str) and isinstance(created_at, str)
+            }
+
+        return restored
+
+    def _persist_wishlist(self) -> None:
+        self.wishlist_store_path.parent.mkdir(parents=True, exist_ok=True)
+        self.wishlist_store_path.write_text(
+            json.dumps(self.wishlist_by_user, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
     def _seed_products(self) -> dict[str, ProductRecord]:
         seeded = [
@@ -43,6 +250,10 @@ class InMemoryStore:
                 price=39000,
                 product_url="https://example.com/products/prd-top-001",
                 image_url="https://example.com/images/prd-top-001.jpg",
+                dominant_tone="cool",
+                style_mood="casual",
+                silhouette="relaxed",
+                feature_vector=(0.91, 0.58, 0.27, 0.73),
             ),
             ProductRecord(
                 id="prd-bottom-001",
@@ -52,6 +263,10 @@ class InMemoryStore:
                 price=59000,
                 product_url="https://example.com/products/prd-bottom-001",
                 image_url="https://example.com/images/prd-bottom-001.jpg",
+                dominant_tone="cool",
+                style_mood="minimal",
+                silhouette="relaxed",
+                feature_vector=(0.84, 0.22, 0.36, 0.64),
             ),
             ProductRecord(
                 id="prd-outer-001",
@@ -61,6 +276,10 @@ class InMemoryStore:
                 price=89000,
                 product_url="https://example.com/products/prd-outer-001",
                 image_url="https://example.com/images/prd-outer-001.jpg",
+                dominant_tone="neutral",
+                style_mood="street",
+                silhouette="layered",
+                feature_vector=(0.38, 0.92, 0.71, 0.42),
             ),
             ProductRecord(
                 id="prd-shoes-001",
@@ -70,6 +289,10 @@ class InMemoryStore:
                 price=99000,
                 product_url="https://example.com/products/prd-shoes-001",
                 image_url="https://example.com/images/prd-shoes-001.jpg",
+                dominant_tone="neutral",
+                style_mood="minimal",
+                silhouette="balanced",
+                feature_vector=(0.19, 0.31, 0.95, 0.53),
             ),
             ProductRecord(
                 id="prd-bag-001",
@@ -79,6 +302,10 @@ class InMemoryStore:
                 price=45000,
                 product_url="https://example.com/products/prd-bag-001",
                 image_url="https://example.com/images/prd-bag-001.jpg",
+                dominant_tone="warm",
+                style_mood="feminine",
+                silhouette="balanced",
+                feature_vector=(0.67, 0.41, 0.88, 0.24),
             ),
             ProductRecord(
                 id="prd-top-002",
@@ -88,6 +315,10 @@ class InMemoryStore:
                 price=32000,
                 product_url="https://example.com/products/prd-top-002",
                 image_url="https://example.com/images/prd-top-002.jpg",
+                dominant_tone="warm",
+                style_mood="minimal",
+                silhouette="slim",
+                feature_vector=(0.55, 0.17, 0.61, 0.89),
             ),
         ]
         return {item.id: item for item in seeded}
@@ -98,10 +329,12 @@ class InMemoryStore:
         filename: str,
         content_type: str,
         size_bytes: int,
+        content: bytes,
     ) -> UploadedImageRecord:
         upload_id = str(uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
-        image_url = f"/mock-storage/{upload_id}-{filename}"
+        image_url = f"/images/{upload_id}/file"
+        analysis = self._analyze_upload(content=content, filename=filename, content_type=content_type)
 
         record = UploadedImageRecord(
             id=upload_id,
@@ -110,10 +343,96 @@ class InMemoryStore:
             filename=filename,
             content_type=content_type,
             size_bytes=size_bytes,
+            content=content,
             created_at=created_at,
+            analysis=analysis,
         )
         self.uploads[upload_id] = record
         return record
+
+    def _analyze_upload(self, content: bytes, filename: str, content_type: str) -> UploadAnalysis:
+        source = content or f"{filename}:{content_type}".encode()
+        digest = hashlib.sha256(source).digest()
+
+        image_color_feature = analyze_image_content(content)
+        if image_color_feature is None:
+            dominant_color = fallback_color_from_digest(digest)
+            feature_vector = tuple(round((digest[idx] / 255), 4) for idx in range(4))
+        else:
+            dominant_color = image_color_feature.dominant_color
+            feature_vector = image_color_feature.feature_vector
+
+        detected_items, analysis_source, fallback_reason = resolve_detected_items(
+            content,
+            vision_predictor=self.vision_outfit_analyzer.analyze_or_raise,
+            correction_predictor=(
+                self.gemini_correction_analyzer.analyze_or_raise
+                if self.enable_gemini_correction and self.gemini_correction_analyzer is not None
+                else None
+            ),
+            enable_gemini_correction=self.enable_gemini_correction,
+        )
+        detected_categories = tuple(dict.fromkeys(item.category for item in detected_items))
+        category_query_hints: dict[str, str] = {}
+        for item in detected_items:
+            category_query_hints.setdefault(item.category, item.query)
+
+        if analysis_source == "rule_fallback":
+            query_source = "rule_fallback" if category_query_hints else "none"
+        else:
+            query_source = "detected_items" if category_query_hints else "none"
+        preferred_categories = detected_categories
+
+        return UploadAnalysis(
+            checksum=digest.hex()[:16],
+            dominant_tone=self._derive_tone(dominant_color),
+            style_mood=self._derive_mood(dominant_color, preferred_categories),
+            silhouette=self._derive_silhouette(preferred_categories),
+            preferred_categories=preferred_categories,
+            feature_vector=feature_vector,
+            dominant_color=dominant_color,
+            category_query_hints=category_query_hints,
+            detected_items=detected_items,
+            analysis_source=analysis_source,
+            query_source=query_source,
+            fallback_reason=fallback_reason,
+        )
+
+    def _derive_tone(self, dominant_color: str) -> str:
+        if dominant_color in WARM_COLORS:
+            return "warm"
+        if dominant_color in COOL_COLORS:
+            return "cool"
+        return "neutral"
+
+    def _derive_mood(self, dominant_color: str, preferred_categories: tuple[str, ...]) -> str:
+        if dominant_color in {"pink", "white", "beige"} and any(category in preferred_categories for category in {"bag", "accessory"}):
+            return "feminine"
+        if dominant_color in {"black", "gray", "navy"} and any(category in preferred_categories for category in {"outer", "shoes"}):
+            return "street"
+        if any(category in preferred_categories for category in {"bottom", "shoes"}):
+            return "casual"
+        return "minimal"
+
+    def _derive_silhouette(self, preferred_categories: tuple[str, ...]) -> str:
+        if "outer" in preferred_categories and "top" in preferred_categories:
+            return "layered"
+        if "bottom" in preferred_categories and "shoes" in preferred_categories:
+            return "balanced"
+        if "top" in preferred_categories:
+            return "slim"
+        return "relaxed"
+
+    def _classify_rgb_color(self, red: float, green: float, blue: float) -> str:
+        return classify_rgb_color(red, green, blue)
+
+    def _cosine_similarity(self, left: tuple[float, ...], right: tuple[float, ...]) -> float:
+        numerator = sum(a * b for a, b in zip(left, right))
+        left_norm = math.sqrt(sum(a * a for a in left))
+        right_norm = math.sqrt(sum(b * b for b in right))
+        if left_norm == 0 or right_norm == 0:
+            return 0.0
+        return numerator / (left_norm * right_norm)
 
     def get_upload(self, upload_id: str) -> UploadedImageRecord | None:
         return self.uploads.get(upload_id)
@@ -126,11 +445,14 @@ class InMemoryStore:
         max_price: int | None,
         sort: str,
         limit: int,
+        candidate_products: list[ProductRecord] | None = None,
+        vision_similarity_by_product: dict[str, float] | None = None,
     ) -> list[dict]:
-        if uploaded_image_id not in self.uploads:
+        upload = self.uploads.get(uploaded_image_id)
+        if upload is None:
             return []
 
-        items = list(self.products.values())
+        items = candidate_products or self._list_default_recommendation_products()
         if category:
             items = [item for item in items if item.category == category]
         if min_price is not None:
@@ -139,9 +461,55 @@ class InMemoryStore:
             items = [item for item in items if item.price <= max_price]
 
         scored: list[dict] = []
-        for idx, item in enumerate(items):
-            # mock score for deterministic sorting
-            similarity = round(max(0.1, 0.95 - (idx * 0.08)), 4)
+        scoring = self.recommendation_scoring
+        detected_items_by_category = _first_item_by_category(upload.analysis.detected_items)
+        for item in items:
+            vector_similarity = self._cosine_similarity(upload.analysis.feature_vector, item.feature_vector)
+            tone_bonus = scoring.tone_bonus if upload.analysis.dominant_tone == item.dominant_tone else 0.0
+            mood_bonus = scoring.mood_bonus if upload.analysis.style_mood == item.style_mood else 0.0
+            silhouette_bonus = scoring.silhouette_bonus if upload.analysis.silhouette == item.silhouette else 0.0
+            category_bonus = scoring.category_bonus if item.category in upload.analysis.preferred_categories else 0.0
+            category_target_color = infer_color_from_text(upload.analysis.category_query_hints.get(item.category, ""))
+            target_color = category_target_color if category_target_color != "unknown" else upload.analysis.dominant_color
+            color_bonus = scoring.color_bonus if has_color_keyword(item.product_name, target_color) else 0.0
+            product_image_color_bonus = (
+                scoring.product_image_color_bonus
+                if item.dominant_color != "unknown" and item.dominant_color == target_color
+                else 0.0
+            )
+            target_item_label = (
+                detected_items_by_category.get(item.category).item_label
+                if item.category in detected_items_by_category
+                else ""
+            )
+            target_intent_keywords = self._build_target_intent_keywords(
+                category_query=upload.analysis.category_query_hints.get(item.category, ""),
+                target_item_label=target_item_label,
+            )
+            item_label_bonus = self._compute_item_label_bonus(
+                product_name=item.product_name,
+                category_query=upload.analysis.category_query_hints.get(item.category, ""),
+                target_item_label=target_item_label,
+                target_intent_keywords=target_intent_keywords,
+            )
+            vision_similarity = (vision_similarity_by_product or {}).get(item.id, 0.0)
+            vision_bonus = max(0.0, vision_similarity) * scoring.vision_similarity_weight
+            similarity = round(
+                min(
+                    0.99,
+                    scoring.base_score
+                    + (vector_similarity * scoring.vector_similarity_weight)
+                    + tone_bonus
+                    + mood_bonus
+                    + silhouette_bonus
+                    + category_bonus
+                    + color_bonus
+                    + product_image_color_bonus
+                    + item_label_bonus
+                    + vision_bonus
+                ),
+                4,
+            )
             scored.append(
                 {
                     "product_id": item.id,
@@ -152,6 +520,30 @@ class InMemoryStore:
                     "product_url": item.product_url,
                     "image_url": item.image_url,
                     "similarity_score": similarity,
+                    "score_breakdown": {
+                        "vector_similarity": round(vector_similarity, 4),
+                        "tone_bonus": round(tone_bonus, 4),
+                        "mood_bonus": round(mood_bonus, 4),
+                        "silhouette_bonus": round(silhouette_bonus, 4),
+                        "category_bonus": round(category_bonus, 4),
+                        "color_bonus": round(color_bonus, 4),
+                        "product_image_color_bonus": round(product_image_color_bonus, 4),
+                        "item_label_bonus": round(item_label_bonus, 4),
+                        "vision_similarity": round(vision_similarity, 4),
+                        "vision_bonus": round(vision_bonus, 4),
+                    },
+                    "matched_signals": {
+                        "dominant_tone": upload.analysis.dominant_tone,
+                        "dominant_color": upload.analysis.dominant_color,
+                        "category_target_color": target_color,
+                        "target_item_label": target_item_label,
+                        "target_intent_keywords": target_intent_keywords,
+                        "product_dominant_color": item.dominant_color,
+                        "style_mood": upload.analysis.style_mood,
+                        "silhouette": upload.analysis.silhouette,
+                        "preferred_categories": list(upload.analysis.preferred_categories),
+                        "vision_reranked": bool(vision_similarity_by_product and item.id in vision_similarity_by_product),
+                    },
                 }
             )
 
@@ -165,20 +557,102 @@ class InMemoryStore:
         for rank, item in enumerate(scored, start=1):
             item["rank"] = rank
 
-        return scored[:limit]
+        if category:
+            return scored[:limit]
+
+        guaranteed_categories = _resolve_recommendation_category_targets(upload.analysis)
+        return _limit_recommendations_with_category_coverage(
+            scored=scored,
+            limit=limit,
+            guaranteed_categories=guaranteed_categories,
+        )
+
+    def _build_target_intent_keywords(self, category_query: str, target_item_label: str) -> list[str]:
+        return dedupe_keywords(extract_intent_keywords(category_query) + extract_intent_keywords(target_item_label))
+
+    def _compute_item_label_bonus(
+        self,
+        product_name: str,
+        category_query: str,
+        target_item_label: str,
+        target_intent_keywords: list[str],
+    ) -> float:
+        normalized_target = target_item_label.strip()
+        base_bonus = self.recommendation_scoring.item_label_match_bonus
+        matched_descriptors = [
+            descriptor
+            for descriptor in extract_style_descriptors(category_query)
+            if matches_style_descriptor(product_name, descriptor)
+        ]
+        matched_brands = [
+            brand for brand in extract_brand_keywords(category_query) if matches_brand_keyword(product_name, brand)
+        ]
+        matched_intents = [
+            keyword for keyword in target_intent_keywords if matches_intent_keyword(product_name, keyword)
+        ]
+        if not normalized_target or normalized_target in ITEM_LABEL_BONUS_EXCLUDED_LABELS:
+            normalized_target = ""
+        if normalized_target and normalized_target in product_name:
+            exact_bonus = base_bonus
+            if matched_brands:
+                exact_bonus += base_bonus * 0.2
+            if matched_descriptors:
+                exact_bonus += (base_bonus * 0.1) * (
+                    len(matched_descriptors) / max(1, len(extract_style_descriptors(category_query)))
+                )
+            if matched_intents:
+                exact_bonus += (base_bonus * 0.1) * (len(matched_intents) / len(target_intent_keywords))
+            return round(min(base_bonus * 1.4, exact_bonus), 4)
+        if normalized_target:
+            search_text = " ".join(part for part in (category_query, normalized_target) if part).strip()
+            target_families = extract_item_families(search_text)
+            matched_families = [
+                family for family in target_families if matches_item_family(product_name, family)
+            ]
+            if matched_families:
+                family_bonus = base_bonus * 0.7
+                descriptor_bonus = 0.0
+                brand_bonus = 0.0
+                if matched_descriptors:
+                    descriptor_bonus = (base_bonus * 0.3) * (
+                        len(matched_descriptors) / max(1, len(extract_style_descriptors(category_query)))
+                    )
+                if matched_brands:
+                    brand_bonus = base_bonus * 0.2
+                return round(min(base_bonus * 1.2, family_bonus + descriptor_bonus + brand_bonus), 4)
+        if target_intent_keywords:
+            if matched_intents:
+                return round(
+                    base_bonus
+                    * (len(matched_intents) / len(target_intent_keywords)),
+                    4,
+                )
+        return 0.0
+
+    def _list_default_recommendation_products(self) -> list[ProductRecord]:
+        return [
+            self.products[product_id]
+            for product_id in self.seeded_product_ids
+            if product_id in self.products
+        ]
+
+    def register_products(self, products: list[ProductRecord]) -> None:
+        for product in products:
+            self.products[product.id] = product
 
     def has_product(self, product_id: str) -> bool:
         return product_id in self.products
 
     def add_wishlist(self, user_id: str, product_id: str) -> bool:
         if user_id not in self.wishlist_by_user:
-            self.wishlist_by_user[user_id] = set()
+            self.wishlist_by_user[user_id] = {}
 
         user_wishlist = self.wishlist_by_user[user_id]
         if product_id in user_wishlist:
             return False
 
-        user_wishlist.add(product_id)
+        user_wishlist[product_id] = datetime.now(timezone.utc).isoformat()
+        self._persist_wishlist()
         return True
 
     def remove_wishlist(self, user_id: str, product_id: str) -> bool:
@@ -186,13 +660,14 @@ class InMemoryStore:
         if not user_wishlist or product_id not in user_wishlist:
             return False
 
-        user_wishlist.remove(product_id)
+        user_wishlist.pop(product_id, None)
+        self._persist_wishlist()
         return True
 
     def list_wishlist(self, user_id: str, category: str | None) -> list[dict]:
-        user_wishlist = self.wishlist_by_user.get(user_id, set())
+        user_wishlist = self.wishlist_by_user.get(user_id, {})
         items: list[dict] = []
-        for product_id in user_wishlist:
+        for product_id, created_at in user_wishlist.items():
             product = self.products.get(product_id)
             if product is None:
                 continue
@@ -202,12 +677,263 @@ class InMemoryStore:
                 {
                     "id": f"wsh-{product.id}",
                     "product_id": product.id,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "product_name": product.product_name,
+                    "source": product.source,
+                    "category": product.category,
+                    "price": product.price,
+                    "product_url": product.product_url,
+                    "image_url": product.image_url,
+                    "created_at": created_at,
                 }
             )
 
-        items.sort(key=lambda x: x["product_id"])
+        items.sort(key=lambda x: x["created_at"], reverse=True)
         return items
 
 
-store = InMemoryStore()
+def select_gemini_correction_categories(
+    vision_items: list[DetectedOutfitItem],
+    merged_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+) -> tuple[str, ...]:
+    target_order = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+    generic_labels = {
+        "top": {"탑", "셔츠", "티셔츠", "니트 탑", "블라우스"},
+        "outer": {"가디건", "자켓", "점퍼", "베스트"},
+        "bottom": {"팬츠", "바지", "데님 팬츠", "스커트"},
+        "shoes": {"슈즈", "신발"},
+        "bag": {"가방"},
+        "accessory": {"안경", "양말", "목걸이", "귀걸이"},
+    }
+    vision_by_category = _first_item_by_category(vision_items)
+    merged_categories = {item.category for item in merged_items}
+    categories: list[str] = []
+
+    if {"top", "outer"}.issubset(merged_categories):
+        categories.extend(["top", "outer"])
+
+    for category in target_order:
+        vision_item = vision_by_category.get(category)
+        if vision_item and vision_item.item_label in generic_labels.get(category, set()):
+            categories.append(category)
+
+    return tuple(dict.fromkeys(category for category in categories if category in target_order))
+
+
+def apply_selective_category_corrections(
+    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+    correction_items: list[DetectedOutfitItem],
+    categories: tuple[str, ...],
+) -> list[DetectedOutfitItem]:
+    if not categories:
+        return list(base_items)
+
+    correction_by_category: dict[str, list[DetectedOutfitItem]] = {}
+    for item in correction_items:
+        if item.category in categories:
+            correction_by_category.setdefault(item.category, []).append(item)
+
+    if "accessory" in correction_by_category:
+        correction_by_category["accessory"] = _filter_accessory_correction_items(
+            base_items=base_items,
+            correction_items=correction_by_category["accessory"],
+        )
+        if not correction_by_category["accessory"]:
+            correction_by_category.pop("accessory", None)
+
+    if not correction_by_category:
+        return list(base_items)
+
+    result: list[DetectedOutfitItem] = []
+    replaced: set[str] = set()
+    for item in base_items:
+        if item.category in correction_by_category:
+            if item.category in replaced:
+                continue
+            result.extend(correction_by_category[item.category])
+            replaced.add(item.category)
+            continue
+        result.append(item)
+
+    for category in categories:
+        if category in replaced:
+            continue
+        if category in correction_by_category:
+            result.extend(correction_by_category[category])
+            replaced.add(category)
+
+    ordered_categories = ("top", "outer", "bottom", "shoes", "bag", "accessory")
+    order_map = {category: index for index, category in enumerate(ordered_categories)}
+    return [
+        item
+        for _, item in sorted(
+            enumerate(result),
+            key=lambda pair: (order_map.get(pair[1].category, len(order_map)), pair[0]),
+        )
+    ]
+
+
+def _filter_accessory_correction_items(
+    base_items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem],
+    correction_items: list[DetectedOutfitItem],
+) -> list[DetectedOutfitItem]:
+    base_accessories = [item for item in base_items if item.category == "accessory"]
+    if not base_accessories:
+        return correction_items
+
+    base_labels = {item.item_label for item in base_accessories}
+    kept_items = [item for item in correction_items if item.item_label in base_labels]
+    new_items = [item for item in correction_items if item.item_label not in base_labels]
+    new_labels = {item.item_label for item in new_items}
+
+    if len(new_labels) >= 2:
+        kept_items.extend(new_items)
+
+    return kept_items
+
+
+def _first_item_by_category(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> dict[str, DetectedOutfitItem]:
+    first_items: dict[str, DetectedOutfitItem] = {}
+    for item in items:
+        first_items.setdefault(item.category, item)
+    return first_items
+
+
+def _resolve_recommendation_category_targets(analysis: UploadAnalysis) -> tuple[str, ...]:
+    if analysis.category_query_hints:
+        categories = tuple(analysis.category_query_hints.keys())
+    else:
+        categories = analysis.preferred_categories
+
+    return tuple(category for category in RECOMMENDATION_CATEGORY_ORDER if category in categories)
+
+
+def _limit_recommendations_with_category_coverage(
+    scored: list[dict],
+    limit: int,
+    guaranteed_categories: tuple[str, ...],
+) -> list[dict]:
+    if len(scored) <= limit or not guaranteed_categories:
+        return scored[:limit]
+
+    guaranteed_items: list[dict] = []
+    guaranteed_ids: set[str] = set()
+    for category in guaranteed_categories:
+        match = next(
+            (
+                item
+                for item in scored
+                if item["category"] == category and item["product_id"] not in guaranteed_ids
+            ),
+            None,
+        )
+        if match is None:
+            continue
+        guaranteed_items.append(match)
+        guaranteed_ids.add(match["product_id"])
+
+    if not guaranteed_items:
+        return scored[:limit]
+
+    filler_slots = max(0, limit - len(guaranteed_items))
+    filler_items: list[dict] = []
+    for item in scored:
+        if item["product_id"] in guaranteed_ids:
+            continue
+        filler_items.append(item)
+        if len(filler_items) >= filler_slots:
+            break
+
+    selected_items = guaranteed_items + filler_items
+    selected_items.sort(key=lambda item: item["rank"])
+    return selected_items[:limit]
+
+
+def _sort_detected_items_for_display(items: tuple[DetectedOutfitItem, ...] | list[DetectedOutfitItem]) -> list[DetectedOutfitItem]:
+    order_map = {category: index for index, category in enumerate(RECOMMENDATION_CATEGORY_ORDER)}
+    accessory_priority = {
+        "안경": 0,
+        "목걸이": 1,
+        "귀걸이": 2,
+        "팔찌": 3,
+        "벨트": 4,
+        "머리끈": 5,
+        "모자": 6,
+        "머플러": 7,
+        "반지": 8,
+        "양말": 9,
+    }
+
+    def sort_key(pair: tuple[int, DetectedOutfitItem]) -> tuple[int, int, int]:
+        index, item = pair
+        if item.category != "accessory":
+            return (order_map.get(item.category, len(order_map)), 0, index)
+        return (
+            order_map["accessory"],
+            accessory_priority.get(item.item_label, len(accessory_priority)),
+            index,
+        )
+
+    return [item for _, item in sorted(enumerate(items), key=sort_key)]
+
+settings = get_settings()
+vision_runtime_config = resolve_vision_outfit_analyzer_runtime_config(settings)
+enable_gemini_correction = (
+    bool(settings.vision_outfit_analyzer_gemini_correction_enabled)
+    and bool(vision_runtime_config["enabled"])
+    and str(vision_runtime_config["provider"]).lower() == "ollama"
+    and bool(settings.gemini_api_key)
+)
+gemini_correction_runtime_config = (
+    resolve_vision_outfit_analyzer_runtime_config(settings, provider_override="gemini")
+    if enable_gemini_correction
+    else None
+)
+store = InMemoryStore(
+    vision_outfit_analyzer=VisionOutfitAnalyzer(
+        VisionOutfitAnalyzerConfig(
+            enabled=bool(vision_runtime_config["enabled"]),
+            provider=str(vision_runtime_config["provider"]),
+            model_name=str(vision_runtime_config["model_name"]),
+            max_image_bytes=int(vision_runtime_config["max_image_bytes"]),
+            timeout_seconds=float(vision_runtime_config["timeout_seconds"]),
+            api_base_url=str(vision_runtime_config["api_base_url"]),
+            api_key=(
+                str(vision_runtime_config["api_key"])
+                if vision_runtime_config["api_key"] is not None
+                else None
+            ),
+        )
+    ),
+    gemini_correction_analyzer=(
+        VisionOutfitAnalyzer(
+            VisionOutfitAnalyzerConfig(
+                enabled=bool(gemini_correction_runtime_config["enabled"]),
+                provider=str(gemini_correction_runtime_config["provider"]),
+                model_name=str(gemini_correction_runtime_config["model_name"]),
+                max_image_bytes=int(gemini_correction_runtime_config["max_image_bytes"]),
+                timeout_seconds=float(gemini_correction_runtime_config["timeout_seconds"]),
+                api_base_url=str(gemini_correction_runtime_config["api_base_url"]),
+                api_key=(
+                    str(gemini_correction_runtime_config["api_key"])
+                    if gemini_correction_runtime_config["api_key"] is not None
+                    else None
+                ),
+            )
+        )
+        if gemini_correction_runtime_config is not None
+        else None
+    ),
+    enable_gemini_correction=enable_gemini_correction,
+    recommendation_scoring=RecommendationScoringConfig(
+        base_score=float(settings.recommendation_score_base),
+        vector_similarity_weight=float(settings.recommendation_score_vector_similarity_weight),
+        tone_bonus=float(settings.recommendation_score_tone_bonus),
+        mood_bonus=float(settings.recommendation_score_mood_bonus),
+        silhouette_bonus=float(settings.recommendation_score_silhouette_bonus),
+        category_bonus=float(settings.recommendation_score_category_bonus),
+        color_bonus=float(settings.recommendation_score_color_bonus),
+        product_image_color_bonus=float(settings.recommendation_score_product_image_color_bonus),
+        item_label_match_bonus=float(settings.recommendation_score_item_label_match_bonus),
+        vision_similarity_weight=float(settings.recommendation_score_vision_similarity_weight),
+    ),
+)

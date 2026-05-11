@@ -1,0 +1,24 @@
+{
+  "sample_id": "codytest_8",
+  "source": "user-test",
+  "items": [
+    {
+      "category": "top",
+      "color": "green",
+      "item_label": "브이넥 니트",
+      "notes": "올리브 브이넥 니트"
+    },
+    {
+      "category": "bottom",
+      "color": "white",
+      "item_label": "레이스 스커트",
+      "notes": "화이트 자수 스커트"
+    },
+    {
+      "category": "shoes",
+      "color": "black",
+      "item_label": "부츠",
+      "notes": "블랙 앵클 또는 미들 부츠"
+    }
+  ]
+}

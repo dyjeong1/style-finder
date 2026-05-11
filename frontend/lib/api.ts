@@ -1,7 +1,8 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-const TOKEN_KEY = "stylematch_access_token";
-const UPLOADED_IMAGE_ID_KEY = "stylematch_uploaded_image_id";
+export function getUploadedImageFileUrl(uploadedImageId: string): string {
+  return `${API_BASE_URL}/images/${encodeURIComponent(uploadedImageId)}/file`;
+}
 
 type ApiMeta = {
   request_id: string;
@@ -20,16 +21,53 @@ type ApiEnvelope<T> = {
   meta: ApiMeta;
 };
 
-type LoginResponse = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
+export type UploadAnalysis = {
+  checksum: string;
+  dominant_tone: string;
+  dominant_color?: string;
+  style_mood: string;
+  silhouette: string;
+  preferred_categories: string[];
+  analysis_source?: "vision" | "rule_fallback";
+  query_source?: "detected_items" | "rule_fallback" | "none";
+  fallback_reason?: string | null;
+  category_query_hints?: Record<string, string>;
+  detected_items?: Array<{
+    category: string;
+    color: string;
+    item_label: string;
+    query: string;
+  }>;
 };
 
 export type UploadedImage = {
   id: string;
   image_url: string;
   created_at: string;
+  analysis: UploadAnalysis;
+};
+
+export type RecommendationScoreBreakdown = {
+  vector_similarity: number;
+  tone_bonus: number;
+  mood_bonus: number;
+  silhouette_bonus: number;
+  category_bonus: number;
+  color_bonus?: number;
+  product_image_color_bonus?: number;
+  vision_similarity?: number;
+  vision_bonus?: number;
+};
+
+export type RecommendationMatchedSignals = {
+  dominant_tone: string;
+  dominant_color?: string;
+  category_target_color?: string;
+  product_dominant_color?: string;
+  style_mood: string;
+  silhouette: string;
+  preferred_categories: string[];
+  vision_reranked?: boolean;
 };
 
 export type RecommendationItem = {
@@ -42,16 +80,29 @@ export type RecommendationItem = {
   image_url: string;
   similarity_score: number;
   rank: number;
+  score_breakdown: RecommendationScoreBreakdown;
+  matched_signals: RecommendationMatchedSignals;
 };
 
 type RecommendationListResponse = {
   items: RecommendationItem[];
   total_count: number;
+  source?: "naver_shopping" | "mock";
+  query?: string;
+  analysis?: UploadAnalysis;
+  fallback_reason?: string | null;
+  fallback_message?: string | null;
 };
 
 export type WishlistItem = {
   id: string;
   product_id: string;
+  product_name: string;
+  source: string;
+  category: string;
+  price: number;
+  product_url: string;
+  image_url: string;
   created_at: string;
 };
 
@@ -63,6 +114,14 @@ type WishlistListResponse = {
 function parseHttpError(fallbackMessage: string, payload: unknown): Error {
   if (typeof payload !== "object" || payload === null) {
     return new Error(fallbackMessage);
+  }
+
+  const apiError = (payload as { error?: unknown }).error;
+  if (typeof apiError === "object" && apiError !== null) {
+    const apiErrorMessage = (apiError as { message?: unknown }).message;
+    if (typeof apiErrorMessage === "string" && apiErrorMessage.length > 0) {
+      return new Error(apiErrorMessage);
+    }
   }
 
   const detail = (payload as { detail?: unknown }).detail;
@@ -80,13 +139,9 @@ function parseHttpError(fallbackMessage: string, payload: unknown): Error {
   return new Error(fallbackMessage);
 }
 
-async function apiRequest<T>(path: string, options?: RequestInit & { token?: string }): Promise<T> {
-  const { token, headers, ...restOptions } = options ?? {};
+async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const { headers, ...restOptions } = options ?? {};
   const mergedHeaders = new Headers(headers ?? {});
-
-  if (token) {
-    mergedHeaders.set("Authorization", `Bearer ${token}`);
-  }
 
   const hasFormDataBody = typeof FormData !== "undefined" && restOptions.body instanceof FormData;
   if (!hasFormDataBody && !mergedHeaders.has("Content-Type")) {
@@ -120,63 +175,13 @@ async function apiRequest<T>(path: string, options?: RequestInit & { token?: str
   return payload.data;
 }
 
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return window.localStorage.getItem(TOKEN_KEY);
-}
-
-export function setStoredToken(token: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearStoredToken(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(TOKEN_KEY);
-}
-
-export function getStoredUploadedImageId(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return window.localStorage.getItem(UPLOADED_IMAGE_ID_KEY);
-}
-
-export function setStoredUploadedImageId(uploadedImageId: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(UPLOADED_IMAGE_ID_KEY, uploadedImageId);
-}
-
-export function clearStoredUploadedImageId(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(UPLOADED_IMAGE_ID_KEY);
-}
-
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  return apiRequest<LoginResponse>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
-}
-
-export async function uploadImage(image: File, token: string): Promise<UploadedImage> {
+export async function uploadImage(image: File): Promise<UploadedImage> {
   const formData = new FormData();
   formData.append("image", image);
 
   return apiRequest<UploadedImage>("/images/upload", {
     method: "POST",
     body: formData,
-    token,
   });
 }
 
@@ -187,9 +192,10 @@ export type RecommendationQuery = {
   maxPrice?: number;
   sort?: "similarity_desc" | "price_asc" | "price_desc";
   limit?: number;
+  customQuery?: string;
 };
 
-export async function getRecommendations(query: RecommendationQuery, token: string): Promise<RecommendationListResponse> {
+export async function getRecommendations(query: RecommendationQuery): Promise<RecommendationListResponse> {
   const searchParams = new URLSearchParams();
   searchParams.set("uploaded_image_id", query.uploadedImageId);
 
@@ -208,28 +214,27 @@ export async function getRecommendations(query: RecommendationQuery, token: stri
   if (typeof query.limit === "number") {
     searchParams.set("limit", String(query.limit));
   }
+  if (query.customQuery) {
+    searchParams.set("custom_query", query.customQuery);
+  }
 
-  return apiRequest<RecommendationListResponse>(`/recommendations?${searchParams.toString()}`, {
-    token,
-  });
+  return apiRequest<RecommendationListResponse>(`/recommendations?${searchParams.toString()}`);
 }
 
-export async function getWishlist(token: string, category?: string): Promise<WishlistListResponse> {
+export async function getWishlist(category?: string): Promise<WishlistListResponse> {
   const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return apiRequest<WishlistListResponse>(`/wishlist${query}`, { token });
+  return apiRequest<WishlistListResponse>(`/wishlist${query}`);
 }
 
-export async function addWishlist(productId: string, token: string): Promise<WishlistItem> {
+export async function addWishlist(productId: string): Promise<WishlistItem> {
   return apiRequest<WishlistItem>("/wishlist", {
     method: "POST",
-    token,
     body: JSON.stringify({ product_id: productId }),
   });
 }
 
-export async function removeWishlist(productId: string, token: string): Promise<void> {
+export async function removeWishlist(productId: string): Promise<void> {
   return apiRequest<void>(`/wishlist/${encodeURIComponent(productId)}`, {
     method: "DELETE",
-    token,
   });
 }
