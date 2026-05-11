@@ -1,0 +1,557 @@
+{
+  "baseline_name": "rule",
+  "candidate_name": "ollama",
+  "baseline": {
+    "item_precision": 0.2453,
+    "item_recall": 0.2281,
+    "exact_match_accuracy": 0.0
+  },
+  "candidate": {
+    "item_precision": 0.4286,
+    "item_recall": 0.2632,
+    "exact_match_accuracy": 0.0
+  },
+  "precision_delta": 0.1833,
+  "recall_delta": 0.0351,
+  "exact_match_delta": 0.0,
+  "samples": [
+    {
+      "sample_id": "codytest_1",
+      "expected_items": [
+        "top:white:셔츠",
+        "outer:black:니트 베스트",
+        "bottom:white:팬츠",
+        "shoes:brown:메리제인 슈즈",
+        "bag:white:숄더백",
+        "accessory:black:머리끈"
+      ],
+      "baseline": {
+        "expected_count": 6,
+        "predicted_count": 6,
+        "matched_count": 5,
+        "exact_match": false,
+        "matched_items": [
+          "bag:white:숄더백",
+          "bottom:white:팬츠",
+          "outer:black:니트 베스트",
+          "shoes:brown:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "missing_items": [
+          "accessory:black:머리끈"
+        ],
+        "unexpected_items": [
+          "accessory:gray:모자"
+        ]
+      },
+      "candidate": {
+        "expected_count": 6,
+        "predicted_count": 4,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "accessory:black:머리끈",
+          "bag:white:숄더백",
+          "bottom:white:팬츠",
+          "outer:black:니트 베스트",
+          "shoes:brown:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "unexpected_items": [
+          "bag:beige:호보백",
+          "bottom:white:와이드 팬츠",
+          "shoes:brown:플랫 슈즈",
+          "top:white:니트 탑"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_10",
+      "expected_items": [
+        "top:white:탑",
+        "outer:gray:가디건",
+        "bottom:black:미니 스커트",
+        "shoes:gray:스니커즈",
+        "bag:blue:토트백"
+      ],
+      "baseline": {
+        "expected_count": 5,
+        "predicted_count": 5,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "bag:blue:토트백",
+          "bottom:black:미니 스커트",
+          "outer:gray:가디건",
+          "shoes:gray:스니커즈",
+          "top:white:탑"
+        ],
+        "unexpected_items": [
+          "accessory:white:귀걸이",
+          "bottom:black:와이드 팬츠",
+          "outer:black:가디건",
+          "shoes:brown:메리제인 슈즈",
+          "top:gray:니트 탑"
+        ]
+      },
+      "candidate": {
+        "expected_count": 5,
+        "predicted_count": 2,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "bag:blue:토트백",
+          "bottom:black:미니 스커트",
+          "outer:gray:가디건",
+          "shoes:gray:스니커즈",
+          "top:white:탑"
+        ],
+        "unexpected_items": [
+          "bag:blue:숄더백",
+          "shoes:white:스니커즈"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_2",
+      "expected_items": [
+        "top:white:슬리브리스 탑",
+        "outer:blue:가디건",
+        "bottom:navy:와이드 데님 팬츠",
+        "accessory:black:안경"
+      ],
+      "baseline": {
+        "expected_count": 4,
+        "predicted_count": 5,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "outer:blue:가디건"
+        ],
+        "missing_items": [
+          "accessory:black:안경",
+          "bottom:navy:와이드 데님 팬츠",
+          "top:white:슬리브리스 탑"
+        ],
+        "unexpected_items": [
+          "accessory:brown:안경",
+          "bag:beige:숄더백",
+          "bottom:black:데님 팬츠",
+          "top:white:셔츠"
+        ]
+      },
+      "candidate": {
+        "expected_count": 4,
+        "predicted_count": 4,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "accessory:black:안경"
+        ],
+        "missing_items": [
+          "bottom:navy:와이드 데님 팬츠",
+          "outer:blue:가디건",
+          "top:white:슬리브리스 탑"
+        ],
+        "unexpected_items": [
+          "bottom:blue:와이드 데님 팬츠",
+          "outer:gray:가디건",
+          "top:white:니트 탑"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_3",
+      "expected_items": [
+        "top:white:탑",
+        "outer:blue:가디건",
+        "bottom:brown:팬츠",
+        "shoes:white:스니커즈",
+        "bag:brown:숄더백",
+        "accessory:gray:목걸이",
+        "accessory:gray:팔찌"
+      ],
+      "baseline": {
+        "expected_count": 7,
+        "predicted_count": 5,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "accessory:gray:목걸이",
+          "accessory:gray:팔찌",
+          "bag:brown:숄더백",
+          "bottom:brown:팬츠",
+          "outer:blue:가디건",
+          "shoes:white:스니커즈",
+          "top:white:탑"
+        ],
+        "unexpected_items": [
+          "accessory:gray:안경",
+          "bottom:blue:스커트",
+          "outer:brown:가디건",
+          "shoes:gray:로퍼",
+          "top:gray:니트 탑"
+        ]
+      },
+      "candidate": {
+        "expected_count": 7,
+        "predicted_count": 4,
+        "matched_count": 2,
+        "exact_match": false,
+        "matched_items": [
+          "bottom:brown:팬츠",
+          "shoes:white:스니커즈"
+        ],
+        "missing_items": [
+          "accessory:gray:목걸이",
+          "accessory:gray:팔찌",
+          "bag:brown:숄더백",
+          "outer:blue:가디건",
+          "top:white:탑"
+        ],
+        "unexpected_items": [
+          "bag:brown:백팩",
+          "top:blue:니트 탑"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_4",
+      "expected_items": [
+        "top:white:스트라이프 티셔츠",
+        "outer:navy:브이넥 니트",
+        "bottom:blue:와이드 데님 팬츠",
+        "shoes:black:로퍼"
+      ],
+      "baseline": {
+        "expected_count": 4,
+        "predicted_count": 4,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "shoes:black:로퍼"
+        ],
+        "missing_items": [
+          "bottom:blue:와이드 데님 팬츠",
+          "outer:navy:브이넥 니트",
+          "top:white:스트라이프 티셔츠"
+        ],
+        "unexpected_items": [
+          "bottom:gray:와이드 팬츠",
+          "outer:gray:가디건",
+          "top:white:셔츠"
+        ]
+      },
+      "candidate": {
+        "expected_count": 4,
+        "predicted_count": 1,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "bottom:blue:와이드 데님 팬츠"
+        ],
+        "missing_items": [
+          "outer:navy:브이넥 니트",
+          "shoes:black:로퍼",
+          "top:white:스트라이프 티셔츠"
+        ],
+        "unexpected_items": []
+      }
+    },
+    {
+      "sample_id": "codytest_5",
+      "expected_items": [
+        "top:white:셔츠",
+        "outer:black:자켓",
+        "bottom:beige:플리츠 스커트",
+        "shoes:black:메리제인 슈즈",
+        "bag:black:토트백",
+        "accessory:white:양말"
+      ],
+      "baseline": {
+        "expected_count": 6,
+        "predicted_count": 4,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "accessory:white:양말",
+          "bag:black:토트백",
+          "bottom:beige:플리츠 스커트",
+          "outer:black:자켓",
+          "shoes:black:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "unexpected_items": [
+          "accessory:gray:안경",
+          "bag:black:숄더백",
+          "bottom:brown:팬츠",
+          "top:black:니트 탑"
+        ]
+      },
+      "candidate": {
+        "expected_count": 6,
+        "predicted_count": 4,
+        "matched_count": 4,
+        "exact_match": false,
+        "matched_items": [
+          "bag:black:토트백",
+          "bottom:beige:플리츠 스커트",
+          "shoes:black:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "missing_items": [
+          "accessory:white:양말",
+          "outer:black:자켓"
+        ],
+        "unexpected_items": []
+      }
+    },
+    {
+      "sample_id": "codytest_6",
+      "expected_items": [
+        "top:white:블라우스",
+        "outer:black:원피스",
+        "shoes:black:로퍼",
+        "bag:brown:크로스백",
+        "accessory:white:양말"
+      ],
+      "baseline": {
+        "expected_count": 5,
+        "predicted_count": 6,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "shoes:black:로퍼"
+        ],
+        "missing_items": [
+          "accessory:white:양말",
+          "bag:brown:크로스백",
+          "outer:black:원피스",
+          "top:white:블라우스"
+        ],
+        "unexpected_items": [
+          "accessory:gray:안경",
+          "bag:gray:숄더백",
+          "bottom:brown:팬츠",
+          "outer:brown:베스트",
+          "top:black:니트 탑"
+        ]
+      },
+      "candidate": {
+        "expected_count": 5,
+        "predicted_count": 3,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "shoes:black:로퍼"
+        ],
+        "missing_items": [
+          "accessory:white:양말",
+          "bag:brown:크로스백",
+          "outer:black:원피스",
+          "top:white:블라우스"
+        ],
+        "unexpected_items": [
+          "outer:navy:네이비 랩 드레스",
+          "top:white:셔츠"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_7",
+      "expected_items": [
+        "top:white:니트 탑",
+        "outer:black:레더 자켓",
+        "bottom:white:스커트",
+        "shoes:black:부츠",
+        "bag:black:숄더백",
+        "accessory:brown:벨트"
+      ],
+      "baseline": {
+        "expected_count": 6,
+        "predicted_count": 3,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "accessory:brown:벨트",
+          "bag:black:숄더백",
+          "bottom:white:스커트",
+          "outer:black:레더 자켓",
+          "shoes:black:부츠",
+          "top:white:니트 탑"
+        ],
+        "unexpected_items": [
+          "accessory:gray:모자",
+          "bottom:gray:슬랙스",
+          "top:black:니트 탑"
+        ]
+      },
+      "candidate": {
+        "expected_count": 6,
+        "predicted_count": 5,
+        "matched_count": 3,
+        "exact_match": false,
+        "matched_items": [
+          "outer:black:레더 자켓",
+          "shoes:black:부츠",
+          "top:white:니트 탑"
+        ],
+        "missing_items": [
+          "accessory:brown:벨트",
+          "bag:black:숄더백",
+          "bottom:white:스커트"
+        ],
+        "unexpected_items": [
+          "bag:gray:토트백",
+          "bottom:white:미니 스커트"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_8",
+      "expected_items": [
+        "top:green:브이넥 니트",
+        "bottom:white:레이스 스커트",
+        "shoes:black:부츠"
+      ],
+      "baseline": {
+        "expected_count": 3,
+        "predicted_count": 5,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "bottom:white:레이스 스커트",
+          "shoes:black:부츠",
+          "top:green:브이넥 니트"
+        ],
+        "unexpected_items": [
+          "accessory:gray:안경",
+          "bottom:beige:슬랙스",
+          "outer:black:가디건",
+          "shoes:black:로퍼",
+          "top:white:셔츠"
+        ]
+      },
+      "candidate": {
+        "expected_count": 3,
+        "predicted_count": 3,
+        "matched_count": 2,
+        "exact_match": false,
+        "matched_items": [
+          "bottom:white:레이스 스커트",
+          "shoes:black:부츠"
+        ],
+        "missing_items": [
+          "top:green:브이넥 니트"
+        ],
+        "unexpected_items": [
+          "top:green:니트 탑"
+        ]
+      }
+    },
+    {
+      "sample_id": "codytest_9",
+      "expected_items": [
+        "top:blue:스트라이프 니트 탑",
+        "outer:red:가디건",
+        "bottom:blue:데님 팬츠",
+        "shoes:brown:부츠",
+        "bag:black:숄더백",
+        "accessory:black:안경"
+      ],
+      "baseline": {
+        "expected_count": 6,
+        "predicted_count": 4,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "accessory:black:안경",
+          "bag:black:숄더백",
+          "bottom:blue:데님 팬츠",
+          "outer:red:가디건",
+          "shoes:brown:부츠",
+          "top:blue:스트라이프 니트 탑"
+        ],
+        "unexpected_items": [
+          "accessory:beige:귀걸이",
+          "bottom:navy:와이드 데님 팬츠",
+          "shoes:gray:로퍼",
+          "top:brown:상의"
+        ]
+      },
+      "candidate": {
+        "expected_count": 6,
+        "predicted_count": 4,
+        "matched_count": 1,
+        "exact_match": false,
+        "matched_items": [
+          "shoes:brown:부츠"
+        ],
+        "missing_items": [
+          "accessory:black:안경",
+          "bag:black:숄더백",
+          "bottom:blue:데님 팬츠",
+          "outer:red:가디건",
+          "top:blue:스트라이프 니트 탑"
+        ],
+        "unexpected_items": [
+          "bag:black:토트백",
+          "bottom:gray:와이드 팬츠",
+          "top:gray:스트라이프 니트 탑"
+        ]
+      }
+    },
+    {
+      "sample_id": "sample-flatlay-001",
+      "expected_items": [
+        "top:white:셔츠",
+        "outer:black:니트 베스트",
+        "bottom:white:팬츠",
+        "shoes:brown:메리제인 슈즈",
+        "bag:white:숄더백"
+      ],
+      "baseline": {
+        "expected_count": 5,
+        "predicted_count": 6,
+        "matched_count": 5,
+        "exact_match": false,
+        "matched_items": [
+          "bag:white:숄더백",
+          "bottom:white:팬츠",
+          "outer:black:니트 베스트",
+          "shoes:brown:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "missing_items": [],
+        "unexpected_items": [
+          "accessory:brown:안경"
+        ]
+      },
+      "candidate": {
+        "expected_count": 5,
+        "predicted_count": 1,
+        "matched_count": 0,
+        "exact_match": false,
+        "matched_items": [],
+        "missing_items": [
+          "bag:white:숄더백",
+          "bottom:white:팬츠",
+          "outer:black:니트 베스트",
+          "shoes:brown:메리제인 슈즈",
+          "top:white:셔츠"
+        ],
+        "unexpected_items": [
+          "top:white:니트 탑"
+        ]
+      }
+    }
+  ]
+}
